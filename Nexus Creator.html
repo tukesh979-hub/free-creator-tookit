@@ -122,7 +122,7 @@ nav{
 /* Lift the static text content above the spotlight without touching
    .hero-corners/.hero-dots, which are already position:absolute and must
    keep that value — a blanket .hero>* rule would out-specificity and break them. */
-.badges,.hero h1,.hero p,.hero-btns,.hero-tool{position:relative}
+.badges,.hero h1,.hero p,.hero-btns,.hero-tool,.hero-tool-labels{position:relative}
 @media(prefers-reduced-motion:reduce){.hero-spotlight{display:none}}
 /* Rivets at the casing corners — the multitool's fastening points, replacing
    the old HUD corner-bracket signature with this world's own hardware. */
@@ -140,41 +140,47 @@ nav{
 .hero-dots span{display:block;width:3px;height:3px;border-radius:50%;background:var(--steel)}
 
 /* The folded multitool — three brushed-steel blades fanned from one red
-   rivet pivot. Each blade carries the icon of the category it opens; hover
-   or focus unfolds the fan slightly wider, previewing the interaction the
-   category cards below complete. This is the surface's signature moment. */
-.hero-tool{width:216px;height:118px;margin:0 auto 26px;--fan:0deg}
+   rivet pivot. This is the whole page's thesis, not a decoration above one:
+   at full scale it IS the category picker, no second card row restating it.
+   Hover or focus unfolds the fan wider; clicking a blade opens that tray. */
+.hero-tool{width:320px;height:172px;margin:0 auto 4px;--fan:0deg;max-width:78vw}
 .ht-blade{
-  position:absolute;bottom:6px;left:50%;width:36px;height:96px;
-  border-radius:5px 5px 3px 3px;border:1px solid var(--border2);
+  position:absolute;bottom:8px;left:50%;width:50px;height:140px;
+  border-radius:7px 7px 4px 4px;border:1px solid var(--border2);
   background:linear-gradient(112deg,var(--bg4) 0%,var(--steel) 42%,var(--bg4) 58%,var(--steel2) 100%);
-  box-shadow:0 8px 16px -8px rgba(0,0,0,.65),inset 0 1px 0 rgba(255,255,255,.14);
+  box-shadow:0 10px 22px -10px rgba(0,0,0,.65),inset 0 1px 0 rgba(255,255,255,.14);
   transform-origin:bottom center;cursor:pointer;
   transition:transform .35s cubic-bezier(.34,1.56,.64,1),box-shadow .25s;
 }
-.ht-blade:hover,.ht-blade:focus-visible{box-shadow:0 10px 20px -8px rgba(0,0,0,.7),inset 0 1px 0 rgba(255,255,255,.22)}
-.ht-b1{transform:translateX(-50%) rotate(calc(-26deg - var(--fan)))}
+.ht-blade:hover,.ht-blade:focus-visible{box-shadow:0 14px 26px -10px rgba(0,0,0,.7),inset 0 1px 0 rgba(255,255,255,.22)}
+.ht-b1{transform:translateX(-50%) rotate(calc(-27deg - var(--fan)))}
 .ht-b2{transform:translateX(-50%) rotate(0deg);z-index:2}
-.ht-b3{transform:translateX(-50%) rotate(calc(26deg + var(--fan)))}
-.hero-tool:hover,.hero-tool:focus-within{--fan:9deg}
+.ht-b3{transform:translateX(-50%) rotate(calc(27deg + var(--fan)))}
+.hero-tool:hover,.hero-tool:focus-within{--fan:10deg}
 @media(prefers-reduced-motion:reduce){.hero-tool:hover,.hero-tool:focus-within{--fan:0deg}.ht-blade{transition:none}}
-.ht-ico{position:absolute;top:12px;left:50%;width:16px;height:16px;color:var(--bg);opacity:.85}
-.ht-b1 .ht-ico{transform:translateX(-50%) rotate(26deg)}
-.ht-b3 .ht-ico{transform:translateX(-50%) rotate(-26deg)}
+.ht-ico{position:absolute;top:18px;left:50%;width:24px;height:24px;color:var(--bg);opacity:.85}
+.ht-b1 .ht-ico{transform:translateX(-50%) rotate(27deg)}
+.ht-b3 .ht-ico{transform:translateX(-50%) rotate(-27deg)}
 .ht-b2 .ht-ico{transform:translateX(-50%)}
 .ht-pivot{
-  position:absolute;bottom:0;left:50%;width:15px;height:15px;margin-left:-7.5px;border-radius:50%;
+  position:absolute;bottom:0;left:50%;width:19px;height:19px;margin-left:-9.5px;border-radius:50%;
   background:radial-gradient(circle at 35% 30%,var(--red2),var(--red) 60%,#7a130f 100%);
-  box-shadow:0 2px 6px rgba(0,0,0,.55),0 0 0 3px var(--bg2);z-index:3;pointer-events:none;
+  box-shadow:0 2px 8px rgba(0,0,0,.55),0 0 0 4px var(--bg2);z-index:3;pointer-events:none;
 }
+.hero-tool-labels{display:flex;gap:30px;justify-content:center;margin:0 auto 24px;
+  font-family:var(--mono);font-size:9px;letter-spacing:2.5px;text-transform:uppercase;color:var(--muted)}
+.hero-tool-labels span{transition:color .2s}
+.htl-photo:hover,.hero-tool:has(.ht-b1:hover) ~ .hero-tool-labels .htl-photo,
+.htl-video:hover,.hero-tool:has(.ht-b2:hover) ~ .hero-tool-labels .htl-video,
+.htl-audio:hover,.hero-tool:has(.ht-b3:hover) ~ .hero-tool-labels .htl-audio{color:var(--red)}
 
 .badges{display:inline-flex;align-items:center;gap:12px;background:var(--bg3);border:1px solid var(--border);border-radius:3px;padding:5px 16px;margin-bottom:22px;flex-wrap:wrap;justify-content:center}
 .badge{display:flex;align-items:center;gap:5px;font-family:var(--mono);font-size:8px;letter-spacing:1.5px;color:var(--muted);text-transform:uppercase}
 .badge-dot{width:5px;height:5px;border-radius:50%;background:var(--red);flex-shrink:0}
-.hero h1{font-size:clamp(28px,5.5vw,58px);font-weight:800;letter-spacing:-.01em;line-height:1.05;margin-bottom:14px}
+.hero h1{font-size:clamp(30px,6vw,64px);font-weight:800;letter-spacing:-.01em;line-height:1.05;margin-bottom:14px}
 .hero h1 span{color:var(--red)}
-.hero p{color:var(--muted);font-size:14px;line-height:1.7;margin-bottom:26px;padding:0 12px}
-.hero-btns{display:flex;gap:10px;justify-content:center;flex-wrap:wrap}
+.hero p{color:var(--muted);font-size:14px;line-height:1.7;margin-bottom:20px;padding:0 12px}
+.hero-btns{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin-bottom:20px}
 
 /* ═══════════ UPLOAD WIDGET ═══════════ */
 .upload-box{max-width:540px;margin:0 auto 44px;background:var(--bg3);border:1px solid var(--border2);position:relative;border-radius:2px}
@@ -199,6 +205,19 @@ nav{
 .sec-title::before{content:'';display:block;width:3px;height:14px;background:var(--red);flex-shrink:0}
 .sec-link{font-family:var(--mono);font-size:8px;letter-spacing:1.5px;color:var(--muted);transition:color var(--transition)}
 .sec-link:hover{color:var(--red)}
+
+/* One continuous toolbelt instead of four repeated "heading + link + grid"
+   section blocks — groups are divided by a hairline, like belt stitching,
+   not by full section spacing, so the whole thing reads as one instrument. */
+.toolbelt{background:var(--bg2);border:1px solid var(--border);border-radius:4px;margin-bottom:28px;overflow:hidden}
+.tb-head{padding:18px 20px 14px;border-bottom:1px solid var(--border)}
+.tb-sub{font-family:var(--mono);font-size:9px;letter-spacing:1px;color:var(--dim);margin-top:6px}
+.tb-group{padding:16px 20px;border-top:1px solid var(--border)}
+.tb-group:first-of-type{border-top:none}
+.tb-group-muted{opacity:.7}
+.tb-group-head{display:flex;align-items:baseline;gap:8px;margin-bottom:10px}
+.tb-group-name{font-size:10px;font-weight:800;letter-spacing:2.5px;text-transform:uppercase;color:var(--steel2)}
+.tb-group-head .sec-link{margin-left:auto}
 
 .tool-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:8px}
 .tcard{background:var(--bg3);border:1px solid var(--border);padding:14px 12px;cursor:pointer;transition:all var(--transition);position:relative;overflow:hidden;border-radius:2px;text-align:left}
@@ -253,109 +272,9 @@ nav{
 @media(prefers-reduced-motion:reduce){.home-bg::before,.home-bg::after{animation:none}}
 #page-home .hero,#page-home>.home-wrap,#page-home>section{position:relative;z-index:1}
 
-/* ═══════════ CATEGORY SHOWCASE — 3D INTERACTIVE ICONS ═══════════ */
-.cat-showcase{padding:8px 16px 6px;position:relative;z-index:1}
-.cs-inner{max-width:980px;margin:0 auto}
-.cs-head{text-align:center;margin-bottom:22px}
-.cs-head .sec-title{justify-content:center;margin-bottom:6px}
-.cs-head .sec-title::before{display:none}
-.cs-sub{font-family:var(--mono);font-size:9px;letter-spacing:1.5px;color:var(--dim);text-transform:uppercase}
-.cs-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
-
-.cat-card{
-  position:relative;background:linear-gradient(180deg,var(--bg3) 0%,var(--bg2) 100%);
-  border:1px solid var(--border);border-radius:6px;padding:26px 18px 20px;
-  display:flex;flex-direction:column;align-items:center;text-align:center;overflow:hidden;
-  perspective:900px;transition:border-color .25s,transform .25s,box-shadow .25s;cursor:pointer;
-}
-.cat-card:hover,.cat-card:focus-visible{
-  border-color:var(--red);transform:translateY(-3px);
-  box-shadow:0 16px 40px -18px rgba(230,51,40,.45);
-}
-.cat-card-glow{
-  position:absolute;inset:-1px;opacity:0;transition:opacity .3s;pointer-events:none;
-  background:radial-gradient(circle 220px at var(--mx,50%) var(--my,-20%),rgba(230,51,40,.16),transparent 70%);
-}
-.cat-card:hover .cat-card-glow{opacity:1}
-/* Rivets, not corner brackets — the casing screws that hold this blade's plate on. */
-.cat-card::before,.cat-card::after{
-  content:'';position:absolute;width:6px;height:6px;border-radius:50%;
-  background:radial-gradient(circle at 35% 30%,var(--steel2),var(--steel) 55%,var(--dim) 100%);
-  box-shadow:inset 0 1px 1px rgba(0,0,0,.4);transition:box-shadow .25s;
-}
-.cat-card::before{top:10px;left:10px}
-.cat-card::after{bottom:10px;right:10px}
-.cat-card:hover::before,.cat-card:hover::after{box-shadow:inset 0 1px 1px rgba(0,0,0,.4),0 0 0 3px rgba(230,51,40,.18)}
-
-.icon3d-float{margin:0 auto 16px;animation:icon3dBob 5s ease-in-out infinite}
-.cat-card:nth-child(2) .icon3d-float{animation-delay:-1.6s}
-.cat-card:nth-child(3) .icon3d-float{animation-delay:-3.2s}
-@keyframes icon3dBob{0%,100%{transform:translateY(0)}50%{transform:translateY(-5px)}}
-
-.icon3d{
-  position:relative;width:78px;height:78px;transform-style:preserve-3d;
-  transform:rotateX(var(--rx,0deg)) rotateY(var(--ry,0deg));
-}
-.icon3d-layer{position:absolute;inset:0;transform-style:preserve-3d;transition:transform .18s ease-out}
-.cat-card.tilting .icon3d-layer{transition:transform .06s linear}
-/* Brushed-steel blade plate, same material as the hero's folded blades. */
-.icon3d-plate{
-  transform:translateZ(0px);border-radius:14px;
-  background:linear-gradient(112deg,var(--bg4) 0%,var(--steel) 42%,var(--bg4) 58%,var(--steel2) 100%);
-  border:1px solid var(--border2);
-  box-shadow:inset 0 1px 0 rgba(255,255,255,.1),0 10px 22px -10px rgba(0,0,0,.55);
-}
-/* A still bezel rim, not a spinning radar ring — blades don't spin, they catch light. */
-.icon3d-ring{
-  transform:translateZ(11px);border-radius:50%;
-  border:1px solid rgba(255,255,255,.14);inset:11px;
-}
-.icon3d-icon{
-  transform:translateZ(26px);display:flex;align-items:center;justify-content:center;color:var(--bg);
-}
-.icon3d-icon svg{width:32px;height:32px;opacity:.88;filter:drop-shadow(0 2px 3px rgba(0,0,0,.35))}
-.icon3d-shine{
-  transform:translateZ(32px);border-radius:14px;mix-blend-mode:overlay;opacity:.9;
-  background:radial-gradient(circle 60px at var(--mx,50%) var(--my,30%),rgba(255,255,255,.55),transparent 60%);
-}
-@media(prefers-reduced-motion:reduce){.icon3d-float{animation:none}.icon3d-layer{transition:none}}
-
-.cat-name{font-size:14px;font-weight:800;letter-spacing:1.5px;text-transform:uppercase;margin-bottom:6px}
-.cat-desc{font-family:var(--mono);font-size:9px;color:var(--muted);line-height:1.6;margin-bottom:16px;min-height:28px}
-
-/* Per-category live micro-interaction preview */
-.cat-preview{width:100%;height:34px;position:relative;border-radius:3px;overflow:hidden;background:var(--bg4);border:1px solid var(--border);margin-bottom:16px}
-
-.cat-preview-photo{display:flex}
-.cpv-before,.cpv-after{flex:1;height:100%}
-.cpv-before{background:linear-gradient(90deg,#3a3a3a,#555);filter:grayscale(1) brightness(.8)}
-.cpv-after{background:linear-gradient(90deg,#e5383b,#ff8a5c)}
-.cpv-split{position:absolute;top:0;bottom:0;width:2px;background:#fff;left:50%;box-shadow:0 0 6px rgba(255,255,255,.8);animation:cpvSweep 4.5s ease-in-out infinite}
-@keyframes cpvSweep{0%,100%{left:18%}50%{left:82%}}
-
-.cat-preview-video{display:flex;align-items:center;padding:0 8px}
-.cpv-track{position:relative;flex:1;height:3px;background:var(--border2);border-radius:2px}
-.cpv-fill{position:absolute;left:0;top:0;height:100%;background:var(--red);border-radius:2px;animation:cpvFill 3.6s linear infinite}
-.cpv-head{position:absolute;top:50%;width:9px;height:9px;border-radius:50%;background:#fff;border:2px solid var(--red);transform:translate(-50%,-50%);animation:cpvHead 3.6s linear infinite}
-@keyframes cpvFill{0%{width:0%}90%,100%{width:100%}}
-@keyframes cpvHead{0%{left:0%}90%,100%{left:100%}}
-
-.cat-preview-audio{padding:0 10px}
-.cpv-eq{display:flex;align-items:center;justify-content:center;gap:3px;height:100%;transform:scaleY(var(--eq-boost,1));transition:transform .12s ease-out}
-.cpv-bar{width:3px;background:var(--red);border-radius:2px;height:6px;animation:cpvEq 1.1s ease-in-out infinite}
-@keyframes cpvEq{0%,100%{height:5px;opacity:.55}50%{height:24px;opacity:1}}
-/* Live = pointer is driving the strip directly; freeze the ambient loop so the
-   cursor is visibly in control instead of fighting the auto-cycle. */
-.cat-preview.live .cpv-split,.cat-preview.live .cpv-fill,
-.cat-preview.live .cpv-head,.cat-preview.live .cpv-bar{animation-play-state:paused}
-.cpv-split{transition:left .06s linear}
-.cpv-fill,.cpv-head{transition:width .06s linear,left .06s linear}
-@media(prefers-reduced-motion:reduce){.cpv-split,.cpv-fill,.cpv-head,.cpv-bar{animation:none}}
-
-.cat-cta{font-family:var(--mono);font-size:9px;letter-spacing:1.5px;color:var(--dim);text-transform:uppercase;transition:color .2s;margin-top:auto}
-.cat-card:hover .cat-cta{color:var(--red)}
-
-@media(max-width:900px){.cs-grid{grid-template-columns:1fr}}
+/* The category-showcase card section (and its icon3d/cat-preview system) was
+   removed — the hero's own blades are the category picker now, so a second,
+   near-identical set of category cards directly below it was pure repetition. */
 
 /* AI Tools cards */
 .ai-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
@@ -377,12 +296,6 @@ nav{
 .qa-val{font-family:var(--mono);font-size:10px;color:var(--muted);text-align:center;margin-top:6px}
 .qa-btn{background:var(--red);color:#fff;font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;padding:8px 16px;border-radius:2px;align-self:end;transition:background var(--transition)}
 .qa-btn:hover{background:var(--red2)}
-
-/* CTA section */
-.cta-wrap{text-align:center;padding:36px 16px 36px;position:relative;max-width:980px;margin:0 auto}
-.cta-line{position:absolute;left:15%;right:15%;height:1px;background:linear-gradient(to right,transparent,var(--border),transparent)}
-.cta h2{font-size:clamp(20px,4vw,28px);font-weight:800;margin:12px 0 18px}
-.cta h2 span{color:var(--red)}
 
 /* ═══════════ FOOTER ═══════════ */
 footer{background:var(--bg2);border-top:1px solid var(--border);padding:24px 16px;margin-top:24px}
@@ -1080,19 +993,22 @@ FINISH: unreviewed and undocumented is unfinished; this build ends with the fini
       </button>
       <div class="ht-pivot" aria-hidden="true"></div>
     </div>
-    <div class="badges">
-      <div class="badge"><div class="badge-dot"></div>Free</div>
-      <div class="badge"><div class="badge-dot"></div>No Watermark</div>
-      <div class="badge"><div class="badge-dot"></div>No Signup</div>
+    <div class="hero-tool-labels" aria-hidden="true">
+      <span class="htl-photo">Photo</span><span class="htl-video">Video</span><span class="htl-audio">Audio</span>
     </div>
-    <h1>FREE CREATOR<br/><span>TOOLKIT</span></h1>
-    <p>Edit Video, Photo &amp; Audio instantly in your browser.<br/>No software. No limits. Just create.</p>
+    <h1>ONE TOOL.<br/><span>EVERY BLADE.</span></h1>
+    <p>Free video, photo &amp; audio editing that unfolds in your browser.<br/>No software. No signup. Nothing uploaded.</p>
     <div class="hero-btns">
       <button class="btn-red" onclick="goPage('editor')" aria-label="Upload file and start editing">
         <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M17 8l-5-5-5 5M12 3v12"/></svg>
         Upload File
       </button>
       <button class="btn-outline" onclick="goPage('video')" aria-label="Explore all tools">Explore Tools →</button>
+    </div>
+    <div class="badges">
+      <div class="badge"><div class="badge-dot"></div>Free</div>
+      <div class="badge"><div class="badge-dot"></div>No Watermark</div>
+      <div class="badge"><div class="badge-dot"></div>No Signup</div>
     </div>
   </section>
 
@@ -1123,120 +1039,47 @@ FINISH: unreviewed and undocumented is unfinished; this build ends with the fini
     </div>
   </section>
 
-  <!-- Category showcase: 3D interactive icons -->
-  <section class="cat-showcase" aria-label="Choose a category">
-    <div class="cs-inner">
-      <div class="cs-head">
-        <div class="sec-title">Pick Your Craft</div>
-        <p class="cs-sub">Three toolkits · One tab · Zero uploads</p>
-      </div>
-      <div class="cs-grid">
-
-        <button class="cat-card" data-cat="photo" onclick="goPage('photo')" aria-label="Open photo tools">
-          <div class="cat-card-glow" aria-hidden="true"></div>
-          <div class="icon3d-float">
-            <div class="icon3d" aria-hidden="true">
-              <div class="icon3d-layer icon3d-plate"></div>
-              <div class="icon3d-layer icon3d-ring"></div>
-              <div class="icon3d-layer icon3d-icon">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
-                  <rect x="3" y="5.5" width="18" height="14" rx="2"/><circle cx="12" cy="12.5" r="3.4"/><path d="M8.2 5.5l1.3-1.8h5l1.3 1.8"/>
-                </svg>
-              </div>
-              <div class="icon3d-layer icon3d-shine"></div>
-            </div>
-          </div>
-          <h3 class="cat-name">Photo</h3>
-          <p class="cat-desc">Crop, filter, resize &amp; compress — pixel-perfect, instantly.</p>
-          <div class="cat-preview cat-preview-photo" aria-hidden="true">
-            <div class="cpv-before"></div><div class="cpv-after"></div><div class="cpv-split"></div>
-          </div>
-          <span class="cat-cta">Open Photo Tools →</span>
-        </button>
-
-        <button class="cat-card" data-cat="video" onclick="goPage('video')" aria-label="Open video tools">
-          <div class="cat-card-glow" aria-hidden="true"></div>
-          <div class="icon3d-float">
-            <div class="icon3d" aria-hidden="true">
-              <div class="icon3d-layer icon3d-plate"></div>
-              <div class="icon3d-layer icon3d-ring"></div>
-              <div class="icon3d-layer icon3d-icon">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
-                  <rect x="2.6" y="5.5" width="18.8" height="13" rx="2"/><path d="M2.6 8.5h18.8M2.6 16.5h18.8M6 5.5v13M18.2 5.5v13" opacity=".55"/><path d="M10.3 9.3l4.7 3-4.7 3z" fill="currentColor" stroke="none"/>
-                </svg>
-              </div>
-              <div class="icon3d-layer icon3d-shine"></div>
-            </div>
-          </div>
-          <h3 class="cat-name">Video</h3>
-          <p class="cat-desc">Trim, crop, speed-ramp &amp; export — no re-encode limits.</p>
-          <div class="cat-preview cat-preview-video" aria-hidden="true">
-            <div class="cpv-track"><div class="cpv-fill"></div><div class="cpv-head"></div></div>
-          </div>
-          <span class="cat-cta">Open Video Tools →</span>
-        </button>
-
-        <button class="cat-card" data-cat="audio" onclick="goPage('audio')" aria-label="Open audio tools">
-          <div class="cat-card-glow" aria-hidden="true"></div>
-          <div class="icon3d-float">
-            <div class="icon3d" aria-hidden="true">
-              <div class="icon3d-layer icon3d-plate"></div>
-              <div class="icon3d-layer icon3d-ring"></div>
-              <div class="icon3d-layer icon3d-icon">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
-                  <path d="M3 12h2.2l2-6.5 2.6 13 2.4-9.5 1.8 6 2-3.5H21"/>
-                </svg>
-              </div>
-              <div class="icon3d-layer icon3d-shine"></div>
-            </div>
-          </div>
-          <h3 class="cat-name">Audio</h3>
-          <p class="cat-desc">Trim, fade, normalize &amp; visualize — hear every change.</p>
-          <div class="cat-preview cat-preview-audio" aria-hidden="true">
-            <div class="cpv-eq" id="cpv-eq"><!-- bars injected by JS with staggered delays --></div>
-          </div>
-          <span class="cat-cta">Open Audio Tools →</span>
-        </button>
-
-      </div>
-    </div>
-  </section>
 
   <div class="home-wrap">
-    <!-- Image Tools -->
-    <section class="sec" aria-label="Image tools preview">
-      <div class="sec-head">
-        <div class="sec-title">Image Tools</div>
-        <button class="sec-link" onclick="goPage('photo')" aria-label="View all photo tools">View All →</button>
+    <!-- The Toolbelt: all 34 tools as one continuous instrument, groups
+         divided by a hairline instead of repeated as four separate sections. -->
+    <section class="toolbelt" aria-label="All tools">
+      <div class="tb-head">
+        <div class="sec-title">The Toolbelt</div>
+        <p class="tb-sub">34 tools on one page — jump straight to any of them, nothing else to open first</p>
       </div>
-      <div class="tool-grid" id="home-photo"></div>
-    </section>
 
-    <!-- Audio Tools -->
-    <section class="sec" aria-label="Audio tools preview">
-      <div class="sec-head">
-        <div class="sec-title">Audio Tools</div>
-        <button class="sec-link" onclick="goPage('audio')" aria-label="View all audio tools">View All →</button>
+      <div class="tb-group" aria-label="Photo tools preview">
+        <div class="tb-group-head">
+          <span class="tb-group-name">Photo</span>
+          <button class="sec-link" onclick="goPage('photo')" aria-label="View all photo tools">View All →</button>
+        </div>
+        <div class="tool-grid" id="home-photo"></div>
       </div>
-      <div class="tool-grid" id="home-audio"></div>
-    </section>
 
-    <!-- Video Tools -->
-    <section class="sec" aria-label="Video tools preview">
-      <div class="sec-head">
-        <div class="sec-title">Video Tools</div>
-        <button class="sec-link" onclick="goPage('video')" aria-label="View all video tools">View All →</button>
+      <div class="tb-group" aria-label="Video tools preview">
+        <div class="tb-group-head">
+          <span class="tb-group-name">Video</span>
+          <button class="sec-link" onclick="goPage('video')" aria-label="View all video tools">View All →</button>
+        </div>
+        <div class="tool-grid" id="home-video"></div>
       </div>
-      <div class="tool-grid" id="home-video"></div>
-    </section>
 
-    <!-- AI Tools -->
-    <section class="sec" aria-label="AI tools coming soon">
-      <div class="sec-head">
-        <div class="sec-title">AI Tools</div>
-        <span class="sec-link" style="color:var(--amber)">Coming Soon</span>
+      <div class="tb-group" aria-label="Audio tools preview">
+        <div class="tb-group-head">
+          <span class="tb-group-name">Audio</span>
+          <button class="sec-link" onclick="goPage('audio')" aria-label="View all audio tools">View All →</button>
+        </div>
+        <div class="tool-grid" id="home-audio"></div>
       </div>
-      <div class="ai-grid" id="home-ai"></div>
+
+      <div class="tb-group tb-group-muted" aria-label="AI tools coming soon">
+        <div class="tb-group-head">
+          <span class="tb-group-name">AI</span>
+          <span class="sec-link" style="color:var(--amber);margin-left:auto">Coming Soon</span>
+        </div>
+        <div class="ai-grid" id="home-ai"></div>
+      </div>
     </section>
 
     <!-- Quick Adjust -->
@@ -1273,16 +1116,6 @@ FINISH: unreviewed and undocumented is unfinished; this build ends with the fini
       </div>
     </section>
 
-    <!-- CTA -->
-    <div class="cta-wrap">
-      <div class="cta-line" style="top:14px"></div>
-      <div class="cta">
-        <p style="font-family:var(--mono);font-size:9px;letter-spacing:3px;color:var(--muted);text-transform:uppercase;padding-top:28px">Ready to Create?</p>
-        <h2>Launch the <span>Editor</span></h2>
-        <button class="btn-red" onclick="goPage('editor')" style="font-size:11px;padding:13px 36px" aria-label="Start editing">→ Start Editing Now →</button>
-      </div>
-      <div class="cta-line" style="bottom:14px"></div>
-    </div>
   </div>
 
   <footer role="contentinfo">
@@ -3861,7 +3694,7 @@ function initResizeFrameCanvas() {
     // 3 — frame border + corner L-marks
     const cs = 14, lw = 2.5;
     ctx.save();
-    ctx.strokeStyle = '#e5383b';
+    ctx.strokeStyle = '#e63328';
     ctx.lineWidth = 1;
     ctx.strokeRect(fX + 0.5, fY + 0.5, fW - 1, fH - 1);
     ctx.lineWidth = lw; ctx.lineCap = 'square';
@@ -4373,7 +4206,7 @@ function drawCropOverlay(activeHandle) {
   ctx.clearRect(x, y, w, h);
 
   // ── Border — bright red when hitting boundary, normal red otherwise ──────
-  const borderCol = outOfBounds ? '#ff2222' : '#e5383b';
+  const borderCol = outOfBounds ? '#ff2222' : '#e63328';
   ctx.strokeStyle = borderCol;
   ctx.lineWidth = 2;
   ctx.strokeRect(x + 1, y + 1, w - 2, h - 2);
@@ -5825,75 +5658,6 @@ document.addEventListener('keydown', e => {
   }
 });
 
-// ════════════════════════════════════════════════════════════════════════════
-// HOME — CATEGORY SHOWCASE (3D tilt icons + micro-interactions)
-// ════════════════════════════════════════════════════════════════════════════
-function initCatShowcase() {
-  // Equalizer bars for the Audio card preview — staggered animation delays
-  const eq = $('cpv-eq');
-  if (eq && !eq.childElementCount) {
-    eq.innerHTML = Array.from({length: 14}, (_, i) =>
-      `<div class="cpv-bar" style="animation-delay:${(i * 0.08).toFixed(2)}s"></div>`
-    ).join('');
-  }
-
-  // Pointer-tracked 3D tilt for each category icon — CSS vars, no external libs
-  const REDUCED = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-  if (REDUCED) return;
-
-  document.querySelectorAll('.cat-card').forEach(card => {
-    const icon = card.querySelector('.icon3d');
-    if (!icon || icon._tiltBound) return;
-    icon._tiltBound = true;
-
-    const setVars = (rx, ry, mx, my) => {
-      icon.style.setProperty('--rx', rx.toFixed(2) + 'deg');
-      icon.style.setProperty('--ry', ry.toFixed(2) + 'deg');
-      icon.style.setProperty('--mx', mx.toFixed(1) + '%');
-      icon.style.setProperty('--my', my.toFixed(1) + '%');
-    };
-    const reset = () => { setVars(0, 0, 50, 30); card.classList.remove('tilting'); };
-
-    card.addEventListener('pointermove', e => {
-      if (e.pointerType === 'touch') return;
-      const r = card.getBoundingClientRect();
-      const px = (e.clientX - r.left) / r.width;
-      const py = (e.clientY - r.top)  / r.height;
-      card.classList.add('tilting');
-      setVars((0.5 - py) * 22, (px - 0.5) * 22, px * 100, py * 100);
-      card.style.setProperty('--mx', (px * 100).toFixed(1) + '%');
-      card.style.setProperty('--my', (py * 100).toFixed(1) + '%');
-    });
-    card.addEventListener('pointerleave', reset);
-    card.addEventListener('blur', reset);
-
-    // Per-category preview strip: give the ambient loop a real interaction —
-    // pointer position drives it directly instead of just auto-cycling.
-    const cat = card.dataset.cat;
-    const preview = card.querySelector('.cat-preview');
-    if (preview) {
-      card.addEventListener('pointermove', e => {
-        if (e.pointerType === 'touch') return;
-        const pr = preview.getBoundingClientRect();
-        const ppx = Math.max(0, Math.min(1, (e.clientX - pr.left) / pr.width));
-        preview.classList.add('live');
-        if (cat === 'photo') {
-          const split = preview.querySelector('.cpv-split');
-          if (split) split.style.left = (6 + ppx * 88) + '%';
-        } else if (cat === 'video') {
-          const fill = preview.querySelector('.cpv-fill');
-          const head = preview.querySelector('.cpv-head');
-          if (fill) fill.style.width = (ppx * 100) + '%';
-          if (head) head.style.left = (ppx * 100) + '%';
-        } else if (cat === 'audio') {
-          preview.style.setProperty('--eq-boost', (0.65 + ppx * 0.95).toFixed(2));
-        }
-      });
-      card.addEventListener('pointerleave', () => preview.classList.remove('live'));
-    }
-  });
-}
-
 // Hero spotlight — one pointer-tracked glow, the hero's single authored motion
 // moment. Mirrors the .cat-card-glow radial-follow trick at section scale.
 function initHeroSpotlight() {
@@ -5921,7 +5685,6 @@ document.addEventListener('DOMContentLoaded', () => {
   renderToolPage('photo');
   renderToolPage('audio');
   renderToolList();
-  initCatShowcase();
   initHeroSpotlight();
 
   if (typeof SharedArrayBuffer === 'undefined') {
