@@ -7,25 +7,30 @@
 <meta name="description" content="Free browser-based creator toolkit. Edit video, photo, and audio instantly. No watermark, no signup, no upload."/>
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
-<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet"/>
 <style>
-/* ═══════════ DESIGN TOKENS ═══════════ */
+/* ═══════════ DESIGN TOKENS — "MULTITOOL" WORLD ═══════════
+   Matte-black tool casing, brushed steel, one red pivot-pin accent.
+   --steel is the metal material accent (borders, dividers, icon strokes);
+   --red is reserved for the pivot point and primary action only. */
 :root[data-theme="dark"]{
-  --bg:#0c0c0c;--bg2:#131313;--bg3:#1a1a1a;--bg4:#222;
-  --red:#e5383b;--red2:#ff4f52;
-  --border:#242424;--border2:#2e2e2e;
-  --text:#f0f0f0;--muted:#888;--dim:#3a3a3a;
-  --green:#22c55e;--amber:#f59e0b;--blue:#3b82f6;
+  --bg:#0d0e10;--bg2:#16181b;--bg3:#1c1f22;--bg4:#24282c;
+  --red:#e63328;--red2:#ff5245;
+  --steel:#8b929c;--steel2:#c9cfd5;
+  --border:#2a2d31;--border2:#383c41;
+  --text:#eef0f2;--muted:#8b929c;--dim:#45484c;
+  --green:#3ecf7a;--amber:#f2a93c;--blue:#4a90e2;
 }
 :root[data-theme="light"]{
-  --bg:#fafaf8;--bg2:#fff;--bg3:#f4f4f0;--bg4:#ebebe6;
-  --red:#dc2626;--red2:#ef4444;
-  --border:#e5e5e0;--border2:#d4d4d0;
-  --text:#111;--muted:#666;--dim:#aaa;
-  --green:#16a34a;--amber:#d97706;--blue:#2563eb;
+  --bg:#eff0f2;--bg2:#ffffff;--bg3:#f7f8f9;--bg4:#eceef0;
+  --red:#d4291f;--red2:#e8433a;
+  --steel:#6b7280;--steel2:#40444b;
+  --border:#dcdfe2;--border2:#c7cbd0;
+  --text:#14161a;--muted:#6b7280;--dim:#a8adb3;
+  --green:#1a9d56;--amber:#c47c0d;--blue:#2f6fc4;
 }
 :root{
-  --font:'Syne',sans-serif;
+  --font:'Archivo',sans-serif;
   --mono:'JetBrains Mono',monospace;
   --nav-h:54px;
   --transition:.15s cubic-bezier(.4,0,.2,1);
@@ -57,7 +62,7 @@ nav{
   display:flex;align-items:center;padding:0 16px;position:sticky;top:0;z-index:100;flex-shrink:0
 }
 .logo{display:flex;align-items:center;gap:10px;margin-right:16px;padding-right:16px;border-right:1px solid var(--border);cursor:pointer}
-.logo-icon{width:28px;height:28px;background:var(--red);display:flex;align-items:center;justify-content:center;flex-shrink:0;border-radius:2px}
+.logo-icon{width:28px;height:28px;background:radial-gradient(circle at 35% 30%,var(--red2),var(--red) 65%,#7a130f 100%);box-shadow:inset 0 1px 0 rgba(255,255,255,.25),0 1px 2px rgba(0,0,0,.4);display:flex;align-items:center;justify-content:center;flex-shrink:0;border-radius:50%}
 .logo-title{font-size:12px;font-weight:800;letter-spacing:3px;line-height:1}
 .logo-sub{font-family:var(--mono);font-size:7px;letter-spacing:3px;color:var(--muted);margin-top:1px}
 .nav-links{display:flex}
@@ -82,49 +87,91 @@ nav{
 }
 .theme-toggle:hover{color:var(--text);border-color:var(--text)}
 .nav-cta{
-  background:var(--red);color:#fff;font-size:10px;font-weight:700;letter-spacing:2px;
-  text-transform:uppercase;padding:8px 14px;transition:background var(--transition);border-radius:2px
+  background:linear-gradient(180deg,var(--red2),var(--red));color:#fff;font-size:10px;font-weight:700;letter-spacing:2px;
+  text-transform:uppercase;padding:8px 14px;transition:filter var(--transition);border-radius:3px;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.22),0 1px 2px rgba(0,0,0,.3)
 }
-.nav-cta:hover{background:var(--red2)}
+.nav-cta:hover{filter:brightness(1.08)}
 .hamburger{display:none;width:32px;height:32px;align-items:center;justify-content:center;color:var(--text)}
 
-/* ═══════════ BUTTONS ═══════════ */
-.btn-red{background:var(--red);color:#fff;font-size:10px;font-weight:700;letter-spacing:2px;text-transform:uppercase;padding:11px 24px;transition:background var(--transition);display:inline-flex;align-items:center;gap:7px;border-radius:2px}
-.btn-red:hover{background:var(--red2)}
-.btn-outline{background:transparent;color:var(--text);border:1px solid var(--border2);font-size:10px;font-weight:600;letter-spacing:2px;text-transform:uppercase;padding:11px 20px;transition:all var(--transition);display:inline-flex;align-items:center;gap:6px;border-radius:2px}
-.btn-outline:hover{border-color:var(--muted)}
+/* ═══════════ BUTTONS — brushed-steel edge, red pivot fill on primary ═══════════ */
+.btn-red{
+  background:linear-gradient(180deg,var(--red2),var(--red));color:#fff;font-size:10px;font-weight:700;letter-spacing:2px;
+  text-transform:uppercase;padding:11px 24px;transition:filter var(--transition),transform var(--transition);
+  display:inline-flex;align-items:center;gap:7px;border-radius:3px;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.22),0 3px 8px -3px rgba(0,0,0,.5)
+}
+.btn-red:hover{filter:brightness(1.08);transform:translateY(-1px)}
+.btn-outline{
+  background:linear-gradient(180deg,var(--bg4),var(--bg3));color:var(--text);border:1px solid var(--border2);
+  font-size:10px;font-weight:600;letter-spacing:2px;text-transform:uppercase;padding:11px 20px;
+  transition:all var(--transition);display:inline-flex;align-items:center;gap:6px;border-radius:3px;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.06)
+}
+.btn-outline:hover{border-color:var(--steel);transform:translateY(-1px)}
 
 /* ═══════════ HERO ═══════════ */
-.hero{position:relative;padding:60px 20px 50px;text-align:center;background:radial-gradient(ellipse 70% 50% at 50% 0%,rgba(229,56,59,.05) 0%,transparent 65%);overflow:hidden}
+.hero{position:relative;padding:60px 20px 50px;text-align:center;background:radial-gradient(ellipse 70% 50% at 50% 0%,rgba(230,51,40,.05) 0%,transparent 65%);overflow:hidden}
 /* Pointer-tracked spotlight — the hero's one authored motion moment. Same
    radial-follow trick as .cat-card-glow, scaled up to the whole section. */
 .hero-spotlight{
   position:absolute;inset:0;opacity:0;transition:opacity .5s ease;pointer-events:none;z-index:0;
-  background:radial-gradient(circle 420px at var(--hx,50%) var(--hy,0%),rgba(229,56,59,.14),transparent 70%);
+  background:radial-gradient(circle 420px at var(--hx,50%) var(--hy,0%),rgba(230,51,40,.14),transparent 70%);
 }
 .hero.spotlit .hero-spotlight{opacity:1}
 /* Lift the static text content above the spotlight without touching
    .hero-corners/.hero-dots, which are already position:absolute and must
    keep that value — a blanket .hero>* rule would out-specificity and break them. */
-.badges,.hero h1,.hero p,.hero-btns{position:relative}
+.badges,.hero h1,.hero p,.hero-btns,.hero-tool{position:relative}
 @media(prefers-reduced-motion:reduce){.hero-spotlight{display:none}}
+/* Rivets at the casing corners — the multitool's fastening points, replacing
+   the old HUD corner-bracket signature with this world's own hardware. */
 .hero-corners{position:absolute;inset:0;pointer-events:none}
-.hc{position:absolute;width:14px;height:14px}
-.hc::before,.hc::after{content:'';position:absolute;background:var(--border2)}
-.hc::before{width:100%;height:2px;top:0;left:0}
-.hc::after{width:2px;height:100%;top:0;left:0}
-.hc.tl{top:16px;left:20px}
-.hc.tr{top:16px;right:20px;transform:scaleX(-1)}
-.hc.bl{bottom:16px;left:20px;transform:scaleY(-1)}
-.hc.br{bottom:16px;right:20px;transform:scale(-1)}
-.hero-dots{position:absolute;top:24px;display:grid;grid-template-columns:repeat(4,1fr);gap:5px;opacity:.2;pointer-events:none}
+.hc{position:absolute;width:7px;height:7px;border-radius:50%;
+  background:radial-gradient(circle at 35% 30%,var(--steel2),var(--steel) 55%,var(--dim) 100%);
+  box-shadow:inset 0 1px 1px rgba(0,0,0,.4),0 1px 1px rgba(255,255,255,.06)}
+.hc.tl{top:18px;left:22px}
+.hc.tr{top:18px;right:22px}
+.hc.bl{bottom:18px;left:22px}
+.hc.br{bottom:18px;right:22px}
+.hero-dots{position:absolute;top:24px;display:grid;grid-template-columns:repeat(4,1fr);gap:5px;opacity:.16;pointer-events:none}
 .hero-dots.left{left:42px}
 .hero-dots.right{right:42px}
-.hero-dots span{display:block;width:3px;height:3px;border-radius:50%;background:var(--muted)}
-.badges{display:inline-flex;align-items:center;gap:12px;background:var(--bg3);border:1px solid var(--border);border-radius:20px;padding:5px 16px;margin-bottom:22px;flex-wrap:wrap;justify-content:center}
+.hero-dots span{display:block;width:3px;height:3px;border-radius:50%;background:var(--steel)}
+
+/* The folded multitool — three brushed-steel blades fanned from one red
+   rivet pivot. Each blade carries the icon of the category it opens; hover
+   or focus unfolds the fan slightly wider, previewing the interaction the
+   category cards below complete. This is the surface's signature moment. */
+.hero-tool{width:216px;height:118px;margin:0 auto 26px;--fan:0deg}
+.ht-blade{
+  position:absolute;bottom:6px;left:50%;width:36px;height:96px;
+  border-radius:5px 5px 3px 3px;border:1px solid var(--border2);
+  background:linear-gradient(112deg,var(--bg4) 0%,var(--steel) 42%,var(--bg4) 58%,var(--steel2) 100%);
+  box-shadow:0 8px 16px -8px rgba(0,0,0,.65),inset 0 1px 0 rgba(255,255,255,.14);
+  transform-origin:bottom center;cursor:pointer;
+  transition:transform .35s cubic-bezier(.34,1.56,.64,1),box-shadow .25s;
+}
+.ht-blade:hover,.ht-blade:focus-visible{box-shadow:0 10px 20px -8px rgba(0,0,0,.7),inset 0 1px 0 rgba(255,255,255,.22)}
+.ht-b1{transform:translateX(-50%) rotate(calc(-26deg - var(--fan)))}
+.ht-b2{transform:translateX(-50%) rotate(0deg);z-index:2}
+.ht-b3{transform:translateX(-50%) rotate(calc(26deg + var(--fan)))}
+.hero-tool:hover,.hero-tool:focus-within{--fan:9deg}
+@media(prefers-reduced-motion:reduce){.hero-tool:hover,.hero-tool:focus-within{--fan:0deg}.ht-blade{transition:none}}
+.ht-ico{position:absolute;top:12px;left:50%;width:16px;height:16px;color:var(--bg);opacity:.85}
+.ht-b1 .ht-ico{transform:translateX(-50%) rotate(26deg)}
+.ht-b3 .ht-ico{transform:translateX(-50%) rotate(-26deg)}
+.ht-b2 .ht-ico{transform:translateX(-50%)}
+.ht-pivot{
+  position:absolute;bottom:0;left:50%;width:15px;height:15px;margin-left:-7.5px;border-radius:50%;
+  background:radial-gradient(circle at 35% 30%,var(--red2),var(--red) 60%,#7a130f 100%);
+  box-shadow:0 2px 6px rgba(0,0,0,.55),0 0 0 3px var(--bg2);z-index:3;pointer-events:none;
+}
+
+.badges{display:inline-flex;align-items:center;gap:12px;background:var(--bg3);border:1px solid var(--border);border-radius:3px;padding:5px 16px;margin-bottom:22px;flex-wrap:wrap;justify-content:center}
 .badge{display:flex;align-items:center;gap:5px;font-family:var(--mono);font-size:8px;letter-spacing:1.5px;color:var(--muted);text-transform:uppercase}
 .badge-dot{width:5px;height:5px;border-radius:50%;background:var(--red);flex-shrink:0}
-.hero h1{font-size:clamp(28px,5.5vw,60px);font-weight:800;letter-spacing:-1px;line-height:1.05;margin-bottom:14px}
+.hero h1{font-size:clamp(28px,5.5vw,58px);font-weight:800;letter-spacing:-.01em;line-height:1.05;margin-bottom:14px}
 .hero h1 span{color:var(--red)}
 .hero p{color:var(--muted);font-size:14px;line-height:1.7;margin-bottom:26px;padding:0 12px}
 .hero-btns{display:flex;gap:10px;justify-content:center;flex-wrap:wrap}
@@ -136,7 +183,7 @@ nav{
 .ub-tab{flex:1;padding:10px;font-size:9px;font-weight:700;letter-spacing:2px;text-transform:uppercase;border-bottom:2px solid transparent;color:var(--muted);transition:all var(--transition)}
 .ub-tab.active{color:var(--text);border-bottom-color:var(--red)}
 .ub-drop{display:block;margin:14px;border:1px dashed var(--border2);padding:28px 16px;text-align:center;cursor:pointer;transition:all var(--transition);border-radius:2px}
-.ub-drop:hover,.ub-drop.drag{border-color:var(--red);background:rgba(229,56,59,.04)}
+.ub-drop:hover,.ub-drop.drag{border-color:var(--red);background:rgba(230,51,40,.04)}
 .ub-drop-icon{width:38px;height:38px;border:1px solid var(--border2);display:flex;align-items:center;justify-content:center;margin:0 auto 10px;color:var(--dim);transition:all var(--transition);border-radius:2px}
 .ub-drop:hover .ub-drop-icon,.ub-drop.drag .ub-drop-icon{border-color:var(--red);color:var(--red)}
 .ub-title{font-size:10px;font-weight:700;letter-spacing:2px;text-transform:uppercase;margin-bottom:4px}
@@ -198,7 +245,7 @@ nav{
 }
 .home-bg::after{
   content:'';position:absolute;left:-10%;right:-10%;height:140px;top:-140px;
-  background:linear-gradient(to bottom,transparent,rgba(229,56,59,.09),transparent);
+  background:linear-gradient(to bottom,transparent,rgba(230,51,40,.09),transparent);
   animation:homeScanSweep 10s ease-in-out infinite;
 }
 @keyframes homeGridDrift{to{transform:translate(46px,46px)}}
@@ -223,22 +270,22 @@ nav{
 }
 .cat-card:hover,.cat-card:focus-visible{
   border-color:var(--red);transform:translateY(-3px);
-  box-shadow:0 16px 40px -18px rgba(229,56,59,.45);
+  box-shadow:0 16px 40px -18px rgba(230,51,40,.45);
 }
 .cat-card-glow{
   position:absolute;inset:-1px;opacity:0;transition:opacity .3s;pointer-events:none;
-  background:radial-gradient(circle 220px at var(--mx,50%) var(--my,-20%),rgba(229,56,59,.16),transparent 70%);
+  background:radial-gradient(circle 220px at var(--mx,50%) var(--my,-20%),rgba(230,51,40,.16),transparent 70%);
 }
 .cat-card:hover .cat-card-glow{opacity:1}
-.cat-card::before{ /* corner brackets, HUD style */
-  content:'';position:absolute;top:9px;left:9px;width:9px;height:9px;
-  border-top:2px solid var(--border2);border-left:2px solid var(--border2);transition:border-color .25s;
+/* Rivets, not corner brackets — the casing screws that hold this blade's plate on. */
+.cat-card::before,.cat-card::after{
+  content:'';position:absolute;width:6px;height:6px;border-radius:50%;
+  background:radial-gradient(circle at 35% 30%,var(--steel2),var(--steel) 55%,var(--dim) 100%);
+  box-shadow:inset 0 1px 1px rgba(0,0,0,.4);transition:box-shadow .25s;
 }
-.cat-card::after{
-  content:'';position:absolute;bottom:9px;right:9px;width:9px;height:9px;
-  border-bottom:2px solid var(--border2);border-right:2px solid var(--border2);transition:border-color .25s;
-}
-.cat-card:hover::before,.cat-card:hover::after{border-color:var(--red)}
+.cat-card::before{top:10px;left:10px}
+.cat-card::after{bottom:10px;right:10px}
+.cat-card:hover::before,.cat-card:hover::after{box-shadow:inset 0 1px 1px rgba(0,0,0,.4),0 0 0 3px rgba(230,51,40,.18)}
 
 .icon3d-float{margin:0 auto 16px;animation:icon3dBob 5s ease-in-out infinite}
 .cat-card:nth-child(2) .icon3d-float{animation-delay:-1.6s}
@@ -251,27 +298,27 @@ nav{
 }
 .icon3d-layer{position:absolute;inset:0;transform-style:preserve-3d;transition:transform .18s ease-out}
 .cat-card.tilting .icon3d-layer{transition:transform .06s linear}
+/* Brushed-steel blade plate, same material as the hero's folded blades. */
 .icon3d-plate{
-  transform:translateZ(0px);border-radius:16px;
-  background:linear-gradient(145deg,var(--bg4),var(--bg3));
+  transform:translateZ(0px);border-radius:14px;
+  background:linear-gradient(112deg,var(--bg4) 0%,var(--steel) 42%,var(--bg4) 58%,var(--steel2) 100%);
   border:1px solid var(--border2);
-  box-shadow:inset 0 1px 0 rgba(255,255,255,.04),0 10px 22px -10px rgba(0,0,0,.55);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.1),0 10px 22px -10px rgba(0,0,0,.55);
 }
+/* A still bezel rim, not a spinning radar ring — blades don't spin, they catch light. */
 .icon3d-ring{
   transform:translateZ(11px);border-radius:50%;
-  border:1px dashed rgba(229,56,59,.35);inset:11px;
-  animation:icon3dSpin 14s linear infinite;
+  border:1px solid rgba(255,255,255,.14);inset:11px;
 }
-@keyframes icon3dSpin{to{transform:translateZ(11px) rotate(360deg)}}
 .icon3d-icon{
-  transform:translateZ(26px);display:flex;align-items:center;justify-content:center;color:var(--red);
+  transform:translateZ(26px);display:flex;align-items:center;justify-content:center;color:var(--bg);
 }
-.icon3d-icon svg{width:32px;height:32px;filter:drop-shadow(0 6px 10px rgba(229,56,59,.35))}
+.icon3d-icon svg{width:32px;height:32px;opacity:.88;filter:drop-shadow(0 2px 3px rgba(0,0,0,.35))}
 .icon3d-shine{
-  transform:translateZ(32px);border-radius:16px;mix-blend-mode:overlay;opacity:.9;
+  transform:translateZ(32px);border-radius:14px;mix-blend-mode:overlay;opacity:.9;
   background:radial-gradient(circle 60px at var(--mx,50%) var(--my,30%),rgba(255,255,255,.55),transparent 60%);
 }
-@media(prefers-reduced-motion:reduce){.icon3d-float{animation:none}.icon3d-ring{animation:none}.icon3d-layer{transition:none}}
+@media(prefers-reduced-motion:reduce){.icon3d-float{animation:none}.icon3d-layer{transition:none}}
 
 .cat-name{font-size:14px;font-weight:800;letter-spacing:1.5px;text-transform:uppercase;margin-bottom:6px}
 .cat-desc{font-family:var(--mono);font-size:9px;color:var(--muted);line-height:1.6;margin-bottom:16px;min-height:28px}
@@ -383,7 +430,7 @@ footer{background:var(--bg2);border-top:1px solid var(--border);padding:24px 16p
   gap:3px;padding:10px 0;border-right:2px solid transparent;color:var(--dim);transition:all var(--transition)
 }
 .cat-btn:hover{color:var(--muted)}
-.cat-btn.active{color:var(--red);border-right-color:var(--red);background:rgba(229,56,59,.04)}
+.cat-btn.active{color:var(--red);border-right-color:var(--red);background:rgba(230,51,40,.04)}
 .cat-btn span{font-size:7px;font-weight:700;letter-spacing:.5px;text-transform:uppercase}
 
 .ed-tools{
@@ -396,7 +443,7 @@ footer{background:var(--bg2);border-top:1px solid var(--border);padding:24px 16p
   text-transform:uppercase;border-left:2px solid transparent;color:var(--muted);transition:all var(--transition);display:block
 }
 .tool-btn:hover{color:var(--text);background:rgba(255,255,255,.02)}
-.tool-btn.active{color:var(--red);border-left-color:var(--red);background:rgba(229,56,59,.06)}
+.tool-btn.active{color:var(--red);border-left-color:var(--red);background:rgba(230,51,40,.06)}
 
 .ed-main{flex:1;display:flex;flex-direction:column;overflow:hidden;min-width:0;position:relative}
 
@@ -427,11 +474,11 @@ footer{background:var(--bg2);border-top:1px solid var(--border);padding:24px 16p
 
 .drop-zone{text-align:center;cursor:pointer;padding:20px;max-width:100%}
 .drop-icon{width:100px;height:74px;border:1px dashed var(--border2);display:flex;align-items:center;justify-content:center;margin:0 auto 14px;color:var(--red);transition:all var(--transition);border-radius:2px}
-.drop-icon:hover{border-color:var(--red);background:rgba(229,56,59,.04)}
+.drop-icon:hover{border-color:var(--red);background:rgba(230,51,40,.04)}
 .drop-zone h3{font-size:11px;font-weight:700;letter-spacing:3px;text-transform:uppercase;margin-bottom:5px}
 .drop-zone p{font-family:var(--mono);font-size:8px;color:var(--dim);margin-bottom:14px}
-.btn-browse{border:1px solid rgba(229,56,59,.4);color:var(--red);font-size:9px;font-weight:700;letter-spacing:2px;text-transform:uppercase;padding:7px 18px;transition:all var(--transition);border-radius:2px}
-.btn-browse:hover{background:rgba(229,56,59,.08);border-color:var(--red)}
+.btn-browse{border:1px solid rgba(230,51,40,.4);color:var(--red);font-size:9px;font-weight:700;letter-spacing:2px;text-transform:uppercase;padding:7px 18px;transition:all var(--transition);border-radius:2px}
+.btn-browse:hover{background:rgba(230,51,40,.08);border-color:var(--red)}
 
 /* Preview area */
 .preview-area{display:none;width:100%;height:100%;align-items:center;justify-content:center;flex-direction:column;gap:12px;padding:16px;overflow:auto}
@@ -464,7 +511,7 @@ footer{background:var(--bg2);border-top:1px solid var(--border);padding:24px 16p
 .audio-visualizer{position:absolute;inset:0;width:100%;height:100%;opacity:0;transition:opacity .3s;pointer-events:none}
 .audio-visualizer.show{opacity:1}
 .audio-wave-progress{
-  position:absolute;top:0;left:0;height:100%;background:rgba(229,56,59,.12);
+  position:absolute;top:0;left:0;height:100%;background:rgba(230,51,40,.12);
   pointer-events:none;transition:width .05s linear
 }
 .audio-wave-cursor{
@@ -524,7 +571,7 @@ footer{background:var(--bg2);border-top:1px solid var(--border);padding:24px 16p
 }
 .trim-timeline-wrap canvas{display:block;width:100%;height:100%;image-rendering:pixelated}
 .trim-region{
-  position:absolute;top:0;height:100%;background:rgba(229,56,59,.18);
+  position:absolute;top:0;height:100%;background:rgba(230,51,40,.18);
   border-left:2px solid var(--red);border-right:2px solid var(--red);pointer-events:none
 }
 .trim-handle{
@@ -551,7 +598,7 @@ footer{background:var(--bg2);border-top:1px solid var(--border);padding:24px 16p
   letter-spacing:1px;color:var(--muted)
 }
 .fmt-card:hover{border-color:var(--muted);color:var(--text)}
-.fmt-card.active{border-color:var(--red);color:var(--red);background:rgba(229,56,59,.08)}
+.fmt-card.active{border-color:var(--red);color:var(--red);background:rgba(230,51,40,.08)}
 .fmt-card-sub{font-family:var(--mono);font-size:7px;font-weight:400;letter-spacing:0;
   color:var(--dim);display:block;margin-top:1px}
 .fmt-info-line{font-family:var(--mono);font-size:8px;color:var(--muted);margin-bottom:8px;
@@ -575,7 +622,7 @@ footer{background:var(--bg2);border-top:1px solid var(--border);padding:24px 16p
 
 /* Crop region indicator (box-shadow spotlight) */
 .vid-crop-box{
-  position:absolute;border:2px solid rgba(229,56,59,.95);pointer-events:none;
+  position:absolute;border:2px solid rgba(230,51,40,.95);pointer-events:none;
   box-shadow:0 0 0 9999px rgba(0,0,0,.52)
 }
 /* Interactive video-crop: draggable box + resize handles, edge-anchored (never centered) */
@@ -604,7 +651,7 @@ footer{background:var(--bg2);border-top:1px solid var(--border);padding:24px 16p
 
 /* Speed badge */
 .vid-speed-badge{
-  position:absolute;bottom:8px;right:8px;background:rgba(229,56,59,.9);color:#fff;
+  position:absolute;bottom:8px;right:8px;background:rgba(230,51,40,.9);color:#fff;
   font-family:var(--mono);font-size:11px;font-weight:700;padding:3px 8px;border-radius:3px;
   letter-spacing:1px;pointer-events:none
 }
@@ -663,7 +710,7 @@ footer{background:var(--bg2);border-top:1px solid var(--border);padding:24px 16p
   border-radius:2px;cursor:pointer;transition:all var(--transition)
 }
 .lufs-btn:hover{border-color:var(--muted)}
-.lufs-btn.active{border-color:var(--red);background:rgba(229,56,59,.08)}
+.lufs-btn.active{border-color:var(--red);background:rgba(230,51,40,.08)}
 .lufs-btn-val{font-family:var(--mono);font-size:11px;font-weight:700;color:var(--text)}
 .lufs-btn.active .lufs-btn-val{color:var(--red)}
 .lufs-btn-label{font-size:8px;color:var(--muted);margin-top:1px}
@@ -685,7 +732,7 @@ footer{background:var(--bg2);border-top:1px solid var(--border);padding:24px 16p
 /* Processing overlay */
 .proc-overlay{position:absolute;inset:0;background:rgba(0,0,0,.85);display:none;flex-direction:column;align-items:center;justify-content:center;gap:12px;z-index:10;padding:16px}
 .proc-overlay.show{display:flex}
-.proc-spin{width:32px;height:32px;border:2px solid rgba(229,56,59,.2);border-top-color:var(--red);border-radius:50%;animation:spin .8s linear infinite}
+.proc-spin{width:32px;height:32px;border:2px solid rgba(230,51,40,.2);border-top-color:var(--red);border-radius:50%;animation:spin .8s linear infinite}
 @keyframes spin{to{transform:rotate(360deg)}}
 .proc-msg{font-size:11px;font-weight:600;text-align:center;color:#fff;line-height:1.5}
 .proc-bar-wrap{width:220px;max-width:80vw;height:2px;background:var(--border2)}
@@ -792,7 +839,7 @@ footer{background:var(--bg2);border-top:1px solid var(--border);padding:24px 16p
   .nav-links.show{display:flex}
   .nav-btn{padding:12px 20px;text-align:left}
   .nav-btn.active::after{display:none}
-  .nav-btn.active{background:rgba(229,56,59,.08);border-left:2px solid var(--red)}
+  .nav-btn.active{background:rgba(230,51,40,.08);border-left:2px solid var(--red)}
   .hamburger{display:flex}
   .status,.theme-toggle{display:none}
   .tool-grid{grid-template-columns:repeat(2,1fr)}
@@ -840,17 +887,17 @@ footer{background:var(--bg2);border-top:1px solid var(--border);padding:24px 16p
 .resize-preset-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:5px}
 .resize-preset-btn{padding:7px 4px;background:var(--bg3);border:1px solid var(--border);color:var(--muted);font-family:var(--mono);font-size:9px;border-radius:2px;transition:all var(--transition);cursor:pointer;text-align:center;letter-spacing:.5px}
 .resize-preset-btn:hover{color:var(--text);border-color:var(--border2)}
-.resize-preset-btn.active{color:var(--red);border-color:var(--red);background:rgba(229,56,59,.08)}
+.resize-preset-btn.active{color:var(--red);border-color:var(--red);background:rgba(230,51,40,.08)}
 
 .rot-btns{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:12px}
 .rot-btn{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;padding:10px 6px;background:var(--bg3);border:1px solid var(--border);color:var(--muted);border-radius:2px;transition:all var(--transition);font-family:var(--mono);font-size:8px;letter-spacing:1px;text-transform:uppercase;cursor:pointer}
 .rot-btn:hover{color:var(--text);border-color:var(--border2)}
-.rot-btn.active{color:var(--red);border-color:var(--red);background:rgba(229,56,59,.06)}
+.rot-btn.active{color:var(--red);border-color:var(--red);background:rgba(230,51,40,.06)}
 
 .fmt-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:5px;margin-top:4px}
 .fmt-btn{padding:8px 4px;background:var(--bg3);border:1px solid var(--border);color:var(--muted);font-family:var(--mono);font-size:9px;border-radius:2px;transition:all var(--transition);cursor:pointer;text-align:center;text-transform:uppercase;letter-spacing:.5px}
 .fmt-btn:hover{color:var(--text);border-color:var(--border2)}
-.fmt-btn.active{color:var(--red);border-color:var(--red);background:rgba(229,56,59,.08)}
+.fmt-btn.active{color:var(--red);border-color:var(--red);background:rgba(230,51,40,.08)}
 
 /* ─────── EFFECTS PANEL (consolidated) ─────── */
 .fx-row{display:flex;align-items:center;gap:8px;margin-bottom:6px;padding:6px 8px;background:var(--bg3);border:1px solid var(--border);border-radius:2px}
@@ -876,7 +923,7 @@ footer{background:var(--bg2);border-top:1px solid var(--border);padding:24px 16p
 .wm-mode-tab{flex:1;padding:8px;font-size:9px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;background:transparent;border:none;color:var(--muted);cursor:pointer;transition:all var(--transition)}
 .wm-mode-tab.active{background:var(--red);color:#fff}
 .wm-img-drop{border:1px dashed var(--border2);padding:16px;text-align:center;cursor:pointer;transition:all var(--transition);border-radius:2px;margin-bottom:10px}
-.wm-img-drop:hover{border-color:var(--red);background:rgba(229,56,59,.04)}
+.wm-img-drop:hover{border-color:var(--red);background:rgba(230,51,40,.04)}
 .wm-img-drop p{font-family:var(--mono);font-size:9px;color:var(--dim);margin-top:4px}
 .wm-preview-thumb{width:48px;height:48px;object-fit:contain;border:1px solid var(--border);border-radius:2px;margin:6px auto;display:block}
 
@@ -937,7 +984,7 @@ footer{background:var(--bg2);border-top:1px solid var(--border);padding:24px 16p
 }
 .compare-bar::before{
   content:'';position:absolute;inset:0;
-  background:linear-gradient(90deg,rgba(229,56,59,.04) 0%,transparent 60%);
+  background:linear-gradient(90deg,rgba(230,51,40,.04) 0%,transparent 60%);
   pointer-events:none
 }
 .compare-bar.show{display:flex}
@@ -958,7 +1005,7 @@ footer{background:var(--bg2);border-top:1px solid var(--border);padding:24px 16p
   transition:all var(--transition);display:flex;align-items:center;gap:6px
 }
 .compare-bar-btn:hover{border-color:var(--muted);background:var(--bg4)}
-.compare-bar-btn.active{border-color:var(--red);background:rgba(229,56,59,.12);color:var(--red)}
+.compare-bar-btn.active{border-color:var(--red);background:rgba(230,51,40,.12);color:var(--red)}
 .compare-bar-hint{font-family:var(--mono);font-size:7.5px;color:var(--dim);flex:1;text-align:right}
 /* glowing red accent dot next to the bar when active */
 .compare-bar-dot{width:6px;height:6px;border-radius:50%;background:var(--red);flex-shrink:0;display:none;box-shadow:0 0 6px var(--red)}
@@ -967,7 +1014,14 @@ footer{background:var(--bg2);border-top:1px solid var(--border);padding:24px 16p
 </style>
 </head>
 <body>
-
+<!--
+THESIS: One compact instrument, many blades — unfold exactly the tool you need, everything else stays folded away. Refuses the "SaaS gradient hero + browser-chrome screenshot" default every free-tool site ships.
+OWN-WORLD: Matte-black tool casing, brushed-steel gradients, one red pivot-pin accent reserved for the hinge point and primary action. Archivo (engineered grotesk) for display, JetBrains Mono for every measured value — px, seconds, %. Rivet-dots replace corner brackets; blades replace cards.
+STORY: Visitor sees the whole toolkit folded into one silhouette, picks Photo/Video/Audio, watches that blade unfold, lands straight in that tray of tools.
+FIRST VIEWPORT: Full-bleed near-black. Center: a folded multitool built from angled brushed-steel blade shapes fanned from a single red rivet pivot, headline laser-etched across the spine, primary action directly beneath — no scroll to act.
+FORM: Multitool / Swiss Army Knife — my own top-ranked candidate (IMPECCABLE'S PICK), confirmed by the user over the assigned roll (Tailor's Workbench) and the Oscilloscope Signal Bench challenger. Seed key a4638e10.
+FINISH: unreviewed and undocumented is unfinished; this build ends with the finish review, the verdict, and DESIGN.md
+-->
 <div id="app">
 
 <!-- ══════════════════ NAV ══════════════════ -->
@@ -1008,6 +1062,24 @@ footer{background:var(--bg2);border-top:1px solid var(--border);padding:24px 16p
     <div class="hero-corners"><div class="hc tl"></div><div class="hc tr"></div><div class="hc bl"></div><div class="hc br"></div></div>
     <div class="hero-dots left" id="hero-dots-left" aria-hidden="true"></div>
     <div class="hero-dots right" id="hero-dots-right" aria-hidden="true"></div>
+    <div class="hero-tool" role="group" aria-label="Pick a category">
+      <button class="ht-blade ht-b1" onclick="goPage('photo')" aria-label="Open photo tools">
+        <svg class="ht-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <rect x="3" y="5.5" width="18" height="14" rx="2"/><circle cx="12" cy="12.5" r="3.4"/><path d="M8.2 5.5l1.3-1.8h5l1.3 1.8"/>
+        </svg>
+      </button>
+      <button class="ht-blade ht-b2" onclick="goPage('video')" aria-label="Open video tools">
+        <svg class="ht-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <rect x="2.6" y="5.5" width="18.8" height="13" rx="2"/><path d="M2.6 8.5h18.8M2.6 16.5h18.8M6 5.5v13M18.2 5.5v13" opacity=".55"/><path d="M10.3 9.3l4.7 3-4.7 3z" fill="currentColor" stroke="none"/>
+        </svg>
+      </button>
+      <button class="ht-blade ht-b3" onclick="goPage('audio')" aria-label="Open audio tools">
+        <svg class="ht-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M3 12h2.2l2-6.5 2.6 13 2.4-9.5 1.8 6 2-3.5H21"/>
+        </svg>
+      </button>
+      <div class="ht-pivot" aria-hidden="true"></div>
+    </div>
     <div class="badges">
       <div class="badge"><div class="badge-dot"></div>Free</div>
       <div class="badge"><div class="badge-dot"></div>No Watermark</div>
@@ -2126,7 +2198,7 @@ const PANELS = {
       <div style="display:flex;gap:12px;align-items:center">
         <div style="width:48px;height:27px;background:var(--bg4);border:1px solid var(--border2);border-radius:2px;display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-size:7px;color:var(--muted)">16:9</div>
         <div style="color:var(--muted);font-size:14px">→</div>
-        <div style="width:16px;height:28px;background:rgba(229,56,59,.1);border:1px solid var(--red);border-radius:2px;display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-size:6px;color:var(--red)">9:16</div>
+        <div style="width:16px;height:28px;background:rgba(230,51,40,.1);border:1px solid var(--red);border-radius:2px;display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-size:6px;color:var(--red)">9:16</div>
       </div>
       <div style="text-align:center;font-size:11px;font-weight:600">Convert to Vertical (1080×1920)</div>
       <div style="font-family:var(--mono);font-size:8px;color:var(--muted);text-align:center;line-height:1.6">
@@ -2706,7 +2778,7 @@ const PANELS = {
           border-radius:2px;display:flex;align-items:center;justify-content:center;
           font-family:var(--mono);font-size:8px;font-weight:700;color:var(--red)">ST</div>
         <div style="color:var(--muted);font-size:14px">→</div>
-        <div style="width:32px;height:32px;background:rgba(229,56,59,.1);border:1px solid var(--red);
+        <div style="width:32px;height:32px;background:rgba(230,51,40,.1);border:1px solid var(--red);
           border-radius:2px;display:flex;align-items:center;justify-content:center;
           font-family:var(--mono);font-size:8px;font-weight:700;color:var(--red)">M</div>
       </div>
@@ -2821,8 +2893,8 @@ function drawFadeCurve() {
 
   // Fill under the curve
   const isDark = document.documentElement.getAttribute('data-theme') !== 'light';
-  cx.fillStyle   = isDark ? 'rgba(229,56,59,.15)' : 'rgba(220,38,38,.10)';
-  cx.strokeStyle = isDark ? 'rgba(229,56,59,.8)'  : 'rgba(220,38,38,.7)';
+  cx.fillStyle   = isDark ? 'rgba(230,51,40,.15)' : 'rgba(212,41,31,.10)';
+  cx.strokeStyle = isDark ? 'rgba(230,51,40,.8)'  : 'rgba(212,41,31,.7)';
   cx.lineWidth = 1.5;
   cx.beginPath();
   cx.moveTo(0, H);
@@ -2924,13 +2996,13 @@ function initTrimTimeline() {
     ctx.clearRect(0, 0, W, H);
     // Video: draw a film-strip style gradient bar
     const grad = ctx.createLinearGradient(0, 0, W, 0);
-    grad.addColorStop(0,   'rgba(229,56,59,0.15)');
-    grad.addColorStop(0.5, 'rgba(229,56,59,0.35)');
-    grad.addColorStop(1,   'rgba(229,56,59,0.15)');
+    grad.addColorStop(0,   'rgba(230,51,40,0.15)');
+    grad.addColorStop(0.5, 'rgba(230,51,40,0.35)');
+    grad.addColorStop(1,   'rgba(230,51,40,0.15)');
     ctx.fillStyle = grad;
     ctx.fillRect(0, H * 0.25, W, H * 0.5);
     // Tick marks every ~40px to suggest a timeline
-    ctx.fillStyle = isDark ? 'rgba(229,56,59,0.25)' : 'rgba(220,38,38,0.2)';
+    ctx.fillStyle = isDark ? 'rgba(230,51,40,0.25)' : 'rgba(212,41,31,0.2)';
     for (let x = 0; x < W; x += 40) {
       ctx.fillRect(x, H * 0.1, 1, H * 0.8);
     }
@@ -2949,7 +3021,7 @@ function initTrimTimeline() {
         ctx.clearRect(0, 0, W, H);
         const step = Math.ceil(ch.length / W);
         const mid  = H / 2;
-        ctx.fillStyle = isDark ? 'rgba(229,56,59,0.55)' : 'rgba(220,38,38,0.45)';
+        ctx.fillStyle = isDark ? 'rgba(230,51,40,0.55)' : 'rgba(212,41,31,0.45)';
         for (let x = 0; x < W; x++) {
           let min = 1, max = -1;
           for (let j = 0; j < step; j++) {
@@ -3332,9 +3404,9 @@ function applyVideoPreview(id, s) {
       hint.className = 'vid-vertical-hint';
       hint.innerHTML = `
         <div style="text-align:center;color:#fff;font-family:var(--mono);font-size:9px;line-height:1.6">
-          <div style="border:2px solid rgba(229,56,59,.9);width:28px;height:50px;margin:0 auto 6px;
+          <div style="border:2px solid rgba(230,51,40,.9);width:28px;height:50px;margin:0 auto 6px;
                border-radius:3px;display:flex;align-items:center;justify-content:center;
-               font-size:8px;font-weight:700;color:rgba(229,56,59,.95)">9:16</div>
+               font-size:8px;font-weight:700;color:rgba(230,51,40,.95)">9:16</div>
           <div style="opacity:.9">Output: 1080 × 1920</div>
           <div style="opacity:.5;font-size:7px">Black bars if needed</div>
         </div>`;
@@ -4764,7 +4836,7 @@ function buildAudioPlayer(container, f) {
     const gap = 2;
     const barW = Math.max(1, (w / bars) - gap);
     const isDark = document.documentElement.getAttribute('data-theme') !== 'light';
-    vizCtx.fillStyle = isDark ? 'rgba(255,79,82,0.92)' : 'rgba(220,38,38,0.85)';
+    vizCtx.fillStyle = isDark ? 'rgba(255,79,82,0.92)' : 'rgba(212,41,31,0.85)';
     for (let i = 0; i < bars; i++) {
       const v = freqData[i] / 255;
       const barH = Math.max(2, v * h);
@@ -4846,8 +4918,8 @@ function buildAudioPlayer(container, f) {
     const step    = Math.ceil(samples.length / width);
     const mid     = height / 2;
     const isDark  = document.documentElement.getAttribute('data-theme') !== 'light';
-    const barClr  = isDark ? 'rgba(229,56,59,0.65)' : 'rgba(220,38,38,0.55)';
-    const bgClr   = isDark ? 'rgba(229,56,59,0.18)' : 'rgba(220,38,38,0.12)';
+    const barClr  = isDark ? 'rgba(230,51,40,0.65)' : 'rgba(212,41,31,0.55)';
+    const bgClr   = isDark ? 'rgba(230,51,40,0.18)' : 'rgba(212,41,31,0.12)';
 
     cx.clearRect(0, 0, width, height);
     for (let x = 0; x < width; x++) {
@@ -4895,7 +4967,7 @@ function buildAudioPlayer(container, f) {
         const H = apWave.clientHeight || 72;
         apCanvas.width = W; apCanvas.height = H;
         const cx = apCanvas.getContext('2d');
-        cx.strokeStyle = 'rgba(229,56,59,0.4)';
+        cx.strokeStyle = 'rgba(230,51,40,0.4)';
         cx.lineWidth = 1;
         cx.beginPath(); cx.moveTo(0, H/2); cx.lineTo(W, H/2); cx.stroke();
         ctx.close();
@@ -5632,7 +5704,7 @@ function buildCompareUI() {
   // Divider line + knob
   const divider = document.createElement('div');
   divider.id = 'compare-divider';
-  divider.style.cssText = 'position:absolute;top:0;bottom:0;left:50%;width:3px;background:var(--red);cursor:ew-resize;pointer-events:none;z-index:9;transform:translateX(-50%);box-shadow:0 0 10px rgba(229,56,59,.5);';
+  divider.style.cssText = 'position:absolute;top:0;bottom:0;left:50%;width:3px;background:var(--red);cursor:ew-resize;pointer-events:none;z-index:9;transform:translateX(-50%);box-shadow:0 0 10px rgba(230,51,40,.5);';
 
   const knob = document.createElement('div');
   knob.style.cssText = [
@@ -5654,7 +5726,7 @@ function buildCompareUI() {
       `font-family:var(--mono);font-size:8px;font-weight:700;letter-spacing:1.5px`,
       `padding:3px 8px;border-radius:2px;z-index:10;pointer-events:none`,
       isAfter
-        ? 'background:var(--red);color:#fff;box-shadow:0 1px 4px rgba(229,56,59,.4)'
+        ? 'background:var(--red);color:#fff;box-shadow:0 1px 4px rgba(230,51,40,.4)'
         : 'background:rgba(0,0,0,.7);color:rgba(255,255,255,.8);border:1px solid rgba(255,255,255,.15)'
     ].join(';');
     l.textContent = txt;
