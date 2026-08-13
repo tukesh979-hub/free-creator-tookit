@@ -96,6 +96,18 @@ nav{
 
 /* ═══════════ HERO ═══════════ */
 .hero{position:relative;padding:60px 20px 50px;text-align:center;background:radial-gradient(ellipse 70% 50% at 50% 0%,rgba(229,56,59,.05) 0%,transparent 65%);overflow:hidden}
+/* Pointer-tracked spotlight — the hero's one authored motion moment. Same
+   radial-follow trick as .cat-card-glow, scaled up to the whole section. */
+.hero-spotlight{
+  position:absolute;inset:0;opacity:0;transition:opacity .5s ease;pointer-events:none;z-index:0;
+  background:radial-gradient(circle 420px at var(--hx,50%) var(--hy,0%),rgba(229,56,59,.14),transparent 70%);
+}
+.hero.spotlit .hero-spotlight{opacity:1}
+/* Lift the static text content above the spotlight without touching
+   .hero-corners/.hero-dots, which are already position:absolute and must
+   keep that value — a blanket .hero>* rule would out-specificity and break them. */
+.badges,.hero h1,.hero p,.hero-btns{position:relative}
+@media(prefers-reduced-motion:reduce){.hero-spotlight{display:none}}
 .hero-corners{position:absolute;inset:0;pointer-events:none}
 .hc{position:absolute;width:14px;height:14px}
 .hc::before,.hc::after{content:'';position:absolute;background:var(--border2)}
@@ -151,10 +163,27 @@ nav{
 .tcard-name{font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;margin-bottom:4px}
 .tcard-desc{font-family:var(--mono);font-size:8px;color:var(--dim);line-height:1.5;margin-bottom:10px}
 .tcard-line{position:absolute;bottom:0;left:0;width:18px;height:2px;background:var(--red)}
-.tcard{perspective:600px}
-.tcard-ico{transition:transform .3s cubic-bezier(.34,1.56,.64,1),color .15s}
-.tcard:hover .tcard-ico{transform:translateZ(14px) rotateY(14deg) rotateX(-6deg) scale(1.14);color:var(--red2)}
-@media(prefers-reduced-motion:reduce){.tcard-ico{transition:none}.tcard:hover .tcard-ico{transform:none}}
+/* Per-feature 3D icon tilt — shared by home grid cards, full tool-list cards,
+   and AI placeholder cards. Base transform reads CSS vars (--rx/--ry/--tz/--tsc)
+   that initTiltCards() drives live from pointer position; hover/focus-visible
+   supply a fixed fallback for touch and keyboard so the pop still reads without JS. */
+.tcard,.tp-card,.ai-card{perspective:600px}
+.tcard-ico,.tp-ico,.ai-ico{
+  --rx:0deg;--ry:0deg;--tz:0px;--tsc:1;
+  transform:translateZ(var(--tz)) rotateX(var(--rx)) rotateY(var(--ry)) scale(var(--tsc));
+  transition:transform .3s cubic-bezier(.34,1.56,.64,1),color .15s;
+}
+.tcard:hover .tcard-ico,.tcard:focus-visible .tcard-ico,
+.tp-card:hover .tp-ico,.tp-card:focus-visible .tp-ico,
+.ai-card:hover .ai-ico,.ai-card:focus-visible .ai-ico{
+  --rx:-6deg;--ry:14deg;--tz:14px;--tsc:1.14;color:var(--red2)
+}
+@media(prefers-reduced-motion:reduce){
+  .tcard-ico,.tp-ico,.ai-ico{transition:none}
+  .tcard:hover .tcard-ico,.tcard:focus-visible .tcard-ico,
+  .tp-card:hover .tp-ico,.tp-card:focus-visible .tp-ico,
+  .ai-card:hover .ai-ico,.ai-card:focus-visible .ai-ico{--rx:0deg;--ry:0deg;--tz:0px;--tsc:1}
+}
 
 /* ═══════════ AMBIENT HOME BACKGROUND ═══════════ */
 #page-home.active{position:relative}
@@ -265,9 +294,15 @@ nav{
 @keyframes cpvHead{0%{left:0%}90%,100%{left:100%}}
 
 .cat-preview-audio{padding:0 10px}
-.cpv-eq{display:flex;align-items:center;justify-content:center;gap:3px;height:100%}
+.cpv-eq{display:flex;align-items:center;justify-content:center;gap:3px;height:100%;transform:scaleY(var(--eq-boost,1));transition:transform .12s ease-out}
 .cpv-bar{width:3px;background:var(--red);border-radius:2px;height:6px;animation:cpvEq 1.1s ease-in-out infinite}
 @keyframes cpvEq{0%,100%{height:5px;opacity:.55}50%{height:24px;opacity:1}}
+/* Live = pointer is driving the strip directly; freeze the ambient loop so the
+   cursor is visibly in control instead of fighting the auto-cycle. */
+.cat-preview.live .cpv-split,.cat-preview.live .cpv-fill,
+.cat-preview.live .cpv-head,.cat-preview.live .cpv-bar{animation-play-state:paused}
+.cpv-split{transition:left .06s linear}
+.cpv-fill,.cpv-head{transition:width .06s linear,left .06s linear}
 @media(prefers-reduced-motion:reduce){.cpv-split,.cpv-fill,.cpv-head,.cpv-bar{animation:none}}
 
 .cat-cta{font-family:var(--mono);font-size:9px;letter-spacing:1.5px;color:var(--dim);text-transform:uppercase;transition:color .2s;margin-top:auto}
@@ -543,6 +578,29 @@ footer{background:var(--bg2);border-top:1px solid var(--border);padding:24px 16p
   position:absolute;border:2px solid rgba(229,56,59,.95);pointer-events:none;
   box-shadow:0 0 0 9999px rgba(0,0,0,.52)
 }
+/* Interactive video-crop: draggable box + resize handles, edge-anchored (never centered) */
+.vid-crop-box.vcrop-interactive{
+  pointer-events:auto;cursor:move;transition:border-color .15s
+}
+.vid-crop-box.vcrop-interactive.out{border-color:#ff2222}
+.vcrop-gridline{position:absolute;background:rgba(255,255,255,.22);pointer-events:none}
+.vcrop-gridline.v{top:0;bottom:0;width:1px}
+.vcrop-gridline.h{left:0;right:0;height:1px}
+.vcrop-handle{
+  position:absolute;width:14px;height:14px;margin:-7px;border-radius:2px;
+  background:#fff;border:2px solid var(--red);box-shadow:0 1px 4px rgba(0,0,0,.55);
+  pointer-events:auto;transition:transform .12s cubic-bezier(.34,1.56,.64,1)
+}
+.vcrop-handle:hover,.vcrop-handle:active{transform:scale(1.3)}
+.vcrop-h-tl{left:0;top:0;cursor:nwse-resize}
+.vcrop-h-tr{left:100%;top:0;cursor:nesw-resize}
+.vcrop-h-bl{left:0;top:100%;cursor:nesw-resize}
+.vcrop-h-br{left:100%;top:100%;cursor:nwse-resize}
+.vcrop-h-tm{left:50%;top:0;cursor:ns-resize}
+.vcrop-h-bm{left:50%;top:100%;cursor:ns-resize}
+.vcrop-h-ml{left:0;top:50%;cursor:ew-resize}
+.vcrop-h-mr{left:100%;top:50%;cursor:ew-resize}
+@media(hover:none){ .vcrop-handle{width:20px;height:20px;margin:-10px} }
 
 /* Speed badge */
 .vid-speed-badge{
@@ -945,7 +1003,8 @@ footer{background:var(--bg2);border-top:1px solid var(--border);padding:24px 16p
 <div id="page-home" class="page active">
   <div class="home-bg" aria-hidden="true"></div>
 
-  <section class="hero" aria-label="Hero">
+  <section class="hero" aria-label="Hero" id="hero">
+    <div class="hero-spotlight" aria-hidden="true"></div>
     <div class="hero-corners"><div class="hc tl"></div><div class="hc tr"></div><div class="hc bl"></div><div class="hc br"></div></div>
     <div class="hero-dots left" id="hero-dots-left" aria-hidden="true"></div>
     <div class="hero-dots right" id="hero-dots-right" aria-hidden="true"></div>
@@ -1585,6 +1644,34 @@ function toolCardHTML(t, onclick) {
   </button>`;
 }
 
+// Pointer-tracked 3D tilt for a card's icon — same math as the home category
+// showcase (initCatShowcase), reused for every individual feature card so all
+// 34 tools get the same interactive 3D icon, not just the 3 top-level categories.
+function initTiltCards(cardSel, icoSel) {
+  if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  document.querySelectorAll(cardSel).forEach(card => {
+    const icon = card.querySelector(icoSel);
+    if (!icon || icon._tiltBound) return;
+    icon._tiltBound = true;
+    const setVars = (rx, ry, tz, sc) => {
+      icon.style.setProperty('--rx', rx.toFixed(2) + 'deg');
+      icon.style.setProperty('--ry', ry.toFixed(2) + 'deg');
+      icon.style.setProperty('--tz', tz.toFixed(1) + 'px');
+      icon.style.setProperty('--tsc', sc.toFixed(3));
+    };
+    const reset = () => setVars(0, 0, 0, 1);
+    card.addEventListener('pointermove', e => {
+      if (e.pointerType === 'touch') return;
+      const r = card.getBoundingClientRect();
+      const px = (e.clientX - r.left) / r.width;
+      const py = (e.clientY - r.top)  / r.height;
+      setVars((0.5 - py) * 20, (px - 0.5) * 20, 14, 1.14);
+    });
+    card.addEventListener('pointerleave', reset);
+    card.addEventListener('blur', reset);
+  });
+}
+
 function renderHomeGrids() {
   ['photo','audio','video'].forEach(cat => {
     $('home-' + cat).innerHTML = byCat(cat).slice(0,5).map(t => toolCardHTML(t, `launchTool('${t.id}')`)).join('');
@@ -1602,6 +1689,8 @@ function renderHomeGrids() {
   ['hero-dots-left','hero-dots-right'].forEach(id => {
     $(id).innerHTML = Array(16).fill('<span></span>').join('');
   });
+  initTiltCards('.tcard', '.tcard-ico');
+  initTiltCards('.ai-card', '.ai-ico');
 }
 
 function renderToolPage(cat) {
@@ -1629,6 +1718,7 @@ function renderToolPage(cat) {
     </div>`;
   });
   $('tp-' + cat).innerHTML = html;
+  initTiltCards('.tp-card', '.tp-ico');
 }
 
 function filterTools(cat, query) {
@@ -1681,6 +1771,10 @@ function selectTool(tool) {
   // Reset video live-preview effects (filter, transform, playbackRate, overlay)
   const _vid = document.getElementById('preview-vid');
   if (_vid) { _vid.style.filter=''; _vid.style.transform=''; _vid.playbackRate=1; }
+  // Tear down the interactive video-crop drag overlay before it's wiped below —
+  // otherwise its pointer listeners on #vid-overlay would leak across tools.
+  clearTimeout(window._vcropInitTimer); window._vcropInitTimer = null;
+  if (window._vcropCleanup) { window._vcropCleanup(); window._vcropCleanup = null; }
   clearVideoOverlay();
   // Tear down trim timeline playhead listener
   if (window._trimCleanup) { window._trimCleanup(); }
@@ -1856,13 +1950,24 @@ const PANELS = {
 
   'video-crop': () => {
     const vw = S.file?.width || 1920, vh = S.file?.height || 1080;
-    if (!S.settings.cw) { S.settings.x=0; S.settings.y=0; S.settings.cw=vw; S.settings.ch=vh; }
+    // Default: crop box starts at the FULL frame — drag any handle in from an edge
+    // or corner, exactly like the photo crop tool. Never pre-shrunk to a center inset.
+    if (S.settings.cw === undefined) {
+      S.settings.x = 0; S.settings.y = 0; S.settings.cw = vw; S.settings.ch = vh;
+    }
     return `
+      <p class="s-hint info" style="margin-bottom:10px">Drag any corner or edge in from the frame to crop · Drag inside to move</p>
       <div class="fmt-info-line">Source: ${vw} × ${vh} px</div>
-      ${numRow('X offset (px)', 'x',  0, 1)}
-      ${numRow('Y offset (px)', 'y',  0, 1)}
-      ${numRow('Width (px)',    'cw', Math.round(vw*0.8), 1)}
-      ${numRow('Height (px)',   'ch', Math.round(vh*0.8), 1)}
+      <div class="s-section-title">Manual Values</div>
+      <div class="s-row"><label class="s-lbl">X</label>
+        <input type="number" id="vcrop-x-input" class="s-input" value="${S.settings.x}" min="0" max="${vw-1}" oninput="setS('x',+this.value);syncVideoInputsToCrop()"/></div>
+      <div class="s-row"><label class="s-lbl">Y</label>
+        <input type="number" id="vcrop-y-input" class="s-input" value="${S.settings.y}" min="0" max="${vh-1}" oninput="setS('y',+this.value);syncVideoInputsToCrop()"/></div>
+      <div class="s-row"><label class="s-lbl">Width</label>
+        <input type="number" id="vcrop-w-input" class="s-input" value="${S.settings.cw}" min="1" max="${vw}" oninput="setS('cw',+this.value);syncVideoInputsToCrop()"/></div>
+      <div class="s-row"><label class="s-lbl">Height</label>
+        <input type="number" id="vcrop-h-input" class="s-input" value="${S.settings.ch}" min="1" max="${vh}" oninput="setS('ch',+this.value);syncVideoInputsToCrop()"/></div>
+      <div id="vcrop-size-label" class="crop-preview-info" style="margin-top:6px">${S.settings.cw} × ${S.settings.ch} px</div>
       <p class="s-hint" style="margin-top:6px">Tip: x + width must not exceed ${vw}; y + height must not exceed ${vh}</p>`;
   },
 
@@ -2645,6 +2750,10 @@ function renderSettings(id) {
   }
   // Trim timeline — shared by audio-trim and video-trim
   if (id === 'audio-trim' || id === 'video-trim') setTimeout(initTrimTimeline, 60);
+  if (id === 'video-crop') {
+    clearTimeout(window._vcropInitTimer);
+    window._vcropInitTimer = setTimeout(initVideoCropOverlay, 60);
+  }
   // Audio panel post-render hooks
   if (id === 'audio-fade')     setTimeout(drawFadeCurve,     20);
   if (id === 'audio-volume')   setTimeout(bindVolumeDbSync,  10);
@@ -3120,7 +3229,11 @@ function applyVideoPreview(id, s) {
   vid.style.filter    = '';
   vid.style.transform = '';
   if (vid.playbackRate !== 1) vid.playbackRate = 1;
-  if (ov) ov.innerHTML = '';
+  // The interactive crop overlay (drag box + resize handles) owns the DOM while
+  // it's mounted — wiping it on every setting change would rip out live handles
+  // mid-drag or after a manual X/Y/W/H edit. Leave it alone; its case below syncs it.
+  const keepCropOverlay = id === 'video-crop' && ov && ov.querySelector('.vcrop-interactive');
+  if (ov && !keepCropOverlay) ov.innerHTML = '';
 
   switch (id) {
 
@@ -3185,17 +3298,31 @@ function applyVideoPreview(id, s) {
       if (!ov) break;
       const vw = S.file?.width  || 1920;
       const vh = S.file?.height || 1080;
-      const xP  = (Math.max(0, +s.x  || 0) / vw * 100).toFixed(2);
-      const yP  = (Math.max(0, +s.y  || 0) / vh * 100).toFixed(2);
-      const cwP = (Math.max(1, +s.cw || vw * 0.8) / vw * 100).toFixed(2);
-      const chP = (Math.max(1, +s.ch || vh * 0.8) / vh * 100).toFixed(2);
-      const box = document.createElement('div');
-      box.className = 'vid-crop-box';
-      box.style.left   = xP  + '%';
-      box.style.top    = yP  + '%';
-      box.style.width  = cwP + '%';
-      box.style.height = chP + '%';
-      ov.appendChild(box);
+      const xP  = (Math.max(0, +s.x  || 0) / vw * 100).toFixed(3);
+      const yP  = (Math.max(0, +s.y  || 0) / vh * 100).toFixed(3);
+      const cwP = (Math.max(1, +s.cw || vw) / vw * 100).toFixed(3);
+      const chP = (Math.max(1, +s.ch || vh) / vh * 100).toFixed(3);
+      if (keepCropOverlay) {
+        // Interactive overlay already mounted (see initVideoCropOverlay) — just
+        // reposition it so it reflects a manual X/Y/W/H edit, handles stay intact.
+        const box = ov.querySelector('.vcrop-interactive');
+        box.style.left   = xP  + '%';
+        box.style.top    = yP  + '%';
+        box.style.width  = cwP + '%';
+        box.style.height = chP + '%';
+        if (box._vcropState) {
+          box._vcropState.xPct = +xP; box._vcropState.yPct = +yP;
+          box._vcropState.wPct = +cwP; box._vcropState.hPct = +chP;
+        }
+      } else {
+        const box = document.createElement('div');
+        box.className = 'vid-crop-box';
+        box.style.left   = xP  + '%';
+        box.style.top    = yP  + '%';
+        box.style.width  = cwP + '%';
+        box.style.height = chP + '%';
+        ov.appendChild(box);
+      }
       break;
     }
 
@@ -3236,6 +3363,152 @@ function applyVideoPreview(id, s) {
       break;
     }
   }
+}
+
+// ── VIDEO CROP — INTERACTIVE DRAG OVERLAY ─────────────────────────────────────
+// Mirrors the photo-crop overlay's edge-anchored drag/resize UX, but works in
+// percentage space against `.vid-overlay` (a plain div) instead of a canvas,
+// since the video element has no equivalent pixel-perfect draw surface.
+function initVideoCropOverlay() {
+  if (S.tool?.id !== 'video-crop' || S.file?.type !== 'video') return;
+  const vid = document.getElementById('preview-vid');
+  const ov  = document.getElementById('vid-overlay');
+  if (!vid || !ov || !vid.videoWidth) {
+    clearTimeout(window._vcropInitTimer);
+    window._vcropInitTimer = setTimeout(initVideoCropOverlay, 120);
+    return;
+  }
+
+  if (window._vcropCleanup) { window._vcropCleanup(); window._vcropCleanup = null; }
+
+  const vw = S.file?.width  || vid.videoWidth  || 1920;
+  const vh = S.file?.height || vid.videoHeight || 1080;
+  if (S.settings.cw === undefined) {
+    S.settings.x = 0; S.settings.y = 0; S.settings.cw = vw; S.settings.ch = vh;
+  }
+
+  ov.innerHTML = '';
+  ov.style.pointerEvents = 'auto';
+  ov.style.cursor = 'crosshair';
+
+  const box = document.createElement('div');
+  box.className = 'vid-crop-box vcrop-interactive';
+  ov.appendChild(box);
+
+  [[33.333,'v'],[66.666,'v'],[33.333,'h'],[66.666,'h']].forEach(([pos, axis]) => {
+    const g = document.createElement('div');
+    g.className = `vcrop-gridline ${axis}`;
+    g.style[axis === 'v' ? 'left' : 'top'] = pos + '%';
+    box.appendChild(g);
+  });
+
+  const HANDLE_KEYS = ['tl','tm','tr','ml','mr','bl','bm','br'];
+  const handles = {};
+  HANDLE_KEYS.forEach(k => {
+    const h = document.createElement('div');
+    h.className = `vcrop-handle vcrop-h-${k}`;
+    box.appendChild(h);
+    handles[k] = h;
+  });
+
+  const state = {
+    xPct: S.settings.x  / vw * 100, yPct: S.settings.y  / vh * 100,
+    wPct: S.settings.cw / vw * 100, hPct: S.settings.ch / vh * 100,
+  };
+  // Exposed so applyVideoPreview's keepCropOverlay branch can push manual
+  // X/Y/W/H edits back into this drag state — otherwise a drag right after
+  // typing a value would snap back to the pre-edit position.
+  box._vcropState = state;
+
+  function paint() {
+    box.style.left   = state.xPct + '%';
+    box.style.top    = state.yPct + '%';
+    box.style.width  = state.wPct + '%';
+    box.style.height = state.hPct + '%';
+  }
+  paint();
+
+  function commit() {
+    S.settings.x  = Math.round(state.xPct / 100 * vw);
+    S.settings.y  = Math.round(state.yPct / 100 * vh);
+    S.settings.cw = Math.max(1, Math.round(state.wPct / 100 * vw));
+    S.settings.ch = Math.max(1, Math.round(state.hPct / 100 * vh));
+    const xi = $('vcrop-x-input'), yi = $('vcrop-y-input');
+    const wi = $('vcrop-w-input'), hi = $('vcrop-h-input'), lbl = $('vcrop-size-label');
+    if (xi)  xi.value  = S.settings.x;
+    if (yi)  yi.value  = S.settings.y;
+    if (wi)  wi.value  = S.settings.cw;
+    if (hi)  hi.value  = S.settings.ch;
+    if (lbl) lbl.textContent = `${S.settings.cw} × ${S.settings.ch} px`;
+  }
+
+  const MINPCT = 4;
+  let dragType = null, start = null, rafId = null;
+
+  const ptToPct = (clientX, clientY) => {
+    const r = ov.getBoundingClientRect();
+    return {
+      px: Math.max(0, Math.min(100, (clientX - r.left) / r.width  * 100)),
+      py: Math.max(0, Math.min(100, (clientY - r.top)  / r.height * 100)),
+    };
+  };
+  const scheduleDraw = () => {
+    if (rafId) return;
+    rafId = requestAnimationFrame(() => { rafId = null; paint(); });
+  };
+
+  const onDown = (type, e) => {
+    e.preventDefault(); e.stopPropagation();
+    dragType = type;
+    const {px, py} = ptToPct(e.clientX, e.clientY);
+    start = {px, py, xPct: state.xPct, yPct: state.yPct, wPct: state.wPct, hPct: state.hPct};
+    try { ov.setPointerCapture(e.pointerId); } catch(_) {}
+  };
+  const onMove = e => {
+    if (!dragType) return;
+    const {px, py} = ptToPct(e.clientX, e.clientY);
+    const dx = px - start.px, dy = py - start.py;
+    if (dragType === 'move') {
+      const nx = Math.max(0, Math.min(100 - start.wPct, start.xPct + dx));
+      const ny = Math.max(0, Math.min(100 - start.hPct, start.yPct + dy));
+      box.classList.toggle('out', Math.abs(nx - (start.xPct+dx)) > 0.3 || Math.abs(ny - (start.yPct+dy)) > 0.3);
+      state.xPct = nx; state.yPct = ny;
+    } else {
+      let {xPct: x, yPct: y, wPct: w, hPct: h} = start;
+      if (dragType.includes('l')) { const nx = Math.max(0, Math.min(x+w-MINPCT, x+dx)); w += (x-nx); x = nx; }
+      if (dragType.includes('r')) { w = Math.max(MINPCT, Math.min(100-x, w+dx)); }
+      if (dragType.includes('t')) { const ny = Math.max(0, Math.min(y+h-MINPCT, y+dy)); h += (y-ny); y = ny; }
+      if (dragType.includes('b')) { h = Math.max(MINPCT, Math.min(100-y, h+dy)); }
+      state.xPct = x; state.yPct = y; state.wPct = w; state.hPct = h;
+    }
+    scheduleDraw();
+  };
+  const onUp = e => {
+    if (!dragType) return;
+    dragType = null; start = null;
+    box.classList.remove('out');
+    try { ov.releasePointerCapture(e.pointerId); } catch(_) {}
+    commit();
+  };
+
+  box.addEventListener('pointerdown', e => { if (e.target === box) onDown('move', e); });
+  Object.entries(handles).forEach(([k, el]) => el.addEventListener('pointerdown', e => onDown(k, e)));
+  ov.addEventListener('pointermove', onMove);
+  ov.addEventListener('pointerup', onUp);
+  ov.addEventListener('pointercancel', onUp);
+
+  window._vcropCleanup = () => {
+    ov.style.pointerEvents = '';
+    ov.style.cursor = '';
+    ov.removeEventListener('pointermove', onMove);
+    ov.removeEventListener('pointerup', onUp);
+    ov.removeEventListener('pointercancel', onUp);
+  };
+}
+
+// Called when the user types into the manual X/Y/W/H inputs on video-crop
+function syncVideoInputsToCrop() {
+  applyVideoPreview('video-crop', S.settings);
 }
 
 // ════════════════════════════════════════════════════════════════════════════
@@ -5521,7 +5794,49 @@ function initCatShowcase() {
     });
     card.addEventListener('pointerleave', reset);
     card.addEventListener('blur', reset);
+
+    // Per-category preview strip: give the ambient loop a real interaction —
+    // pointer position drives it directly instead of just auto-cycling.
+    const cat = card.dataset.cat;
+    const preview = card.querySelector('.cat-preview');
+    if (preview) {
+      card.addEventListener('pointermove', e => {
+        if (e.pointerType === 'touch') return;
+        const pr = preview.getBoundingClientRect();
+        const ppx = Math.max(0, Math.min(1, (e.clientX - pr.left) / pr.width));
+        preview.classList.add('live');
+        if (cat === 'photo') {
+          const split = preview.querySelector('.cpv-split');
+          if (split) split.style.left = (6 + ppx * 88) + '%';
+        } else if (cat === 'video') {
+          const fill = preview.querySelector('.cpv-fill');
+          const head = preview.querySelector('.cpv-head');
+          if (fill) fill.style.width = (ppx * 100) + '%';
+          if (head) head.style.left = (ppx * 100) + '%';
+        } else if (cat === 'audio') {
+          preview.style.setProperty('--eq-boost', (0.65 + ppx * 0.95).toFixed(2));
+        }
+      });
+      card.addEventListener('pointerleave', () => preview.classList.remove('live'));
+    }
   });
+}
+
+// Hero spotlight — one pointer-tracked glow, the hero's single authored motion
+// moment. Mirrors the .cat-card-glow radial-follow trick at section scale.
+function initHeroSpotlight() {
+  if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  const hero = $('hero');
+  if (!hero || hero._spotlightBound) return;
+  hero._spotlightBound = true;
+  hero.addEventListener('pointermove', e => {
+    if (e.pointerType === 'touch') return;
+    const r = hero.getBoundingClientRect();
+    hero.style.setProperty('--hx', ((e.clientX - r.left) / r.width  * 100).toFixed(1) + '%');
+    hero.style.setProperty('--hy', ((e.clientY - r.top)  / r.height * 100).toFixed(1) + '%');
+    hero.classList.add('spotlit');
+  });
+  hero.addEventListener('pointerleave', () => hero.classList.remove('spotlit'));
 }
 
 // ════════════════════════════════════════════════════════════════════════════
@@ -5535,6 +5850,7 @@ document.addEventListener('DOMContentLoaded', () => {
   renderToolPage('audio');
   renderToolList();
   initCatShowcase();
+  initHeroSpotlight();
 
   if (typeof SharedArrayBuffer === 'undefined') {
     setStatus('partial', 'Photo only');
