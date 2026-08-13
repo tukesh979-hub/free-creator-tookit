@@ -353,6 +353,49 @@ footer{background:var(--bg2);border-top:1px solid var(--border);padding:24px 16p
 .tp-title{font-size:clamp(16px,3vw,20px);font-weight:800;letter-spacing:3px;text-transform:uppercase}
 .tp-div{flex:1;height:1px;background:var(--border);min-width:40px}
 .tp-cnt{font-family:var(--mono);font-size:9px;color:var(--dim)}
+
+/* ═══════════ PER-CATEGORY INTERACTIVE BANNER ═══════════ */
+.tpi{position:relative;width:100%;height:56px;border-radius:5px;overflow:hidden;background:var(--bg4);border:1px solid var(--border);margin-bottom:18px}
+@media(max-width:600px){.tpi{height:46px}}
+
+/* Photo — draggable before/after reveal */
+.tpi-photo{cursor:ew-resize;touch-action:none}
+.tpi-photo-before,.tpi-photo-after{position:absolute;inset:0}
+.tpi-photo-before{background:linear-gradient(90deg,#2a2a2a,#4d4d4d);filter:grayscale(1) brightness(.75)}
+.tpi-photo-after{background:linear-gradient(90deg,#e5383b,#ff8a5c);clip-path:polygon(0 0,var(--split,50%) 0,var(--split,50%) 100%,0 100%)}
+.tpi-photo.idle .tpi-photo-after{animation:tpiPhotoSweep 4.5s ease-in-out infinite}
+.tpi-photo-split{position:absolute;top:0;bottom:0;left:var(--split,50%);width:2px;background:#fff;box-shadow:0 0 8px rgba(255,255,255,.75);transform:translateX(-1px)}
+.tpi-photo.idle .tpi-photo-split{animation:tpiPhotoSweepLine 4.5s ease-in-out infinite}
+@keyframes tpiPhotoSweep{0%,100%{clip-path:polygon(0 0,16% 0,16% 100%,0 100%)}50%{clip-path:polygon(0 0,84% 0,84% 100%,0 100%)}}
+@keyframes tpiPhotoSweepLine{0%,100%{left:16%}50%{left:84%}}
+.tpi-photo-handle{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:22px;height:22px;border-radius:50%;background:var(--red);color:#fff;display:flex;align-items:center;justify-content:center;font-size:11px;box-shadow:0 2px 8px rgba(0,0,0,.45)}
+.tpi-photo-tag{position:absolute;top:6px;font-family:var(--mono);font-size:7px;letter-spacing:1.5px;color:rgba(255,255,255,.8);text-transform:uppercase;z-index:1}
+.tpi-photo-tag.before{left:8px}
+.tpi-photo-tag.after{right:8px}
+
+/* Video — hover-scrub filmstrip */
+.tpi-video{display:flex;align-items:center;gap:10px;padding:0 12px;cursor:pointer;touch-action:none}
+.tpi-video-strip{position:relative;flex:1;height:26px;border-radius:2px;overflow:hidden;background:repeating-linear-gradient(90deg,var(--bg3) 0 18px,var(--bg2) 18px 36px)}
+.tpi-video-strip::after{content:'';position:absolute;inset:0;width:var(--vprog,0%);background:linear-gradient(90deg,rgba(229,56,59,.22),rgba(229,56,59,.04))}
+.tpi-video.idle .tpi-video-strip::after{animation:tpiVideoFill 3.6s linear infinite}
+.tpi-video-head{position:absolute;top:6px;bottom:6px;left:var(--vprog,0%);width:2px;background:var(--red);box-shadow:0 0 8px rgba(229,56,59,.75);transform:translateX(-1px)}
+.tpi-video.idle .tpi-video-head{animation:tpiVideoHead 3.6s linear infinite}
+@keyframes tpiVideoFill{0%{width:0%}90%,100%{width:100%}}
+@keyframes tpiVideoHead{0%{left:0%}90%,100%{left:100%}}
+.tpi-video-time{font-family:var(--mono);font-size:9px;color:var(--muted);min-width:34px;text-align:right;flex-shrink:0}
+
+/* Audio — pointer-reactive frequency bars */
+.tpi-audio{display:flex;align-items:center;justify-content:center;gap:3px;padding:0 14px}
+.tpi-bar{width:3px;border-radius:2px;background:var(--red);height:6px;animation:tpiAudioEq 1.2s ease-in-out infinite;transition:transform .09s ease-out}
+.tpi-audio.live .tpi-bar{animation-play-state:paused}
+@keyframes tpiAudioEq{0%,100%{height:5px;opacity:.5}50%{height:26px;opacity:1}}
+
+@media(prefers-reduced-motion:reduce){
+  .tpi-photo.idle .tpi-photo-after,.tpi-photo.idle .tpi-photo-split,
+  .tpi-video.idle .tpi-video-strip::after,.tpi-video.idle .tpi-video-head,
+  .tpi-bar{animation:none}
+}
+
 .tp-search{margin-bottom:20px;position:relative}
 .tp-search-input{
   width:100%;background:var(--bg3);border:1px solid var(--border2);
@@ -1239,6 +1282,13 @@ footer{background:var(--bg2);border-top:1px solid var(--border);padding:24px 16p
       <div class="tp-div"></div>
       <span class="tp-cnt" id="cnt-video"></span>
     </div>
+
+    <div class="tpi tpi-video idle" id="tpi-video" aria-hidden="true">
+      <div class="tpi-video-strip" id="tpi-video-strip"></div>
+      <div class="tpi-video-head" id="tpi-video-head"></div>
+      <div class="tpi-video-time" id="tpi-video-time">0:00</div>
+    </div>
+
     <div class="tp-search">
       <div class="tp-search-icon" aria-hidden="true"><svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg></div>
       <input type="text" class="tp-search-input" id="search-video" placeholder="Search video tools..." aria-label="Search video tools" oninput="filterTools('video',this.value)"/>
@@ -1255,6 +1305,15 @@ footer{background:var(--bg2);border-top:1px solid var(--border);padding:24px 16p
       <div class="tp-div"></div>
       <span class="tp-cnt" id="cnt-photo"></span>
     </div>
+
+    <div class="tpi tpi-photo idle" id="tpi-photo" aria-hidden="true">
+      <div class="tpi-photo-before"></div>
+      <div class="tpi-photo-after"></div>
+      <div class="tpi-photo-split" id="tpi-photo-split"><div class="tpi-photo-handle">⇔</div></div>
+      <span class="tpi-photo-tag before">RAW</span>
+      <span class="tpi-photo-tag after">EDITED</span>
+    </div>
+
     <div class="tp-search">
       <div class="tp-search-icon" aria-hidden="true"><svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg></div>
       <input type="text" class="tp-search-input" id="search-photo" placeholder="Search photo tools..." aria-label="Search photo tools" oninput="filterTools('photo',this.value)"/>
@@ -1271,6 +1330,11 @@ footer{background:var(--bg2);border-top:1px solid var(--border);padding:24px 16p
       <div class="tp-div"></div>
       <span class="tp-cnt" id="cnt-audio"></span>
     </div>
+
+    <div class="tpi tpi-audio" id="tpi-audio" aria-hidden="true">
+      <div class="tpi-audio-bars" id="tpi-audio-bars"></div>
+    </div>
+
     <div class="tp-search">
       <div class="tp-search-icon" aria-hidden="true"><svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg></div>
       <input type="text" class="tp-search-input" id="search-audio" placeholder="Search audio tools..." aria-label="Search audio tools" oninput="filterTools('audio',this.value)"/>
@@ -1719,6 +1783,7 @@ function renderToolPage(cat) {
   });
   $('tp-' + cat).innerHTML = html;
   initTiltCards('.tp-card', '.tp-ico');
+  initCategoryBanner(cat);
 }
 
 function filterTools(cat, query) {
@@ -5837,6 +5902,89 @@ function initHeroSpotlight() {
     hero.classList.add('spotlit');
   });
   hero.addEventListener('pointerleave', () => hero.classList.remove('spotlit'));
+}
+
+// ── PER-CATEGORY INTERACTIVE BANNERS ──────────────────────────────────────────
+// One signature hover interaction per tool-list page (Photo/Video/Audio), each
+// echoing what that category's tools actually do. Idle = a slow ambient loop
+// (CSS-driven, see .tpi-*.idle keyframes) so the banner reads as "alive" even
+// before anyone touches it; the moment a pointer moves over it, JS takes over
+// and drives it directly, exactly like the home category showcase previews.
+function initCategoryBanner(cat) {
+  if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  if (cat === 'photo') initPhotoBanner();
+  else if (cat === 'video') initVideoBanner();
+  else if (cat === 'audio') initAudioBanner();
+}
+
+// Photo — hover to drag the before/after reveal line across a raw/edited split.
+function initPhotoBanner() {
+  const el = $('tpi-photo');
+  if (!el || el._bound) return;
+  el._bound = true;
+  el.classList.add('idle');
+  el.addEventListener('pointermove', e => {
+    if (e.pointerType === 'touch') return;
+    const r = el.getBoundingClientRect();
+    const pct = Math.max(4, Math.min(96, (e.clientX - r.left) / r.width * 100));
+    el.classList.remove('idle');
+    el.style.setProperty('--split', pct.toFixed(1) + '%');
+  });
+  el.addEventListener('pointerleave', () => el.classList.add('idle'));
+}
+
+// Video — hover to scrub a decorative filmstrip; the playhead and timestamp
+// track the pointer, mirroring the real trim tool's hover-scrub preview.
+function initVideoBanner() {
+  const el = $('tpi-video');
+  const timeEl = $('tpi-video-time');
+  if (!el || el._bound) return;
+  el._bound = true;
+  el.classList.add('idle');
+  const DEMO_DURATION_S = 24;
+  el.addEventListener('pointermove', e => {
+    if (e.pointerType === 'touch') return;
+    const r = el.getBoundingClientRect();
+    const pct = Math.max(0, Math.min(100, (e.clientX - r.left) / r.width * 100));
+    el.classList.remove('idle');
+    el.style.setProperty('--vprog', pct.toFixed(1) + '%');
+    if (timeEl) {
+      const secs = Math.round(pct / 100 * DEMO_DURATION_S);
+      timeEl.textContent = `0:${String(secs).padStart(2, '0')}`;
+    }
+  });
+  el.addEventListener('pointerleave', () => {
+    el.classList.add('idle');
+    if (timeEl) timeEl.textContent = '0:00';
+  });
+}
+
+// Audio — bars near the cursor amplify, like scrubbing across a live meter.
+function initAudioBanner() {
+  const el = $('tpi-audio');
+  if (!el || el._bound) return;
+  el._bound = true;
+  const BAR_COUNT = 44;
+  el.innerHTML = Array.from({ length: BAR_COUNT }, (_, i) =>
+    `<div class="tpi-bar" style="animation-delay:${(-(i * 0.045)).toFixed(2)}s"></div>`
+  ).join('');
+  const bars = [...el.querySelectorAll('.tpi-bar')];
+  el.addEventListener('pointermove', e => {
+    if (e.pointerType === 'touch') return;
+    const r = el.getBoundingClientRect();
+    const px = e.clientX - r.left;
+    el.classList.add('live');
+    bars.forEach((bar, i) => {
+      const bx = (i + 0.5) / BAR_COUNT * r.width;
+      const dist = Math.abs(px - bx);
+      const boost = 1 + (1 - Math.min(1, dist / 80)) * 3.2;
+      bar.style.transform = `scaleY(${Math.max(1, boost).toFixed(2)})`;
+    });
+  });
+  el.addEventListener('pointerleave', () => {
+    el.classList.remove('live');
+    bars.forEach(bar => { bar.style.transform = ''; });
+  });
 }
 
 // ════════════════════════════════════════════════════════════════════════════
