@@ -7,7 +7,7 @@
 <meta name="description" content="Free browser-based creator toolkit. Edit video, photo, and audio instantly. No watermark, no signup, no upload."/>
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
-<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&family=Silkscreen:wght@400;700&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet"/>
 <style>
 /* ═══════════ DESIGN TOKENS — "MULTITOOL" WORLD ═══════════
    Matte-black tool casing, brushed steel, one red pivot-pin accent.
@@ -34,26 +34,6 @@
   --mono:'JetBrains Mono',monospace;
   --nav-h:54px;
   --transition:.15s cubic-bezier(.4,0,.2,1);
-}
-/* ═══════════ CONSOLE TOKENS — home page only ═══════════
-   A bolted control-panel material system, scoped to .console so it never
-   touches the editor's own dark theme: cream panels floating on a void,
-   black LCD screens, one red accent, dot-matrix numerals for real data. */
-:root[data-theme="dark"]{
-  --c-void:#0a0a0a;--c-panel:#ece7dc;--c-panel2:#e2ddce;
-  --c-screen:#0c0c0d;--c-screen-text:#f2efe4;
-  --c-ink:#18140f;--c-ink-muted:#6e6858;
-  --c-rivet:#a19a89;--c-seam:#c9c2ae;
-}
-:root[data-theme="light"]{
-  --c-void:#eeece5;--c-panel:#fffdf8;--c-panel2:#f5f1e6;
-  --c-screen:#0c0c0d;--c-screen-text:#f2efe4;
-  --c-ink:#18140f;--c-ink-muted:#726c5c;
-  --c-rivet:#b6ae9a;--c-seam:#ded8c6;
-}
-:root{
-  --c-red:#e2472c;--c-red2:#ff5c3f;
-  --dotfont:'Silkscreen',monospace;
 }
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 html{font-family:var(--font);background:var(--bg);color:var(--text);-webkit-font-smoothing:antialiased}
@@ -130,95 +110,89 @@ nav{
 }
 .btn-outline:hover{border-color:var(--steel);transform:translateY(-1px)}
 
-/* ═══════════ CONSOLE — home page ═══════════
-   A bolted control-panel: cream panels seamed by black gaps, floating on a
-   dark/pale void, black LCD screens with dot-matrix readouts, one red
-   accent spent only on the primary action. See DESIGN.md for the full
-   system. Scoped entirely to .console — the editor's own theme is untouched. */
-.console{background:var(--c-void);padding:28px 16px 8px;transition:background .3s}
-.console-inner{max-width:1180px;margin:0 auto}
-.console-grid{display:grid;grid-template-columns:1.35fr .8fr 1.35fr 1fr;gap:3px;margin-bottom:3px}
-.panel{background:var(--c-panel);position:relative;padding:20px;color:var(--c-ink)}
-.panel-tight{padding:14px}
-/* Rivets — real screws holding the plate on, the system's recurring form. */
-.rivet{position:absolute;width:7px;height:7px;border-radius:50%;
-  background:radial-gradient(circle at 35% 30%,#fff,var(--c-rivet) 55%,#6b6455 100%);
-  box-shadow:inset 0 1px 1px rgba(0,0,0,.35);z-index:2}
-.rivet::after{content:'';position:absolute;inset:2.2px;border-top:1px solid rgba(0,0,0,.45)}
-.rivet.tl{top:8px;left:8px}.rivet.tr{top:8px;right:8px}
-.rivet.bl{bottom:8px;left:8px}.rivet.br{bottom:8px;right:8px}
-
-/* Black LCD screen — always dark regardless of theme, a real invariant. */
-.screen{background:var(--c-screen);color:var(--c-screen-text);padding:14px 16px;position:relative;overflow:hidden}
-.screen-label{font-family:var(--mono);font-size:9px;letter-spacing:1.5px;text-transform:uppercase;color:#a39d8c;margin-bottom:6px}
-.dotnum{font-family:var(--dotfont);font-size:44px;line-height:1;letter-spacing:1px}
-.dotnum-sm{font-size:30px}
-
-.panel-brand{display:flex;flex-direction:column;gap:12px}
-.panel-wordmark{font-family:var(--mono);font-size:16px;font-weight:700;letter-spacing:1px;display:flex;align-items:center;gap:8px}
-.panel-wordmark .wm-dot{width:9px;height:9px;border-radius:50%;background:var(--c-red)}
-.panel-bullets{font-family:var(--mono);font-size:9px;letter-spacing:.5px;color:var(--c-ink-muted);line-height:1.9;list-style:none}
-.panel-tools-row{display:flex;gap:10px}
-.panel-tools-row .screen{flex:1}
-.panel-cats{background:var(--c-red);color:#fff;padding:12px 14px;display:flex;justify-content:space-between;gap:8px;font-family:var(--mono);font-size:10px;letter-spacing:1.5px;text-transform:uppercase;font-weight:700}
-
-.panel-capsule{display:flex;flex-direction:column;align-items:center;text-align:center;justify-content:space-between}
-.capsule{background:var(--c-screen);color:var(--c-screen-text);border-radius:60px;padding:22px 10px;width:100%;position:relative;overflow:hidden}
-.capsule-glow{width:34px;height:60px;margin:14px auto 0;border-radius:17px;
-  background:linear-gradient(180deg,var(--c-red2),var(--c-red) 70%,#7a1710);
-  box-shadow:0 0 24px 4px rgba(226,71,44,.45)}
-.panel-link{font-family:var(--mono);font-size:9px;letter-spacing:1.5px;text-transform:uppercase;color:var(--c-ink-muted);margin-top:12px;transition:color .15s}
-.panel-link:hover{color:var(--c-red)}
-
-/* Upload panel — same drag/drop and browse function as before, restyled to
-   the console's own screen/rivet vocabulary instead of a standalone box. */
-.panel-upload{display:flex;flex-direction:column}
-.ub-tabs{display:flex;border-bottom:1px solid var(--c-seam);margin-bottom:12px}
-.ub-tab{flex:1;padding:9px;font-family:var(--mono);font-size:9px;font-weight:700;letter-spacing:2px;text-transform:uppercase;border-bottom:2px solid transparent;color:var(--c-ink-muted);transition:all .15s}
-.ub-tab.active{color:var(--c-ink);border-bottom-color:var(--c-red)}
-.ub-drop{display:block;background:var(--c-screen);color:var(--c-screen-text);padding:26px 16px;text-align:center;cursor:pointer;transition:all .15s;border:1px solid transparent}
-.ub-drop:hover,.ub-drop.drag{border-color:var(--c-red)}
-.ub-drop-icon{width:34px;height:34px;border:1px solid #3a382f;display:flex;align-items:center;justify-content:center;margin:0 auto 10px;color:#8f8878;transition:all .15s}
-.ub-drop:hover .ub-drop-icon,.ub-drop.drag .ub-drop-icon{border-color:var(--c-red);color:var(--c-red)}
-.ub-title{font-size:11px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;margin-bottom:4px}
-.ub-hint{font-family:var(--mono);font-size:8px;color:#8f8878}
-.ub-browse{margin-top:10px;background:var(--c-ink);color:var(--c-panel);font-family:var(--mono);font-size:9px;letter-spacing:2px;text-transform:uppercase;padding:10px;font-weight:700;transition:opacity .15s}
-.ub-browse:hover{opacity:.85}
-
-.panel-cta{display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;gap:16px}
-.lift-btn{
-  width:150px;height:150px;border-radius:50%;background:radial-gradient(circle at 32% 28%,var(--c-red2),var(--c-red) 62%,#8a1a12 100%);
-  color:#fff;font-family:var(--font);font-weight:800;font-size:15px;letter-spacing:.5px;
-  box-shadow:0 14px 28px -10px rgba(0,0,0,.5),inset 0 2px 0 rgba(255,255,255,.25),inset 0 -6px 14px rgba(0,0,0,.25);
-  transition:transform .15s,box-shadow .15s;
+/* ═══════════ HERO ═══════════ */
+.hero{position:relative;padding:60px 20px 50px;text-align:center;background:radial-gradient(ellipse 70% 50% at 50% 0%,rgba(230,51,40,.05) 0%,transparent 65%);overflow:hidden}
+/* Pointer-tracked spotlight — the hero's one authored motion moment. Same
+   radial-follow trick as .cat-card-glow, scaled up to the whole section. */
+.hero-spotlight{
+  position:absolute;inset:0;opacity:0;transition:opacity .5s ease;pointer-events:none;z-index:0;
+  background:radial-gradient(circle 420px at var(--hx,50%) var(--hy,0%),rgba(230,51,40,.14),transparent 70%);
 }
-.lift-btn:hover{transform:translateY(-2px);box-shadow:0 18px 32px -10px rgba(0,0,0,.55),inset 0 2px 0 rgba(255,255,255,.3),inset 0 -6px 14px rgba(0,0,0,.25)}
-.lift-btn:active{transform:translateY(0)}
-.cta-status{font-family:var(--mono);font-size:9px;letter-spacing:1px;text-transform:uppercase;color:var(--c-ink-muted);line-height:1.7}
-.cta-status .status-red{color:var(--c-red);font-weight:700}
+.hero.spotlit .hero-spotlight{opacity:1}
+/* Lift the static text content above the spotlight without touching
+   .hero-corners/.hero-dots, which are already position:absolute and must
+   keep that value — a blanket .hero>* rule would out-specificity and break them. */
+.badges,.hero h1,.hero p,.hero-btns,.hero-tool{position:relative}
+@media(prefers-reduced-motion:reduce){.hero-spotlight{display:none}}
+/* Rivets at the casing corners — the multitool's fastening points, replacing
+   the old HUD corner-bracket signature with this world's own hardware. */
+.hero-corners{position:absolute;inset:0;pointer-events:none}
+.hc{position:absolute;width:7px;height:7px;border-radius:50%;
+  background:radial-gradient(circle at 35% 30%,var(--steel2),var(--steel) 55%,var(--dim) 100%);
+  box-shadow:inset 0 1px 1px rgba(0,0,0,.4),0 1px 1px rgba(255,255,255,.06)}
+.hc.tl{top:18px;left:22px}
+.hc.tr{top:18px;right:22px}
+.hc.bl{bottom:18px;left:22px}
+.hc.br{bottom:18px;right:22px}
+.hero-dots{position:absolute;top:24px;display:grid;grid-template-columns:repeat(4,1fr);gap:5px;opacity:.16;pointer-events:none}
+.hero-dots.left{left:42px}
+.hero-dots.right{right:42px}
+.hero-dots span{display:block;width:3px;height:3px;border-radius:50%;background:var(--steel)}
 
-.console-bottom{display:grid;grid-template-columns:1.1fr 1.9fr;gap:3px}
-.dial-cluster{display:flex;gap:8px;flex-wrap:wrap}
-.dial-toggle{flex:1;min-width:88px;background:var(--c-panel2);border:1px solid var(--c-seam);padding:10px 12px;text-align:left;font-family:var(--mono);font-size:9px;letter-spacing:1px;text-transform:uppercase;color:var(--c-ink-muted);transition:all .15s}
-.dial-toggle.active{background:var(--c-ink);color:var(--c-panel);border-color:var(--c-ink)}
-.dial-toggle:hover:not(.active){border-color:var(--c-red)}
-
-.panel-stats{background:var(--c-screen);color:var(--c-screen-text);position:relative;overflow:hidden;display:flex;gap:0;padding:0}
-.stat-block{flex:1;padding:18px 20px;position:relative;z-index:1}
-.stat-glow{position:absolute;right:-40px;top:-40px;bottom:-40px;width:220px;
-  background:radial-gradient(circle at 70% 50%,rgba(226,71,44,.5),transparent 70%);pointer-events:none}
-
-@media(max-width:900px){
-  .console-grid{grid-template-columns:1fr 1fr}
-  .console-bottom{grid-template-columns:1fr}
+/* The folded multitool — three brushed-steel blades fanned from one red
+   rivet pivot. Each blade carries the icon of the category it opens; hover
+   or focus unfolds the fan slightly wider, previewing the interaction the
+   category cards below complete. This is the surface's signature moment. */
+.hero-tool{width:216px;height:118px;margin:0 auto 26px;--fan:0deg}
+.ht-blade{
+  position:absolute;bottom:6px;left:50%;width:36px;height:96px;
+  border-radius:5px 5px 3px 3px;border:1px solid var(--border2);
+  background:linear-gradient(112deg,var(--bg4) 0%,var(--steel) 42%,var(--bg4) 58%,var(--steel2) 100%);
+  box-shadow:0 8px 16px -8px rgba(0,0,0,.65),inset 0 1px 0 rgba(255,255,255,.14);
+  transform-origin:bottom center;cursor:pointer;
+  transition:transform .35s cubic-bezier(.34,1.56,.64,1),box-shadow .25s;
 }
-@media(max-width:600px){
-  .console-grid{grid-template-columns:1fr}
-  .panel-stats{flex-direction:column}
+.ht-blade:hover,.ht-blade:focus-visible{box-shadow:0 10px 20px -8px rgba(0,0,0,.7),inset 0 1px 0 rgba(255,255,255,.22)}
+.ht-b1{transform:translateX(-50%) rotate(calc(-26deg - var(--fan)))}
+.ht-b2{transform:translateX(-50%) rotate(0deg);z-index:2}
+.ht-b3{transform:translateX(-50%) rotate(calc(26deg + var(--fan)))}
+.hero-tool:hover,.hero-tool:focus-within{--fan:9deg}
+@media(prefers-reduced-motion:reduce){.hero-tool:hover,.hero-tool:focus-within{--fan:0deg}.ht-blade{transition:none}}
+.ht-ico{position:absolute;top:12px;left:50%;width:16px;height:16px;color:var(--bg);opacity:.85}
+.ht-b1 .ht-ico{transform:translateX(-50%) rotate(26deg)}
+.ht-b3 .ht-ico{transform:translateX(-50%) rotate(-26deg)}
+.ht-b2 .ht-ico{transform:translateX(-50%)}
+.ht-pivot{
+  position:absolute;bottom:0;left:50%;width:15px;height:15px;margin-left:-7.5px;border-radius:50%;
+  background:radial-gradient(circle at 35% 30%,var(--red2),var(--red) 60%,#7a130f 100%);
+  box-shadow:0 2px 6px rgba(0,0,0,.55),0 0 0 3px var(--bg2);z-index:3;pointer-events:none;
 }
+
+.badges{display:inline-flex;align-items:center;gap:12px;background:var(--bg3);border:1px solid var(--border);border-radius:3px;padding:5px 16px;margin-bottom:22px;flex-wrap:wrap;justify-content:center}
+.badge{display:flex;align-items:center;gap:5px;font-family:var(--mono);font-size:8px;letter-spacing:1.5px;color:var(--muted);text-transform:uppercase}
+.badge-dot{width:5px;height:5px;border-radius:50%;background:var(--red);flex-shrink:0}
+.hero h1{font-size:clamp(28px,5.5vw,58px);font-weight:800;letter-spacing:-.01em;line-height:1.05;margin-bottom:14px}
+.hero h1 span{color:var(--red)}
+.hero p{color:var(--muted);font-size:14px;line-height:1.7;margin-bottom:26px;padding:0 12px}
+.hero-btns{display:flex;gap:10px;justify-content:center;flex-wrap:wrap}
+
+/* ═══════════ UPLOAD WIDGET ═══════════ */
+.upload-box{max-width:540px;margin:0 auto 44px;background:var(--bg3);border:1px solid var(--border2);position:relative;border-radius:2px}
+.ub-screw{position:absolute;width:6px;height:6px;border-radius:50%;background:var(--border2);border:1px solid var(--border)}
+.ub-tabs{display:flex;border-bottom:1px solid var(--border)}
+.ub-tab{flex:1;padding:10px;font-size:9px;font-weight:700;letter-spacing:2px;text-transform:uppercase;border-bottom:2px solid transparent;color:var(--muted);transition:all var(--transition)}
+.ub-tab.active{color:var(--text);border-bottom-color:var(--red)}
+.ub-drop{display:block;margin:14px;border:1px dashed var(--border2);padding:28px 16px;text-align:center;cursor:pointer;transition:all var(--transition);border-radius:2px}
+.ub-drop:hover,.ub-drop.drag{border-color:var(--red);background:rgba(230,51,40,.04)}
+.ub-drop-icon{width:38px;height:38px;border:1px solid var(--border2);display:flex;align-items:center;justify-content:center;margin:0 auto 10px;color:var(--dim);transition:all var(--transition);border-radius:2px}
+.ub-drop:hover .ub-drop-icon,.ub-drop.drag .ub-drop-icon{border-color:var(--red);color:var(--red)}
+.ub-title{font-size:10px;font-weight:700;letter-spacing:2px;text-transform:uppercase;margin-bottom:4px}
+.ub-hint{font-family:var(--mono);font-size:8px;color:var(--dim)}
+.ub-browse{width:calc(100% - 28px);margin:0 14px 14px;border:1px solid var(--border);background:transparent;color:var(--muted);font-family:var(--mono);font-size:8px;letter-spacing:2px;text-transform:uppercase;padding:7px;transition:all var(--transition);border-radius:2px}
+.ub-browse:hover{border-color:var(--border2);color:var(--text)}
 
 /* ═══════════ HOME SECTIONS ═══════════ */
-.home-wrap{max-width:1180px;margin:0 auto;padding:0 16px 16px}
+.home-wrap{max-width:980px;margin:0 auto;padding:0 16px 16px}
 .sec{margin-bottom:32px}
 .sec-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;flex-wrap:wrap;gap:8px}
 .sec-title{display:flex;align-items:center;gap:8px;font-size:10px;font-weight:700;letter-spacing:3px;text-transform:uppercase}
@@ -226,30 +200,16 @@ nav{
 .sec-link{font-family:var(--mono);font-size:8px;letter-spacing:1.5px;color:var(--muted);transition:color var(--transition)}
 .sec-link:hover{color:var(--red)}
 
-/* Toolbelt — cream/console styled, home-page only (.tp-card on the full
-   tool-list pages and .ai-card in the editor are untouched by this). */
-.toolbelt{background:var(--c-panel);border:1px solid var(--c-seam);margin-bottom:28px}
-.tb-head{padding:18px 20px 14px;border-bottom:1px solid var(--c-seam);color:var(--c-ink)}
-.tb-head .sec-title::before{background:var(--c-red)}
-.tb-sub{font-family:var(--mono);font-size:9px;letter-spacing:1px;color:var(--c-ink-muted);margin-top:6px}
-.tb-group{padding:16px 20px;border-top:1px solid var(--c-seam)}
-.tb-group:first-of-type{border-top:none}
-.tb-group-muted{opacity:.65}
-.tb-group-head{display:flex;align-items:baseline;gap:8px;margin-bottom:10px}
-.tb-group-name{font-size:10px;font-weight:800;letter-spacing:2.5px;text-transform:uppercase;color:var(--c-ink)}
-.tb-group-head .sec-link{margin-left:auto;color:var(--c-ink-muted)}
-.tb-group-head .sec-link:hover{color:var(--c-red)}
-
 .tool-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:8px}
-.tcard{background:var(--c-panel2);border:1px solid var(--c-seam);padding:14px 12px;cursor:pointer;transition:all var(--transition);position:relative;overflow:hidden;text-align:left;color:var(--c-ink)}
-.tcard:hover{border-color:var(--c-red);transform:translateY(-1px)}
-.tcard:focus-visible{border-color:var(--c-red)}
-.tcard-s{position:absolute;width:4px;height:4px;border-radius:50%;background:var(--c-seam)}
+.tcard{background:var(--bg3);border:1px solid var(--border);padding:14px 12px;cursor:pointer;transition:all var(--transition);position:relative;overflow:hidden;border-radius:2px;text-align:left}
+.tcard:hover{border-color:var(--border2);transform:translateY(-1px)}
+.tcard:focus-visible{border-color:var(--red)}
+.tcard-s{position:absolute;width:4px;height:4px;border-radius:50%;background:var(--border2)}
 .tcard-s.tl{top:5px;left:5px}.tcard-s.tr{top:5px;right:5px}
-.tcard-ico{width:24px;height:24px;display:flex;align-items:center;justify-content:center;color:var(--c-red);margin-bottom:6px;margin-top:2px}
+.tcard-ico{width:24px;height:24px;display:flex;align-items:center;justify-content:center;color:var(--red);margin-bottom:6px;margin-top:2px}
 .tcard-name{font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;margin-bottom:4px}
-.tcard-desc{font-family:var(--mono);font-size:8px;color:var(--c-ink-muted);line-height:1.5;margin-bottom:10px}
-.tcard-line{position:absolute;bottom:0;left:0;width:18px;height:2px;background:var(--c-red)}
+.tcard-desc{font-family:var(--mono);font-size:8px;color:var(--dim);line-height:1.5;margin-bottom:10px}
+.tcard-line{position:absolute;bottom:0;left:0;width:18px;height:2px;background:var(--red)}
 /* Per-feature 3D icon tilt — shared by home grid cards, full tool-list cards,
    and AI placeholder cards. Base transform reads CSS vars (--rx/--ry/--tz/--tsc)
    that initTiltCards() drives live from pointer position; hover/focus-visible
@@ -407,16 +367,22 @@ nav{
 .ai-badge{font-size:7px;background:var(--amber);color:#000;padding:1px 5px;border-radius:8px;letter-spacing:.5px;font-weight:700}
 .ai-desc{font-family:var(--mono);font-size:8px;color:var(--dim);line-height:1.4}
 
-/* Quick Adjust widget — home page only, console-toned like the toolbelt */
-.qa-box{background:var(--c-panel);border:1px solid var(--c-seam);padding:18px;position:relative}
+/* Quick Adjust widget */
+.qa-box{background:var(--bg3);border:1px solid var(--border);padding:18px;position:relative;border-radius:2px}
 .qa-header{display:flex;align-items:center;gap:8px;margin-bottom:16px}
-.qa-dot{width:7px;height:7px;border-radius:50%;background:var(--c-red)}
-.qa-label{font-family:var(--mono);font-size:9px;letter-spacing:3px;color:var(--c-ink-muted);text-transform:uppercase}
+.qa-dot{width:7px;height:7px;border-radius:50%;background:var(--red)}
+.qa-label{font-family:var(--mono);font-size:9px;letter-spacing:3px;color:var(--muted);text-transform:uppercase}
 .qa-controls{display:grid;grid-template-columns:repeat(4,1fr) auto;gap:16px;align-items:end}
-.qa-item label{font-family:var(--mono);font-size:8px;letter-spacing:2px;color:var(--c-ink-muted);text-transform:uppercase;display:block;margin-bottom:8px}
-.qa-val{font-family:var(--mono);font-size:10px;color:var(--c-ink-muted);text-align:center;margin-top:6px}
-.qa-btn{background:var(--c-red);color:#fff;font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;padding:8px 16px;align-self:end;transition:opacity .15s}
-.qa-btn:hover{opacity:.85}
+.qa-item label{font-family:var(--mono);font-size:8px;letter-spacing:2px;color:var(--dim);text-transform:uppercase;display:block;margin-bottom:8px}
+.qa-val{font-family:var(--mono);font-size:10px;color:var(--muted);text-align:center;margin-top:6px}
+.qa-btn{background:var(--red);color:#fff;font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;padding:8px 16px;border-radius:2px;align-self:end;transition:background var(--transition)}
+.qa-btn:hover{background:var(--red2)}
+
+/* CTA section */
+.cta-wrap{text-align:center;padding:36px 16px 36px;position:relative;max-width:980px;margin:0 auto}
+.cta-line{position:absolute;left:15%;right:15%;height:1px;background:linear-gradient(to right,transparent,var(--border),transparent)}
+.cta h2{font-size:clamp(20px,4vw,28px);font-weight:800;margin:12px 0 18px}
+.cta h2 span{color:var(--red)}
 
 /* ═══════════ FOOTER ═══════════ */
 footer{background:var(--bg2);border-top:1px solid var(--border);padding:24px 16px;margin-top:24px}
@@ -1091,134 +1057,186 @@ FINISH: unreviewed and undocumented is unfinished; this build ends with the fini
 <div id="page-home" class="page active">
   <div class="home-bg" aria-hidden="true"></div>
 
-  <!-- THE CONSOLE — a bolted control panel: cream plates, black LCD screens,
-       one red accent. Ordinary product facts (tool count, upload size)
-       staged as instrument readouts. See DESIGN.md for the full system. -->
-  <section class="console" aria-label="Nexus Creator">
-    <div class="console-inner">
-      <div class="console-grid">
+  <section class="hero" aria-label="Hero" id="hero">
+    <div class="hero-spotlight" aria-hidden="true"></div>
+    <div class="hero-corners"><div class="hc tl"></div><div class="hc tr"></div><div class="hc bl"></div><div class="hc br"></div></div>
+    <div class="hero-dots left" id="hero-dots-left" aria-hidden="true"></div>
+    <div class="hero-dots right" id="hero-dots-right" aria-hidden="true"></div>
+    <div class="hero-tool" role="group" aria-label="Pick a category">
+      <button class="ht-blade ht-b1" onclick="goPage('photo')" aria-label="Open photo tools">
+        <svg class="ht-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <rect x="3" y="5.5" width="18" height="14" rx="2"/><circle cx="12" cy="12.5" r="3.4"/><path d="M8.2 5.5l1.3-1.8h5l1.3 1.8"/>
+        </svg>
+      </button>
+      <button class="ht-blade ht-b2" onclick="goPage('video')" aria-label="Open video tools">
+        <svg class="ht-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <rect x="2.6" y="5.5" width="18.8" height="13" rx="2"/><path d="M2.6 8.5h18.8M2.6 16.5h18.8M6 5.5v13M18.2 5.5v13" opacity=".55"/><path d="M10.3 9.3l4.7 3-4.7 3z" fill="currentColor" stroke="none"/>
+        </svg>
+      </button>
+      <button class="ht-blade ht-b3" onclick="goPage('audio')" aria-label="Open audio tools">
+        <svg class="ht-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M3 12h2.2l2-6.5 2.6 13 2.4-9.5 1.8 6 2-3.5H21"/>
+        </svg>
+      </button>
+      <div class="ht-pivot" aria-hidden="true"></div>
+    </div>
+    <div class="badges">
+      <div class="badge"><div class="badge-dot"></div>Free</div>
+      <div class="badge"><div class="badge-dot"></div>No Watermark</div>
+      <div class="badge"><div class="badge-dot"></div>No Signup</div>
+    </div>
+    <h1>FREE CREATOR<br/><span>TOOLKIT</span></h1>
+    <p>Edit Video, Photo &amp; Audio instantly in your browser.<br/>No software. No limits. Just create.</p>
+    <div class="hero-btns">
+      <button class="btn-red" onclick="goPage('editor')" aria-label="Upload file and start editing">
+        <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M17 8l-5-5-5 5M12 3v12"/></svg>
+        Upload File
+      </button>
+      <button class="btn-outline" onclick="goPage('video')" aria-label="Explore all tools">Explore Tools →</button>
+    </div>
+  </section>
 
-        <div class="panel panel-brand">
-          <div class="rivet tl"></div><div class="rivet tr"></div><div class="rivet bl"></div><div class="rivet br"></div>
-          <div class="panel-wordmark"><span class="wm-dot"></span>NEXUS CREATOR</div>
-          <ul class="panel-bullets">
-            <li>&gt; 100% browser-based</li>
-            <li>&gt; nothing ever uploaded</li>
-            <li>&gt; zero watermarks, zero limits</li>
-          </ul>
-          <div class="screen">
-            <div class="screen-label">Tools · One Page</div>
-            <div class="dotnum">34</div>
-          </div>
-          <div class="panel-cats">
-            <span>Photo</span><span>Video</span><span>Audio</span>
-          </div>
-        </div>
-
-        <div class="panel panel-capsule">
-          <div class="rivet tl"></div><div class="rivet br"></div>
-          <div class="capsule">
-            <div class="dotnum dotnum-sm">03</div>
-            <div class="screen-label">Categories</div>
-            <div class="capsule-glow" aria-hidden="true"></div>
-          </div>
-          <button class="panel-link" onclick="goPage('video')">Explore All →</button>
-        </div>
-
-        <div class="panel panel-upload">
-          <div class="rivet tl"></div><div class="rivet tr"></div><div class="rivet bl"></div><div class="rivet br"></div>
-          <div class="ub-tabs" role="tablist">
-            <button class="ub-tab active" data-tab="image" role="tab" aria-selected="true" onclick="setUWTab('image')">Image</button>
-            <button class="ub-tab"        data-tab="audio" role="tab" aria-selected="false" onclick="setUWTab('audio')">Audio</button>
-            <button class="ub-tab"        data-tab="video" role="tab" aria-selected="false" onclick="setUWTab('video')">Video</button>
-          </div>
-          <label class="ub-drop" id="ub-drop"
-            ondrop="onHomeDrop(event)"
-            ondragover="event.preventDefault();this.classList.add('drag')"
-            ondragleave="this.classList.remove('drag')">
-            <input type="file" id="ub-input" style="display:none" accept="image/*" onchange="onHomeFile(event)" aria-label="Upload file"/>
-            <div class="ub-drop-icon" aria-hidden="true">
-              <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M17 8l-5-5-5 5M12 3v12"/></svg>
-            </div>
-            <div class="ub-title">Drag &amp; Drop File Here</div>
-            <div class="ub-hint" id="ub-hint">JPG, PNG, WEBP · Max 50 MB</div>
-          </label>
-          <button class="ub-browse" onclick="document.getElementById('ub-input').click()" aria-label="Browse files">Browse Files</button>
-        </div>
-
-        <div class="panel panel-cta">
-          <div class="rivet tl"></div><div class="rivet tr"></div><div class="rivet bl"></div><div class="rivet br"></div>
-          <button class="lift-btn" onclick="goPage('editor')" aria-label="Go to the editor and start creating">Start</button>
-          <div class="cta-status">File Status<br/><span class="status-red">Waiting For Upload</span></div>
-        </div>
-
+  <!-- Upload widget -->
+  <section style="padding:0 16px" aria-label="Quick upload">
+    <div class="upload-box">
+      <div class="ub-screw" style="top:6px;left:6px"></div>
+      <div class="ub-screw" style="top:6px;right:6px"></div>
+      <div class="ub-screw" style="bottom:6px;left:6px"></div>
+      <div class="ub-screw" style="bottom:6px;right:6px"></div>
+      <div class="ub-tabs" role="tablist">
+        <button class="ub-tab active" data-tab="image" role="tab" aria-selected="true" onclick="setUWTab('image')">Image</button>
+        <button class="ub-tab"        data-tab="audio" role="tab" aria-selected="false" onclick="setUWTab('audio')">Audio</button>
+        <button class="ub-tab"        data-tab="video" role="tab" aria-selected="false" onclick="setUWTab('video')">Video</button>
       </div>
+      <label class="ub-drop" id="ub-drop"
+        ondrop="onHomeDrop(event)"
+        ondragover="event.preventDefault();this.classList.add('drag')"
+        ondragleave="this.classList.remove('drag')">
+        <input type="file" id="ub-input" style="display:none" accept="image/*" onchange="onHomeFile(event)" aria-label="Upload file"/>
+        <div class="ub-drop-icon" aria-hidden="true">
+          <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M17 8l-5-5-5 5M12 3v12"/></svg>
+        </div>
+        <div class="ub-title">Drag &amp; Drop File Here</div>
+        <div class="ub-hint" id="ub-hint">JPG, PNG, WEBP · Max 50 MB</div>
+      </label>
+      <button class="ub-browse" onclick="document.getElementById('ub-input').click()" aria-label="Browse files">▤ Browse Files</button>
+    </div>
+  </section>
 
-      <div class="console-bottom">
-        <div class="panel panel-tight">
-          <div class="rivet tl"></div><div class="rivet br"></div>
-          <div class="screen-label" style="color:var(--c-ink-muted);margin-bottom:10px">Jump To A Category</div>
-          <div class="dial-cluster">
-            <button class="dial-toggle" onclick="goPage('photo')">Photo</button>
-            <button class="dial-toggle" onclick="goPage('video')">Video</button>
-            <button class="dial-toggle" onclick="goPage('audio')">Audio</button>
+  <!-- Category showcase: 3D interactive icons -->
+  <section class="cat-showcase" aria-label="Choose a category">
+    <div class="cs-inner">
+      <div class="cs-head">
+        <div class="sec-title">Pick Your Craft</div>
+        <p class="cs-sub">Three toolkits · One tab · Zero uploads</p>
+      </div>
+      <div class="cs-grid">
+
+        <button class="cat-card" data-cat="photo" onclick="goPage('photo')" aria-label="Open photo tools">
+          <div class="cat-card-glow" aria-hidden="true"></div>
+          <div class="icon3d-float">
+            <div class="icon3d" aria-hidden="true">
+              <div class="icon3d-layer icon3d-plate"></div>
+              <div class="icon3d-layer icon3d-ring"></div>
+              <div class="icon3d-layer icon3d-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+                  <rect x="3" y="5.5" width="18" height="14" rx="2"/><circle cx="12" cy="12.5" r="3.4"/><path d="M8.2 5.5l1.3-1.8h5l1.3 1.8"/>
+                </svg>
+              </div>
+              <div class="icon3d-layer icon3d-shine"></div>
+            </div>
           </div>
-        </div>
-        <div class="panel panel-stats">
-          <div class="rivet tl"></div><div class="rivet br"></div>
-          <div class="stat-block">
-            <div class="screen-label">Tools Available</div>
-            <div class="dotnum">34</div>
+          <h3 class="cat-name">Photo</h3>
+          <p class="cat-desc">Crop, filter, resize &amp; compress — pixel-perfect, instantly.</p>
+          <div class="cat-preview cat-preview-photo" aria-hidden="true">
+            <div class="cpv-before"></div><div class="cpv-after"></div><div class="cpv-split"></div>
           </div>
-          <div class="stat-block">
-            <div class="screen-label">MB Uploaded, Ever</div>
-            <div class="dotnum">+0</div>
+          <span class="cat-cta">Open Photo Tools →</span>
+        </button>
+
+        <button class="cat-card" data-cat="video" onclick="goPage('video')" aria-label="Open video tools">
+          <div class="cat-card-glow" aria-hidden="true"></div>
+          <div class="icon3d-float">
+            <div class="icon3d" aria-hidden="true">
+              <div class="icon3d-layer icon3d-plate"></div>
+              <div class="icon3d-layer icon3d-ring"></div>
+              <div class="icon3d-layer icon3d-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+                  <rect x="2.6" y="5.5" width="18.8" height="13" rx="2"/><path d="M2.6 8.5h18.8M2.6 16.5h18.8M6 5.5v13M18.2 5.5v13" opacity=".55"/><path d="M10.3 9.3l4.7 3-4.7 3z" fill="currentColor" stroke="none"/>
+                </svg>
+              </div>
+              <div class="icon3d-layer icon3d-shine"></div>
+            </div>
           </div>
-          <div class="stat-glow" aria-hidden="true"></div>
-        </div>
+          <h3 class="cat-name">Video</h3>
+          <p class="cat-desc">Trim, crop, speed-ramp &amp; export — no re-encode limits.</p>
+          <div class="cat-preview cat-preview-video" aria-hidden="true">
+            <div class="cpv-track"><div class="cpv-fill"></div><div class="cpv-head"></div></div>
+          </div>
+          <span class="cat-cta">Open Video Tools →</span>
+        </button>
+
+        <button class="cat-card" data-cat="audio" onclick="goPage('audio')" aria-label="Open audio tools">
+          <div class="cat-card-glow" aria-hidden="true"></div>
+          <div class="icon3d-float">
+            <div class="icon3d" aria-hidden="true">
+              <div class="icon3d-layer icon3d-plate"></div>
+              <div class="icon3d-layer icon3d-ring"></div>
+              <div class="icon3d-layer icon3d-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M3 12h2.2l2-6.5 2.6 13 2.4-9.5 1.8 6 2-3.5H21"/>
+                </svg>
+              </div>
+              <div class="icon3d-layer icon3d-shine"></div>
+            </div>
+          </div>
+          <h3 class="cat-name">Audio</h3>
+          <p class="cat-desc">Trim, fade, normalize &amp; visualize — hear every change.</p>
+          <div class="cat-preview cat-preview-audio" aria-hidden="true">
+            <div class="cpv-eq" id="cpv-eq"><!-- bars injected by JS with staggered delays --></div>
+          </div>
+          <span class="cat-cta">Open Audio Tools →</span>
+        </button>
+
       </div>
     </div>
   </section>
 
   <div class="home-wrap">
-    <!-- The Toolbelt: all 34 tools grouped, on the console's own cream/screen system -->
-    <section class="toolbelt" aria-label="All tools">
-      <div class="tb-head">
-        <div class="sec-title">The Toolbelt</div>
-        <p class="tb-sub">34 tools on one page — jump straight to any of them</p>
+    <!-- Image Tools -->
+    <section class="sec" aria-label="Image tools preview">
+      <div class="sec-head">
+        <div class="sec-title">Image Tools</div>
+        <button class="sec-link" onclick="goPage('photo')" aria-label="View all photo tools">View All →</button>
       </div>
+      <div class="tool-grid" id="home-photo"></div>
+    </section>
 
-      <div class="tb-group" aria-label="Photo tools preview">
-        <div class="tb-group-head">
-          <span class="tb-group-name">Photo</span>
-          <button class="sec-link" onclick="goPage('photo')" aria-label="View all photo tools">View All →</button>
-        </div>
-        <div class="tool-grid" id="home-photo"></div>
+    <!-- Audio Tools -->
+    <section class="sec" aria-label="Audio tools preview">
+      <div class="sec-head">
+        <div class="sec-title">Audio Tools</div>
+        <button class="sec-link" onclick="goPage('audio')" aria-label="View all audio tools">View All →</button>
       </div>
+      <div class="tool-grid" id="home-audio"></div>
+    </section>
 
-      <div class="tb-group" aria-label="Video tools preview">
-        <div class="tb-group-head">
-          <span class="tb-group-name">Video</span>
-          <button class="sec-link" onclick="goPage('video')" aria-label="View all video tools">View All →</button>
-        </div>
-        <div class="tool-grid" id="home-video"></div>
+    <!-- Video Tools -->
+    <section class="sec" aria-label="Video tools preview">
+      <div class="sec-head">
+        <div class="sec-title">Video Tools</div>
+        <button class="sec-link" onclick="goPage('video')" aria-label="View all video tools">View All →</button>
       </div>
+      <div class="tool-grid" id="home-video"></div>
+    </section>
 
-      <div class="tb-group" aria-label="Audio tools preview">
-        <div class="tb-group-head">
-          <span class="tb-group-name">Audio</span>
-          <button class="sec-link" onclick="goPage('audio')" aria-label="View all audio tools">View All →</button>
-        </div>
-        <div class="tool-grid" id="home-audio"></div>
+    <!-- AI Tools -->
+    <section class="sec" aria-label="AI tools coming soon">
+      <div class="sec-head">
+        <div class="sec-title">AI Tools</div>
+        <span class="sec-link" style="color:var(--amber)">Coming Soon</span>
       </div>
-
-      <div class="tb-group tb-group-muted" aria-label="AI tools coming soon">
-        <div class="tb-group-head">
-          <span class="tb-group-name">AI</span>
-          <span class="sec-link" style="color:var(--amber);margin-left:auto">Coming Soon</span>
-        </div>
-        <div class="ai-grid" id="home-ai"></div>
-      </div>
+      <div class="ai-grid" id="home-ai"></div>
     </section>
 
     <!-- Quick Adjust -->
@@ -1255,6 +1273,16 @@ FINISH: unreviewed and undocumented is unfinished; this build ends with the fini
       </div>
     </section>
 
+    <!-- CTA -->
+    <div class="cta-wrap">
+      <div class="cta-line" style="top:14px"></div>
+      <div class="cta">
+        <p style="font-family:var(--mono);font-size:9px;letter-spacing:3px;color:var(--muted);text-transform:uppercase;padding-top:28px">Ready to Create?</p>
+        <h2>Launch the <span>Editor</span></h2>
+        <button class="btn-red" onclick="goPage('editor')" style="font-size:11px;padding:13px 36px" aria-label="Start editing">→ Start Editing Now →</button>
+      </div>
+      <div class="cta-line" style="bottom:14px"></div>
+    </div>
   </div>
 
   <footer role="contentinfo">
@@ -1729,6 +1757,10 @@ function renderHomeGrids() {
         <div class="ai-desc">${t.desc}</div>
       </div>
     </button>`).join('');
+  // Dot decorations
+  ['hero-dots-left','hero-dots-right'].forEach(id => {
+    $(id).innerHTML = Array(16).fill('<span></span>').join('');
+  });
   initTiltCards('.tcard', '.tcard-ico');
   initTiltCards('.ai-card', '.ai-ico');
 }
@@ -5794,6 +5826,92 @@ document.addEventListener('keydown', e => {
 });
 
 // ════════════════════════════════════════════════════════════════════════════
+// HOME — CATEGORY SHOWCASE (3D tilt icons + micro-interactions)
+// ════════════════════════════════════════════════════════════════════════════
+function initCatShowcase() {
+  // Equalizer bars for the Audio card preview — staggered animation delays
+  const eq = $('cpv-eq');
+  if (eq && !eq.childElementCount) {
+    eq.innerHTML = Array.from({length: 14}, (_, i) =>
+      `<div class="cpv-bar" style="animation-delay:${(i * 0.08).toFixed(2)}s"></div>`
+    ).join('');
+  }
+
+  // Pointer-tracked 3D tilt for each category icon — CSS vars, no external libs
+  const REDUCED = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  if (REDUCED) return;
+
+  document.querySelectorAll('.cat-card').forEach(card => {
+    const icon = card.querySelector('.icon3d');
+    if (!icon || icon._tiltBound) return;
+    icon._tiltBound = true;
+
+    const setVars = (rx, ry, mx, my) => {
+      icon.style.setProperty('--rx', rx.toFixed(2) + 'deg');
+      icon.style.setProperty('--ry', ry.toFixed(2) + 'deg');
+      icon.style.setProperty('--mx', mx.toFixed(1) + '%');
+      icon.style.setProperty('--my', my.toFixed(1) + '%');
+    };
+    const reset = () => { setVars(0, 0, 50, 30); card.classList.remove('tilting'); };
+
+    card.addEventListener('pointermove', e => {
+      if (e.pointerType === 'touch') return;
+      const r = card.getBoundingClientRect();
+      const px = (e.clientX - r.left) / r.width;
+      const py = (e.clientY - r.top)  / r.height;
+      card.classList.add('tilting');
+      setVars((0.5 - py) * 22, (px - 0.5) * 22, px * 100, py * 100);
+      card.style.setProperty('--mx', (px * 100).toFixed(1) + '%');
+      card.style.setProperty('--my', (py * 100).toFixed(1) + '%');
+    });
+    card.addEventListener('pointerleave', reset);
+    card.addEventListener('blur', reset);
+
+    // Per-category preview strip: give the ambient loop a real interaction —
+    // pointer position drives it directly instead of just auto-cycling.
+    const cat = card.dataset.cat;
+    const preview = card.querySelector('.cat-preview');
+    if (preview) {
+      card.addEventListener('pointermove', e => {
+        if (e.pointerType === 'touch') return;
+        const pr = preview.getBoundingClientRect();
+        const ppx = Math.max(0, Math.min(1, (e.clientX - pr.left) / pr.width));
+        preview.classList.add('live');
+        if (cat === 'photo') {
+          const split = preview.querySelector('.cpv-split');
+          if (split) split.style.left = (6 + ppx * 88) + '%';
+        } else if (cat === 'video') {
+          const fill = preview.querySelector('.cpv-fill');
+          const head = preview.querySelector('.cpv-head');
+          if (fill) fill.style.width = (ppx * 100) + '%';
+          if (head) head.style.left = (ppx * 100) + '%';
+        } else if (cat === 'audio') {
+          preview.style.setProperty('--eq-boost', (0.65 + ppx * 0.95).toFixed(2));
+        }
+      });
+      card.addEventListener('pointerleave', () => preview.classList.remove('live'));
+    }
+  });
+}
+
+// Hero spotlight — one pointer-tracked glow, the hero's single authored motion
+// moment. Mirrors the .cat-card-glow radial-follow trick at section scale.
+function initHeroSpotlight() {
+  if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  const hero = $('hero');
+  if (!hero || hero._spotlightBound) return;
+  hero._spotlightBound = true;
+  hero.addEventListener('pointermove', e => {
+    if (e.pointerType === 'touch') return;
+    const r = hero.getBoundingClientRect();
+    hero.style.setProperty('--hx', ((e.clientX - r.left) / r.width  * 100).toFixed(1) + '%');
+    hero.style.setProperty('--hy', ((e.clientY - r.top)  / r.height * 100).toFixed(1) + '%');
+    hero.classList.add('spotlit');
+  });
+  hero.addEventListener('pointerleave', () => hero.classList.remove('spotlit'));
+}
+
+// ════════════════════════════════════════════════════════════════════════════
 // INIT
 // ════════════════════════════════════════════════════════════════════════════
 document.addEventListener('DOMContentLoaded', () => {
@@ -5803,6 +5921,8 @@ document.addEventListener('DOMContentLoaded', () => {
   renderToolPage('photo');
   renderToolPage('audio');
   renderToolList();
+  initCatShowcase();
+  initHeroSpotlight();
 
   if (typeof SharedArrayBuffer === 'undefined') {
     setStatus('partial', 'Photo only');
