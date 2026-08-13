@@ -26,9 +26,10 @@ professional NLE replacement.
   interaction (compare strip / scrub filmstrip / frequency bars) that echoes
   what that category's tools actually do.
 - **Editor** (`#page-editor`) — Operate mode, the real workspace. Category
-  rail → tool list → preview (with drop zone / live preview / processing
-  overlay) → settings panel → System Status. This is where every one of the
-  ~34 tools actually runs.
+  rail (Video/Photo/Audio/AI Tools) → tool list → preview (drop zone / live
+  preview / persistent transport bar for video / processing overlay) →
+  settings panel → System Status. This is where every one of the ~34 real
+  tools actually runs.
 
 ## Constraints that shape the design
 
@@ -44,10 +45,17 @@ professional NLE replacement.
 ## Open items (not addressed by this pass)
 
 - AI tools (remove-bg, enhance, auto-subtitle, noise-removal) are still
-  placeholders — "Coming Soon" on the home page, matching the mockups faithfully.
-- The mockups' bottom persistent multi-track timeline (V1/A1/T1 always
-  visible) implies a different interaction model (multi-track NLE) than what
-  exists (one tool active at a time). Only the *existing* trim timeline was
-  restyled to match the track-row look — no fake tracks were added. Building
-  a real persistent multi-track timeline would be a product decision, not a
-  visual one — flag to the user before attempting it.
+  placeholders — "Coming Soon" everywhere they appear (home page cards, and
+  now the editor's AI Tools rail entry too), matching the mockups faithfully.
+- The mockups' persistent timeline shows 3 always-visible tracks (V1 video /
+  A1 audio / T1 text). Built: a real, single-track persistent transport bar
+  for video (filmstrip, play/pause, click-to-seek — see DESIGN.md's Timeline
+  section). Not built: a genuine multi-track timeline (simultaneous video +
+  audio + text tracks editable together) — the app's data model is one tool
+  acting on one file, not a multi-track project, so that's a product decision
+  (does Nexus Creator become a multi-track NLE?), not a visual one. Flag to
+  the user before attempting it.
+- System Status shows Engine/Memory/Threads instead of the mockup's literal
+  CPU/GPU/RAM/VRAM, since browsers can't read the latter. If the user wants
+  it to say CPU/GPU/RAM/VRAM anyway (accepting those are estimates/simulated,
+  clearly labeled as such), that's a product call — ask first.
