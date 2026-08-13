@@ -29,6 +29,19 @@
   --mono:'JetBrains Mono',monospace;
   --nav-h:54px;
   --transition:.15s cubic-bezier(.4,0,.2,1);
+  --r-sm:6px;--r-md:10px;--r-lg:16px;--r-pill:999px;
+}
+
+/* Four corner "bolt" dots, composited as background layers — no extra DOM.
+   Distance-from-edge and dot color are overridable per component. */
+.bolts{
+  --bolt-in:10px;--bolt-c:var(--border2);--bolt-r:2.2px;
+  background-image:
+    radial-gradient(circle var(--bolt-r) at var(--bolt-in) var(--bolt-in),var(--bolt-c) 94%,transparent 96%),
+    radial-gradient(circle var(--bolt-r) at calc(100% - var(--bolt-in)) var(--bolt-in),var(--bolt-c) 94%,transparent 96%),
+    radial-gradient(circle var(--bolt-r) at var(--bolt-in) calc(100% - var(--bolt-in)),var(--bolt-c) 94%,transparent 96%),
+    radial-gradient(circle var(--bolt-r) at calc(100% - var(--bolt-in)) calc(100% - var(--bolt-in)),var(--bolt-c) 94%,transparent 96%);
+  background-repeat:no-repeat;
 }
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 html{font-family:var(--font);background:var(--bg);color:var(--text);-webkit-font-smoothing:antialiased}
@@ -57,7 +70,7 @@ nav{
   display:flex;align-items:center;padding:0 16px;position:sticky;top:0;z-index:100;flex-shrink:0
 }
 .logo{display:flex;align-items:center;gap:10px;margin-right:16px;padding-right:16px;border-right:1px solid var(--border);cursor:pointer}
-.logo-icon{width:28px;height:28px;background:var(--red);display:flex;align-items:center;justify-content:center;flex-shrink:0;border-radius:2px}
+.logo-icon{width:28px;height:28px;background:var(--red);display:flex;align-items:center;justify-content:center;flex-shrink:0;border-radius:6px}
 .logo-title{font-size:12px;font-weight:800;letter-spacing:3px;line-height:1}
 .logo-sub{font-family:var(--mono);font-size:7px;letter-spacing:3px;color:var(--muted);margin-top:1px}
 .nav-links{display:flex}
@@ -83,15 +96,15 @@ nav{
 .theme-toggle:hover{color:var(--text);border-color:var(--text)}
 .nav-cta{
   background:var(--red);color:#fff;font-size:10px;font-weight:700;letter-spacing:2px;
-  text-transform:uppercase;padding:8px 14px;transition:background var(--transition);border-radius:2px
+  text-transform:uppercase;padding:8px 14px;transition:background var(--transition);border-radius:6px
 }
 .nav-cta:hover{background:var(--red2)}
 .hamburger{display:none;width:32px;height:32px;align-items:center;justify-content:center;color:var(--text)}
 
 /* ═══════════ BUTTONS ═══════════ */
-.btn-red{background:var(--red);color:#fff;font-size:10px;font-weight:700;letter-spacing:2px;text-transform:uppercase;padding:11px 24px;transition:background var(--transition);display:inline-flex;align-items:center;gap:7px;border-radius:2px}
+.btn-red{background:var(--red);color:#fff;font-size:10px;font-weight:700;letter-spacing:2px;text-transform:uppercase;padding:11px 24px;transition:background var(--transition);display:inline-flex;align-items:center;gap:7px;border-radius:6px}
 .btn-red:hover{background:var(--red2)}
-.btn-outline{background:transparent;color:var(--text);border:1px solid var(--border2);font-size:10px;font-weight:600;letter-spacing:2px;text-transform:uppercase;padding:11px 20px;transition:all var(--transition);display:inline-flex;align-items:center;gap:6px;border-radius:2px}
+.btn-outline{background:transparent;color:var(--text);border:1px solid var(--border2);font-size:10px;font-weight:600;letter-spacing:2px;text-transform:uppercase;padding:11px 20px;transition:all var(--transition);display:inline-flex;align-items:center;gap:6px;border-radius:6px}
 .btn-outline:hover{border-color:var(--muted)}
 
 /* ═══════════ HERO ═══════════ */
@@ -130,18 +143,18 @@ nav{
 .hero-btns{display:flex;gap:10px;justify-content:center;flex-wrap:wrap}
 
 /* ═══════════ UPLOAD WIDGET ═══════════ */
-.upload-box{max-width:540px;margin:0 auto 44px;background:var(--bg3);border:1px solid var(--border2);position:relative;border-radius:2px}
+.upload-box{max-width:540px;margin:0 auto 44px;background:var(--bg3);border:1px solid var(--border2);position:relative;border-radius:var(--r-lg)}
 .ub-screw{position:absolute;width:6px;height:6px;border-radius:50%;background:var(--border2);border:1px solid var(--border)}
 .ub-tabs{display:flex;border-bottom:1px solid var(--border)}
 .ub-tab{flex:1;padding:10px;font-size:9px;font-weight:700;letter-spacing:2px;text-transform:uppercase;border-bottom:2px solid transparent;color:var(--muted);transition:all var(--transition)}
 .ub-tab.active{color:var(--text);border-bottom-color:var(--red)}
-.ub-drop{display:block;margin:14px;border:1px dashed var(--border2);padding:28px 16px;text-align:center;cursor:pointer;transition:all var(--transition);border-radius:2px}
+.ub-drop{display:block;margin:14px;border:1px dashed var(--border2);padding:28px 16px;text-align:center;cursor:pointer;transition:all var(--transition);border-radius:6px}
 .ub-drop:hover,.ub-drop.drag{border-color:var(--red);background:rgba(229,56,59,.04)}
-.ub-drop-icon{width:38px;height:38px;border:1px solid var(--border2);display:flex;align-items:center;justify-content:center;margin:0 auto 10px;color:var(--dim);transition:all var(--transition);border-radius:2px}
+.ub-drop-icon{width:38px;height:38px;border:1px solid var(--border2);display:flex;align-items:center;justify-content:center;margin:0 auto 10px;color:var(--dim);transition:all var(--transition);border-radius:6px}
 .ub-drop:hover .ub-drop-icon,.ub-drop.drag .ub-drop-icon{border-color:var(--red);color:var(--red)}
 .ub-title{font-size:10px;font-weight:700;letter-spacing:2px;text-transform:uppercase;margin-bottom:4px}
 .ub-hint{font-family:var(--mono);font-size:8px;color:var(--dim)}
-.ub-browse{width:calc(100% - 28px);margin:0 14px 14px;border:1px solid var(--border);background:transparent;color:var(--muted);font-family:var(--mono);font-size:8px;letter-spacing:2px;text-transform:uppercase;padding:7px;transition:all var(--transition);border-radius:2px}
+.ub-browse{width:calc(100% - 28px);margin:0 14px 14px;border:1px solid var(--border);background:transparent;color:var(--muted);font-family:var(--mono);font-size:8px;letter-spacing:2px;text-transform:uppercase;padding:7px;transition:all var(--transition);border-radius:6px}
 .ub-browse:hover{border-color:var(--border2);color:var(--text)}
 
 /* ═══════════ HOME SECTIONS ═══════════ */
@@ -154,7 +167,16 @@ nav{
 .sec-link:hover{color:var(--red)}
 
 .tool-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:8px}
-.tcard{background:var(--bg3);border:1px solid var(--border);padding:14px 12px;cursor:pointer;transition:all var(--transition);position:relative;overflow:hidden;border-radius:2px;text-align:left}
+.tcard{
+  background-color:var(--bg3);
+  background-image:
+    radial-gradient(circle 2px at 9px 9px,var(--border2) 94%,transparent 96%),
+    radial-gradient(circle 2px at calc(100% - 9px) 9px,var(--border2) 94%,transparent 96%),
+    radial-gradient(circle 2px at 9px calc(100% - 9px),var(--border2) 94%,transparent 96%),
+    radial-gradient(circle 2px at calc(100% - 9px) calc(100% - 9px),var(--border2) 94%,transparent 96%);
+  background-repeat:no-repeat;
+  border:1px solid var(--border);padding:14px 12px;cursor:pointer;transition:all var(--transition);position:relative;overflow:hidden;border-radius:var(--r-md);text-align:left
+}
 .tcard:hover{border-color:var(--border2);transform:translateY(-1px)}
 .tcard:focus-visible{border-color:var(--red)}
 .tcard-s{position:absolute;width:4px;height:4px;border-radius:50%;background:var(--border2)}
@@ -217,7 +239,7 @@ nav{
 
 .cat-card{
   position:relative;background:linear-gradient(180deg,var(--bg3) 0%,var(--bg2) 100%);
-  border:1px solid var(--border);border-radius:6px;padding:26px 18px 20px;
+  border:1px solid var(--border);border-radius:var(--r-lg);padding:26px 18px 20px;
   display:flex;flex-direction:column;align-items:center;text-align:center;overflow:hidden;
   perspective:900px;transition:border-color .25s,transform .25s,box-shadow .25s;cursor:pointer;
 }
@@ -287,15 +309,15 @@ nav{
 @keyframes cpvSweep{0%,100%{left:18%}50%{left:82%}}
 
 .cat-preview-video{display:flex;align-items:center;padding:0 8px}
-.cpv-track{position:relative;flex:1;height:3px;background:var(--border2);border-radius:2px}
-.cpv-fill{position:absolute;left:0;top:0;height:100%;background:var(--red);border-radius:2px;animation:cpvFill 3.6s linear infinite}
+.cpv-track{position:relative;flex:1;height:3px;background:var(--border2);border-radius:6px}
+.cpv-fill{position:absolute;left:0;top:0;height:100%;background:var(--red);border-radius:6px;animation:cpvFill 3.6s linear infinite}
 .cpv-head{position:absolute;top:50%;width:9px;height:9px;border-radius:50%;background:#fff;border:2px solid var(--red);transform:translate(-50%,-50%);animation:cpvHead 3.6s linear infinite}
 @keyframes cpvFill{0%{width:0%}90%,100%{width:100%}}
 @keyframes cpvHead{0%{left:0%}90%,100%{left:100%}}
 
 .cat-preview-audio{padding:0 10px}
 .cpv-eq{display:flex;align-items:center;justify-content:center;gap:3px;height:100%;transform:scaleY(var(--eq-boost,1));transition:transform .12s ease-out}
-.cpv-bar{width:3px;background:var(--red);border-radius:2px;height:6px;animation:cpvEq 1.1s ease-in-out infinite}
+.cpv-bar{width:3px;background:var(--red);border-radius:6px;height:6px;animation:cpvEq 1.1s ease-in-out infinite}
 @keyframes cpvEq{0%,100%{height:5px;opacity:.55}50%{height:24px;opacity:1}}
 /* Live = pointer is driving the strip directly; freeze the ambient loop so the
    cursor is visibly in control instead of fighting the auto-cycle. */
@@ -312,24 +334,86 @@ nav{
 
 /* AI Tools cards */
 .ai-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
-.ai-card{background:var(--bg3);border:1px solid var(--border);padding:12px;cursor:pointer;transition:all var(--transition);position:relative;display:flex;align-items:flex-start;gap:10px;border-radius:2px;text-align:left}
+.ai-card{
+  background-color:var(--bg3);
+  background-image:
+    radial-gradient(circle 2px at 9px 9px,var(--border2) 94%,transparent 96%),
+    radial-gradient(circle 2px at calc(100% - 9px) 9px,var(--border2) 94%,transparent 96%),
+    radial-gradient(circle 2px at 9px calc(100% - 9px),var(--border2) 94%,transparent 96%),
+    radial-gradient(circle 2px at calc(100% - 9px) calc(100% - 9px),var(--border2) 94%,transparent 96%);
+  background-repeat:no-repeat;
+  border:1px solid var(--border);padding:12px;cursor:pointer;transition:all var(--transition);position:relative;display:flex;align-items:flex-start;gap:10px;border-radius:var(--r-md);text-align:left
+}
 .ai-card:hover{border-color:var(--border2);transform:translateY(-1px)}
-.ai-ico{width:30px;height:30px;background:var(--bg4);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;flex-shrink:0;color:var(--red);border-radius:2px}
+.ai-ico{width:30px;height:30px;background:var(--bg4);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;flex-shrink:0;color:var(--red);border-radius:6px}
 .ai-body{flex:1;min-width:0}
 .ai-name{font-size:9px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;margin-bottom:3px;display:flex;align-items:center;gap:6px}
 .ai-badge{font-size:7px;background:var(--amber);color:#000;padding:1px 5px;border-radius:8px;letter-spacing:.5px;font-weight:700}
 .ai-desc{font-family:var(--mono);font-size:8px;color:var(--dim);line-height:1.4}
 
 /* Quick Adjust widget */
-.qa-box{background:var(--bg3);border:1px solid var(--border);padding:18px;position:relative;border-radius:2px}
-.qa-header{display:flex;align-items:center;gap:8px;margin-bottom:16px}
+.qa-box{
+  background-color:var(--bg3);
+  background-image:
+    radial-gradient(circle 2.5px at 14px 14px,var(--border2) 94%,transparent 96%),
+    radial-gradient(circle 2.5px at calc(100% - 14px) 14px,var(--border2) 94%,transparent 96%),
+    radial-gradient(circle 2.5px at 14px calc(100% - 14px),var(--border2) 94%,transparent 96%),
+    radial-gradient(circle 2.5px at calc(100% - 14px) calc(100% - 14px),var(--border2) 94%,transparent 96%);
+  background-repeat:no-repeat;
+  border:1px solid var(--border);padding:20px;position:relative;border-radius:var(--r-lg)
+}
+.qa-header{display:flex;align-items:center;gap:8px;margin-bottom:20px}
 .qa-dot{width:7px;height:7px;border-radius:50%;background:var(--red)}
 .qa-label{font-family:var(--mono);font-size:9px;letter-spacing:3px;color:var(--muted);text-transform:uppercase}
-.qa-controls{display:grid;grid-template-columns:repeat(4,1fr) auto;gap:16px;align-items:end}
-.qa-item label{font-family:var(--mono);font-size:8px;letter-spacing:2px;color:var(--dim);text-transform:uppercase;display:block;margin-bottom:8px}
-.qa-val{font-family:var(--mono);font-size:10px;color:var(--muted);text-align:center;margin-top:6px}
-.qa-btn{background:var(--red);color:#fff;font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;padding:8px 16px;border-radius:2px;align-self:end;transition:background var(--transition)}
+.qa-controls{display:flex;align-items:center;justify-content:center;gap:28px;flex-wrap:wrap}
+.qa-controls label{font-family:var(--mono);font-size:8px;letter-spacing:2px;color:var(--dim);text-transform:uppercase}
+.qa-val{font-family:var(--mono);font-size:10px;color:var(--muted);text-align:center}
+
+/* Vertical faders — a horizontal range input rotated in place; the browser's
+   normal left=min/right=max becomes bottom=min/top=max once rotated -90deg. */
+.qa-fader-col{display:flex;flex-direction:column;align-items:center;gap:10px}
+.qa-fader-track{position:relative;width:26px;height:104px}
+.qa-fader-input{
+  position:absolute;top:50%;left:50%;width:104px;height:4px;margin:0;padding:0;
+  transform:translate(-50%,-50%) rotate(-90deg);
+  -webkit-appearance:none;appearance:none;background:var(--border2);border-radius:var(--r-pill);cursor:pointer;
+}
+.qa-fader-input::-webkit-slider-thumb{
+  -webkit-appearance:none;width:15px;height:15px;border-radius:50%;
+  background:var(--red);border:2px solid var(--bg3);box-shadow:0 1px 4px rgba(0,0,0,.4);cursor:pointer
+}
+.qa-fader-input::-moz-range-thumb{width:15px;height:15px;border-radius:50%;background:var(--red);border:2px solid var(--bg3);cursor:pointer}
+.qa-fader-input::-moz-range-track{background:var(--border2);border-radius:var(--r-pill);height:4px}
+
+/* Rotary dial — pointer-drag sets a real 0-200% preview-intensity multiplier,
+   applied to all four fader values when launchQA() hands off to the editor. */
+.qa-dial-col{display:flex;flex-direction:column;align-items:center;gap:10px}
+.qa-dial{
+  width:64px;height:64px;border-radius:50%;background:var(--bg4);border:1px solid var(--border2);
+  display:flex;align-items:center;justify-content:center;cursor:grab;touch-action:none;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.04),0 8px 18px -10px rgba(0,0,0,.5)
+}
+.qa-dial:active{cursor:grabbing}
+.qa-dial:focus-visible{outline:2px solid var(--red);outline-offset:3px}
+.qa-dial-face{width:100%;height:100%;border-radius:50%;position:relative;transform:rotate(0deg)}
+.qa-dial-notch{position:absolute;top:6px;left:50%;width:3px;height:12px;background:var(--red);border-radius:2px;transform:translateX(-50%)}
+
+/* Toggle switch */
+.qa-toggle-col{display:flex;flex-direction:column;align-items:center;gap:10px}
+.qa-toggle{
+  width:36px;height:20px;border-radius:var(--r-pill);background:var(--border2);
+  position:relative;transition:background var(--transition);flex-shrink:0
+}
+.qa-toggle.on{background:var(--red)}
+.qa-toggle-knob{
+  position:absolute;top:2px;left:2px;width:16px;height:16px;border-radius:50%;
+  background:#fff;transition:transform var(--transition);box-shadow:0 1px 3px rgba(0,0,0,.3)
+}
+.qa-toggle.on .qa-toggle-knob{transform:translateX(16px)}
+
+.qa-btn{background:var(--red);color:#fff;font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;padding:11px 18px;border-radius:var(--r-sm);transition:background var(--transition)}
 .qa-btn:hover{background:var(--red2)}
+@media(max-width:640px){.qa-controls{gap:18px}.qa-fader-track{height:80px}.qa-fader-input{width:80px}}
 
 /* CTA section */
 .cta-wrap{text-align:center;padding:36px 16px 36px;position:relative;max-width:980px;margin:0 auto}
@@ -341,7 +425,7 @@ nav{
 footer{background:var(--bg2);border-top:1px solid var(--border);padding:24px 16px;margin-top:24px}
 .footer-inner{max-width:980px;margin:0 auto;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:16px}
 .footer-logo{display:flex;align-items:center;gap:10px;font-family:var(--mono);font-size:9px;letter-spacing:2px;color:var(--muted);text-transform:uppercase}
-.footer-logo-icon{width:20px;height:20px;background:var(--red);display:flex;align-items:center;justify-content:center;border-radius:2px}
+.footer-logo-icon{width:20px;height:20px;background:var(--red);display:flex;align-items:center;justify-content:center;border-radius:6px}
 .footer-links{display:flex;gap:20px}
 .footer-link{font-family:var(--mono);font-size:9px;letter-spacing:1.5px;color:var(--muted);text-transform:uppercase;transition:color var(--transition)}
 .footer-link:hover{color:var(--text)}
@@ -355,7 +439,7 @@ footer{background:var(--bg2);border-top:1px solid var(--border);padding:24px 16p
 .tp-cnt{font-family:var(--mono);font-size:9px;color:var(--dim)}
 
 /* ═══════════ PER-CATEGORY INTERACTIVE BANNER ═══════════ */
-.tpi{position:relative;width:100%;height:56px;border-radius:5px;overflow:hidden;background:var(--bg4);border:1px solid var(--border);margin-bottom:18px}
+.tpi{position:relative;width:100%;height:56px;border-radius:var(--r-sm);overflow:hidden;background:var(--bg4);border:1px solid var(--border);margin-bottom:18px}
 @media(max-width:600px){.tpi{height:46px}}
 
 /* Photo — draggable before/after reveal */
@@ -375,7 +459,7 @@ footer{background:var(--bg2);border-top:1px solid var(--border);padding:24px 16p
 
 /* Video — hover-scrub filmstrip */
 .tpi-video{display:flex;align-items:center;gap:10px;padding:0 12px;cursor:pointer;touch-action:none}
-.tpi-video-strip{position:relative;flex:1;height:26px;border-radius:2px;overflow:hidden;background:repeating-linear-gradient(90deg,var(--bg3) 0 18px,var(--bg2) 18px 36px)}
+.tpi-video-strip{position:relative;flex:1;height:26px;border-radius:6px;overflow:hidden;background:repeating-linear-gradient(90deg,var(--bg3) 0 18px,var(--bg2) 18px 36px)}
 .tpi-video-strip::after{content:'';position:absolute;inset:0;width:var(--vprog,0%);background:linear-gradient(90deg,rgba(229,56,59,.22),rgba(229,56,59,.04))}
 .tpi-video.idle .tpi-video-strip::after{animation:tpiVideoFill 3.6s linear infinite}
 .tpi-video-head{position:absolute;top:6px;bottom:6px;left:var(--vprog,0%);width:2px;background:var(--red);box-shadow:0 0 8px rgba(229,56,59,.75);transform:translateX(-1px)}
@@ -386,7 +470,7 @@ footer{background:var(--bg2);border-top:1px solid var(--border);padding:24px 16p
 
 /* Audio — pointer-reactive frequency bars */
 .tpi-audio{display:flex;align-items:center;justify-content:center;gap:3px;padding:0 14px}
-.tpi-bar{width:3px;border-radius:2px;background:var(--red);height:6px;animation:tpiAudioEq 1.2s ease-in-out infinite;transition:transform .09s ease-out}
+.tpi-bar{width:3px;border-radius:6px;background:var(--red);height:6px;animation:tpiAudioEq 1.2s ease-in-out infinite;transition:transform .09s ease-out}
 .tpi-audio.live .tpi-bar{animation-play-state:paused}
 @keyframes tpiAudioEq{0%,100%{height:5px;opacity:.5}50%{height:26px;opacity:1}}
 
@@ -400,14 +484,23 @@ footer{background:var(--bg2);border-top:1px solid var(--border);padding:24px 16p
 .tp-search-input{
   width:100%;background:var(--bg3);border:1px solid var(--border2);
   color:var(--text);padding:11px 14px 11px 38px;font-size:12px;
-  font-family:var(--mono);border-radius:2px;transition:border-color var(--transition)
+  font-family:var(--mono);border-radius:6px;transition:border-color var(--transition)
 }
 .tp-search-input:focus{border-color:var(--red)}
 .tp-search-icon{position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--dim);pointer-events:none}
 .tp-group{margin-bottom:24px}
 .tp-group-title{font-family:var(--mono);font-size:9px;letter-spacing:2px;color:var(--muted);text-transform:uppercase;margin-bottom:10px;padding-left:8px;border-left:2px solid var(--red)}
 .tp-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:10px}
-.tp-card{background:var(--bg3);border:1px solid var(--border);padding:14px 12px;cursor:pointer;transition:all var(--transition);position:relative;border-radius:2px;text-align:left}
+.tp-card{
+  background-color:var(--bg3);
+  background-image:
+    radial-gradient(circle 2px at 9px 9px,var(--border2) 94%,transparent 96%),
+    radial-gradient(circle 2px at calc(100% - 9px) 9px,var(--border2) 94%,transparent 96%),
+    radial-gradient(circle 2px at 9px calc(100% - 9px),var(--border2) 94%,transparent 96%),
+    radial-gradient(circle 2px at calc(100% - 9px) calc(100% - 9px),var(--border2) 94%,transparent 96%);
+  background-repeat:no-repeat;
+  border:1px solid var(--border);padding:14px 12px;cursor:pointer;transition:all var(--transition);position:relative;border-radius:var(--r-md);text-align:left
+}
 .tp-card:hover{border-color:var(--border2);transform:translateY(-1px)}
 .tp-ico{width:22px;height:22px;display:flex;align-items:center;justify-content:center;color:var(--red);margin-bottom:6px;margin-top:2px}
 .tp-name{font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;margin-bottom:4px}
@@ -450,7 +543,7 @@ footer{background:var(--bg2);border-top:1px solid var(--border);padding:24px 16p
 .ed-toolbar-btn{
   display:flex;align-items:center;gap:6px;padding:6px 10px;
   font-size:10px;font-weight:600;letter-spacing:1px;text-transform:uppercase;
-  background:var(--bg3);border:1px solid var(--border);border-radius:2px;color:var(--text)
+  background:var(--bg3);border:1px solid var(--border);border-radius:6px;color:var(--text)
 }
 .ed-toolbar-btn:hover{border-color:var(--border2)}
 .ed-toolbar-name{flex:1;font-family:var(--mono);font-size:9px;color:var(--muted);text-align:center;text-transform:uppercase;letter-spacing:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -469,11 +562,11 @@ footer{background:var(--bg2);border-top:1px solid var(--border);padding:24px 16p
 .hud.br{bottom:10px;right:10px;transform:scale(-1)}
 
 .drop-zone{text-align:center;cursor:pointer;padding:20px;max-width:100%}
-.drop-icon{width:100px;height:74px;border:1px dashed var(--border2);display:flex;align-items:center;justify-content:center;margin:0 auto 14px;color:var(--red);transition:all var(--transition);border-radius:2px}
+.drop-icon{width:100px;height:74px;border:1px dashed var(--border2);display:flex;align-items:center;justify-content:center;margin:0 auto 14px;color:var(--red);transition:all var(--transition);border-radius:6px}
 .drop-icon:hover{border-color:var(--red);background:rgba(229,56,59,.04)}
 .drop-zone h3{font-size:11px;font-weight:700;letter-spacing:3px;text-transform:uppercase;margin-bottom:5px}
 .drop-zone p{font-family:var(--mono);font-size:8px;color:var(--dim);margin-bottom:14px}
-.btn-browse{border:1px solid rgba(229,56,59,.4);color:var(--red);font-size:9px;font-weight:700;letter-spacing:2px;text-transform:uppercase;padding:7px 18px;transition:all var(--transition);border-radius:2px}
+.btn-browse{border:1px solid rgba(229,56,59,.4);color:var(--red);font-size:9px;font-weight:700;letter-spacing:2px;text-transform:uppercase;padding:7px 18px;transition:all var(--transition);border-radius:6px}
 .btn-browse:hover{background:rgba(229,56,59,.08);border-color:var(--red)}
 
 /* Preview area */
@@ -484,8 +577,8 @@ footer{background:var(--bg2);border-top:1px solid var(--border);padding:24px 16p
 .preview-meta{display:flex;gap:14px;font-family:var(--mono);font-size:9px;color:var(--dim);flex-wrap:wrap;justify-content:center}
 .preview-meta span{display:flex;align-items:center;gap:4px}
 /* legacy card kept for fallback */
-.audio-card{background:var(--bg3);border:1px solid var(--border);padding:10px 12px;display:flex;align-items:center;gap:10px;width:100%;max-width:400px;border-radius:2px}
-.audio-thumb{width:36px;height:36px;background:var(--bg4);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;color:var(--red);flex-shrink:0;border-radius:2px}
+.audio-card{background:var(--bg3);border:1px solid var(--border);padding:10px 12px;display:flex;align-items:center;gap:10px;width:100%;max-width:400px;border-radius:6px}
+.audio-thumb{width:36px;height:36px;background:var(--bg4);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;color:var(--red);flex-shrink:0;border-radius:6px}
 .audio-name{font-size:10px;font-weight:600;margin-bottom:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:240px}
 .audio-size{font-family:var(--mono);font-size:8px;color:var(--dim)}
 
@@ -531,7 +624,7 @@ footer{background:var(--bg2);border-top:1px solid var(--border);padding:24px 16p
 .audio-play-btn svg{width:12px;height:12px;fill:currentColor}
 .audio-seek{
   flex:1;height:3px;appearance:none;-webkit-appearance:none;background:var(--border2);
-  border-radius:2px;cursor:pointer;accent-color:var(--red)
+  border-radius:6px;cursor:pointer;accent-color:var(--red)
 }
 .audio-seek::-webkit-slider-thumb{
   -webkit-appearance:none;width:12px;height:12px;background:var(--red);
@@ -557,13 +650,13 @@ footer{background:var(--bg2);border-top:1px solid var(--border);padding:24px 16p
 .audio-fmt-badge{
   font-family:var(--mono);font-size:7px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;
   padding:2px 6px;background:var(--bg4);border:1px solid var(--border2);color:var(--muted);
-  border-radius:2px;flex-shrink:0
+  border-radius:6px;flex-shrink:0
 }
 
 /* ═══════════ TRIM TIMELINE ═══════════ */
 .trim-timeline-wrap{
   position:relative;width:100%;height:52px;background:var(--bg4);border:1px solid var(--border);
-  border-radius:2px;overflow:hidden;margin-bottom:8px;cursor:crosshair
+  border-radius:6px;overflow:hidden;margin-bottom:8px;cursor:crosshair
 }
 .trim-timeline-wrap canvas{display:block;width:100%;height:100%;image-rendering:pixelated}
 .trim-region{
@@ -575,7 +668,7 @@ footer{background:var(--bg2);border-top:1px solid var(--border);padding:24px 16p
   display:flex;align-items:center;justify-content:center
 }
 .trim-handle-inner{
-  width:3px;height:28px;background:var(--red);border-radius:2px
+  width:3px;height:28px;background:var(--red);border-radius:6px
 }
 .trim-handle-label{
   position:absolute;bottom:-18px;font-family:var(--mono);font-size:8px;color:var(--red);
@@ -590,7 +683,7 @@ footer{background:var(--bg2);border-top:1px solid var(--border);padding:24px 16p
 .fmt-card-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:10px}
 .fmt-card{
   padding:7px 4px;text-align:center;background:var(--bg4);border:1px solid var(--border2);
-  border-radius:2px;cursor:pointer;transition:all var(--transition);font-size:10px;font-weight:700;
+  border-radius:6px;cursor:pointer;transition:all var(--transition);font-size:10px;font-weight:700;
   letter-spacing:1px;color:var(--muted)
 }
 .fmt-card:hover{border-color:var(--muted);color:var(--text)}
@@ -604,16 +697,16 @@ footer{background:var(--bg2);border-top:1px solid var(--border);padding:24px 16p
 .vid-preview-wrap{position:relative;display:inline-flex;max-width:90%;max-height:55vh}
 .vid-preview-wrap video{
   max-width:100%;max-height:55vh;width:auto;height:auto;display:block;
-  border:1px solid var(--border);object-fit:contain;background:#000;border-radius:2px;
+  border:1px solid var(--border);object-fit:contain;background:#000;border-radius:6px;
   transition:filter .1s,transform .1s
 }
-.vid-overlay{position:absolute;inset:0;pointer-events:none;z-index:3;overflow:hidden;border-radius:2px}
+.vid-overlay{position:absolute;inset:0;pointer-events:none;z-index:3;overflow:hidden;border-radius:6px}
 
 /* Watermark text shown in overlay */
 .vid-wm-text{
   position:absolute;font-weight:700;font-family:sans-serif;color:#fff;
   text-shadow:1px 1px 4px rgba(0,0,0,.85);background:rgba(0,0,0,.32);
-  padding:2px 7px;border-radius:2px;white-space:nowrap;pointer-events:none;line-height:1.4
+  padding:2px 7px;border-radius:6px;white-space:nowrap;pointer-events:none;line-height:1.4
 }
 
 /* Crop region indicator (box-shadow spotlight) */
@@ -630,7 +723,7 @@ footer{background:var(--bg2);border-top:1px solid var(--border);padding:24px 16p
 .vcrop-gridline.v{top:0;bottom:0;width:1px}
 .vcrop-gridline.h{left:0;right:0;height:1px}
 .vcrop-handle{
-  position:absolute;width:14px;height:14px;margin:-7px;border-radius:2px;
+  position:absolute;width:14px;height:14px;margin:-7px;border-radius:6px;
   background:#fff;border:2px solid var(--red);box-shadow:0 1px 4px rgba(0,0,0,.55);
   pointer-events:auto;transition:transform .12s cubic-bezier(.34,1.56,.64,1)
 }
@@ -661,7 +754,7 @@ footer{background:var(--bg2);border-top:1px solid var(--border);padding:24px 16p
 /* ═══════════ TRIM TIMELINE ENHANCEMENTS ═══════════ */
 .trim-timeline-wrap{
   position:relative;width:100%;height:64px;background:var(--bg4);border:1px solid var(--border);
-  border-radius:2px;overflow:visible;margin-bottom:24px;cursor:crosshair
+  border-radius:6px;overflow:visible;margin-bottom:24px;cursor:crosshair
 }
 /* playhead — the white line that follows the player position */
 .trim-playhead{
@@ -692,7 +785,7 @@ footer{background:var(--bg2);border-top:1px solid var(--border);padding:24px 16p
   opacity:0;transition:opacity .12s;z-index:8;box-shadow:0 8px 20px -8px rgba(0,0,0,.6)
 }
 .trim-hover-tip.show{opacity:1}
-.trim-hover-tip canvas{display:block;border-radius:2px;background:#000}
+.trim-hover-tip canvas{display:block;border-radius:6px;background:#000}
 .trim-hover-tip::after{
   content:'';position:absolute;top:100%;left:50%;transform:translateX(-50%);
   border:5px solid transparent;border-top-color:var(--border2)
@@ -703,7 +796,7 @@ footer{background:var(--bg2);border-top:1px solid var(--border);padding:24px 16p
 .lufs-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:6px;margin-bottom:10px}
 .lufs-btn{
   padding:8px 6px;text-align:center;background:var(--bg4);border:1px solid var(--border2);
-  border-radius:2px;cursor:pointer;transition:all var(--transition)
+  border-radius:6px;cursor:pointer;transition:all var(--transition)
 }
 .lufs-btn:hover{border-color:var(--muted)}
 .lufs-btn.active{border-color:var(--red);background:rgba(229,56,59,.08)}
@@ -714,7 +807,7 @@ footer{background:var(--bg2);border-top:1px solid var(--border);padding:24px 16p
 /* ═══════════ FADE CURVE CANVAS ═══════════ */
 .fade-curve-wrap{
   width:100%;height:48px;background:var(--bg4);border:1px solid var(--border);
-  border-radius:2px;overflow:hidden;margin-top:8px
+  border-radius:6px;overflow:hidden;margin-top:8px
 }
 .fade-curve-wrap canvas{display:block;width:100%;height:100%}
 
@@ -742,7 +835,7 @@ footer{background:var(--bg2);border-top:1px solid var(--border);padding:24px 16p
 .ed-status.error{background:rgba(239,68,68,.08);border-top-color:rgba(239,68,68,.2);color:#f87171}
 .ed-status-ico{flex-shrink:0;display:flex;align-items:center;justify-content:center}
 .ed-status-msg{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.dl-btn{margin-left:auto;display:flex;align-items:center;gap:4px;border:1px solid rgba(34,197,94,.3);color:#4ade80;font-size:8px;font-weight:700;letter-spacing:2px;text-transform:uppercase;padding:5px 10px;transition:all var(--transition);border-radius:2px}
+.dl-btn{margin-left:auto;display:flex;align-items:center;gap:4px;border:1px solid rgba(34,197,94,.3);color:#4ade80;font-size:8px;font-weight:700;letter-spacing:2px;text-transform:uppercase;padding:5px 10px;transition:all var(--transition);border-radius:6px}
 .dl-btn:hover{background:rgba(34,197,94,.1)}
 
 /* Right settings panel */
@@ -756,6 +849,19 @@ footer{background:var(--bg2);border-top:1px solid var(--border);padding:24px 16p
 .er-body{flex:1;padding:14px;overflow-y:auto}
 .er-foot{padding:10px;border-top:1px solid var(--border);display:flex;flex-direction:column;gap:6px}
 
+/* System status — honest, browser-readable stats only. No fabricated
+   CPU/GPU/VRAM numbers: the DOM has no API for those. */
+.er-status{padding:12px 14px 14px;border-top:1px solid var(--border);flex-shrink:0}
+.er-status-title{font-family:var(--mono);font-size:7px;letter-spacing:2px;color:var(--dim);text-transform:uppercase;margin-bottom:10px}
+.er-stat-row{display:grid;grid-template-columns:50px 1fr 36px;align-items:center;gap:8px;margin-bottom:7px}
+.er-stat-row:last-child{margin-bottom:0}
+.er-stat-lbl{font-family:var(--mono);font-size:8px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px}
+.er-stat-bar{height:3px;background:var(--border2);border-radius:var(--r-pill);overflow:hidden}
+.er-stat-fill{height:100%;background:var(--red);border-radius:var(--r-pill);width:0%;transition:width .4s ease-out}
+.er-stat-fill.ok{background:var(--green)}
+.er-stat-fill.warn{background:var(--amber)}
+.er-stat-val{font-family:var(--mono);font-size:8px;color:var(--dim);text-align:right}
+
 /* Settings inputs */
 .s-row{margin-bottom:14px}
 .s-lbl{font-family:var(--mono);font-size:7px;letter-spacing:2px;color:var(--dim);text-transform:uppercase;display:block;margin-bottom:5px}
@@ -764,7 +870,7 @@ footer{background:var(--bg2);border-top:1px solid var(--border);padding:24px 16p
 .s-input{
   width:100%;background:var(--bg3);border:1px solid var(--border2);
   color:var(--text);padding:7px 9px;font-size:11px;font-family:var(--mono);
-  border-radius:2px;transition:border-color var(--transition)
+  border-radius:6px;transition:border-color var(--transition)
 }
 .s-input:focus{border-color:var(--red)}
 .s-select-wrap{position:relative}
@@ -775,7 +881,7 @@ footer{background:var(--bg2);border-top:1px solid var(--border);padding:24px 16p
 .s-row-inline{display:flex;gap:8px;align-items:center}
 .s-row-inline .s-input{flex:1}
 .s-presets{display:flex;gap:4px;margin-top:6px;flex-wrap:wrap}
-.s-preset{font-family:var(--mono);font-size:9px;padding:4px 8px;background:var(--bg3);border:1px solid var(--border);color:var(--muted);border-radius:2px;transition:all var(--transition);cursor:pointer}
+.s-preset{font-family:var(--mono);font-size:9px;padding:4px 8px;background:var(--bg3);border:1px solid var(--border);color:var(--muted);border-radius:6px;transition:all var(--transition);cursor:pointer}
 .s-preset:hover{color:var(--text);border-color:var(--border2)}
 .s-preset.active{color:var(--red);border-color:var(--red)}
 .s-checkbox{display:flex;align-items:center;gap:6px;font-family:var(--mono);font-size:9px;color:var(--muted);cursor:pointer}
@@ -785,7 +891,7 @@ footer{background:var(--bg2);border-top:1px solid var(--border);padding:24px 16p
 .btn-process{
   background:var(--red);color:#fff;font-size:10px;font-weight:700;letter-spacing:2px;
   text-transform:uppercase;padding:11px;width:100%;transition:background var(--transition);
-  display:flex;align-items:center;justify-content:center;gap:5px;border-radius:2px
+  display:flex;align-items:center;justify-content:center;gap:5px;border-radius:6px
 }
 .btn-process:hover:not(:disabled){background:var(--red2)}
 .btn-process:disabled{background:var(--border2);color:var(--dim);cursor:not-allowed}
@@ -793,14 +899,14 @@ footer{background:var(--bg2);border-top:1px solid var(--border);padding:24px 16p
   background:transparent;border:1px solid var(--border2);color:var(--muted);
   font-size:9px;font-weight:600;letter-spacing:2px;text-transform:uppercase;
   padding:9px;width:100%;display:none;align-items:center;justify-content:center;gap:5px;
-  transition:all var(--transition);border-radius:2px
+  transition:all var(--transition);border-radius:6px
 }
 .btn-dl.show{display:flex}
 .btn-dl:hover{border-color:var(--muted);color:var(--text)}
 .btn-newfile{
   background:transparent;border:1px solid var(--border);color:var(--dim);
   font-family:var(--mono);font-size:8px;letter-spacing:1px;text-transform:uppercase;
-  padding:7px;width:100%;display:none;transition:all var(--transition);border-radius:2px
+  padding:7px;width:100%;display:none;transition:all var(--transition);border-radius:6px
 }
 .btn-newfile.show{display:block}
 .btn-newfile:hover{color:var(--muted);border-color:var(--border2)}
@@ -817,7 +923,7 @@ footer{background:var(--bg2);border-top:1px solid var(--border);padding:24px 16p
 /* ═══════════ MODAL ═══════════ */
 .modal-bg{display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:200;align-items:center;justify-content:center;padding:16px}
 .modal-bg.show{display:flex}
-.modal{background:var(--bg2);border:1px solid var(--border2);max-width:400px;width:100%;padding:24px;border-radius:2px}
+.modal{background:var(--bg2);border:1px solid var(--border2);max-width:400px;width:100%;padding:24px;border-radius:6px}
 .modal h3{font-size:14px;font-weight:700;letter-spacing:1px;text-transform:uppercase;margin-bottom:8px}
 .modal p{font-size:12px;color:var(--muted);line-height:1.6;margin-bottom:20px;font-family:var(--mono)}
 .modal-btns{display:flex;gap:8px;justify-content:flex-end}
@@ -877,51 +983,59 @@ footer{background:var(--bg2);border-top:1px solid var(--border);padding:24px 16p
 /* ═══════════ PHOTO TOOL PANELS ═══════════ */
 .crop-preview-info{font-family:var(--mono);font-size:9px;color:var(--muted);margin-top:6px;text-align:center}
 
-.resize-preview-box{background:var(--bg3);border:1px solid var(--border);padding:10px;margin-top:10px;border-radius:2px}
+.resize-preview-box{background:var(--bg3);border:1px solid var(--border);padding:10px;margin-top:10px;border-radius:6px}
 .resize-preview-label{font-family:var(--mono);font-size:8px;color:var(--dim);margin-bottom:4px;text-transform:uppercase;letter-spacing:1px}
 .resize-preview-val{font-family:var(--mono);font-size:14px;font-weight:500;color:var(--text)}
 .resize-preset-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:5px}
-.resize-preset-btn{padding:7px 4px;background:var(--bg3);border:1px solid var(--border);color:var(--muted);font-family:var(--mono);font-size:9px;border-radius:2px;transition:all var(--transition);cursor:pointer;text-align:center;letter-spacing:.5px}
+.resize-preset-btn{padding:7px 4px;background:var(--bg3);border:1px solid var(--border);color:var(--muted);font-family:var(--mono);font-size:9px;border-radius:6px;transition:all var(--transition);cursor:pointer;text-align:center;letter-spacing:.5px}
 .resize-preset-btn:hover{color:var(--text);border-color:var(--border2)}
 .resize-preset-btn.active{color:var(--red);border-color:var(--red);background:rgba(229,56,59,.08)}
 
 .rot-btns{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:12px}
-.rot-btn{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;padding:10px 6px;background:var(--bg3);border:1px solid var(--border);color:var(--muted);border-radius:2px;transition:all var(--transition);font-family:var(--mono);font-size:8px;letter-spacing:1px;text-transform:uppercase;cursor:pointer}
+.rot-btn{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;padding:10px 6px;background:var(--bg3);border:1px solid var(--border);color:var(--muted);border-radius:6px;transition:all var(--transition);font-family:var(--mono);font-size:8px;letter-spacing:1px;text-transform:uppercase;cursor:pointer}
 .rot-btn:hover{color:var(--text);border-color:var(--border2)}
 .rot-btn.active{color:var(--red);border-color:var(--red);background:rgba(229,56,59,.06)}
 
 .fmt-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:5px;margin-top:4px}
-.fmt-btn{padding:8px 4px;background:var(--bg3);border:1px solid var(--border);color:var(--muted);font-family:var(--mono);font-size:9px;border-radius:2px;transition:all var(--transition);cursor:pointer;text-align:center;text-transform:uppercase;letter-spacing:.5px}
+.fmt-btn{padding:8px 4px;background:var(--bg3);border:1px solid var(--border);color:var(--muted);font-family:var(--mono);font-size:9px;border-radius:6px;transition:all var(--transition);cursor:pointer;text-align:center;text-transform:uppercase;letter-spacing:.5px}
 .fmt-btn:hover{color:var(--text);border-color:var(--border2)}
 .fmt-btn.active{color:var(--red);border-color:var(--red);background:rgba(229,56,59,.08)}
 
 /* ─────── EFFECTS PANEL (consolidated) ─────── */
-.fx-row{display:flex;align-items:center;gap:8px;margin-bottom:6px;padding:6px 8px;background:var(--bg3);border:1px solid var(--border);border-radius:2px}
+.fx-row{display:flex;align-items:center;gap:8px;margin-bottom:6px;padding:6px 8px;background:var(--bg3);border:1px solid var(--border);border-radius:6px}
 .fx-row-label{font-family:var(--mono);font-size:9px;font-weight:600;color:var(--text);text-transform:uppercase;letter-spacing:1px;width:76px;flex-shrink:0}
+.trim-track-hdr{margin-bottom:8px}
+.trim-track-badge{
+  font-family:var(--mono);font-size:8px;font-weight:800;letter-spacing:.5px;
+  width:22px;height:18px;display:flex;align-items:center;justify-content:center;
+  border-radius:4px;color:#fff;flex-shrink:0
+}
+.trim-track-badge.v1{background:var(--red)}
+.trim-track-badge.a1{background:var(--blue)}
 .fx-row-range{flex:1;display:flex;align-items:center;min-width:0}
 .fx-row-range input[type=range]{margin:0;height:5px}
 .fx-row-val{font-family:var(--mono);font-size:10px;font-weight:700;color:var(--red);width:34px;text-align:right;flex-shrink:0}
 
 /* Effect preset buttons */
 .fx-preset-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:5px;margin-bottom:10px}
-.fx-preset-btn{padding:7px 4px;background:var(--bg3);border:1px solid var(--border);color:var(--text);font-family:var(--mono);font-size:9px;font-weight:500;border-radius:2px;transition:all .15s;cursor:pointer;text-align:center;text-transform:uppercase;letter-spacing:.5px}
+.fx-preset-btn{padding:7px 4px;background:var(--bg3);border:1px solid var(--border);color:var(--text);font-family:var(--mono);font-size:9px;font-weight:500;border-radius:6px;transition:all .15s;cursor:pointer;text-align:center;text-transform:uppercase;letter-spacing:.5px}
 .fx-preset-btn:hover{border-color:var(--border2);background:var(--bg4)}
 .fx-preset-btn.active{color:#fff;border-color:var(--red);background:var(--red)}
 
 /* Tone buttons */
 .tone-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:5px;margin-bottom:4px}
-.tone-btn{padding:9px 6px;background:var(--bg3);border:1px solid var(--border);color:var(--text);font-family:var(--mono);font-size:9px;font-weight:600;border-radius:2px;transition:all .15s;cursor:pointer;text-align:center;display:flex;align-items:center;justify-content:center;gap:5px}
+.tone-btn{padding:9px 6px;background:var(--bg3);border:1px solid var(--border);color:var(--text);font-family:var(--mono);font-size:9px;font-weight:600;border-radius:6px;transition:all .15s;cursor:pointer;text-align:center;display:flex;align-items:center;justify-content:center;gap:5px}
 .tone-btn:hover{border-color:var(--border2)}
 .tone-btn.active{color:#fff;border-color:var(--red);background:var(--red)}
 
 /* Watermark panel */
-.wm-mode-tabs{display:flex;gap:0;margin-bottom:12px;border:1px solid var(--border);border-radius:2px;overflow:hidden}
+.wm-mode-tabs{display:flex;gap:0;margin-bottom:12px;border:1px solid var(--border);border-radius:6px;overflow:hidden}
 .wm-mode-tab{flex:1;padding:8px;font-size:9px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;background:transparent;border:none;color:var(--muted);cursor:pointer;transition:all var(--transition)}
 .wm-mode-tab.active{background:var(--red);color:#fff}
-.wm-img-drop{border:1px dashed var(--border2);padding:16px;text-align:center;cursor:pointer;transition:all var(--transition);border-radius:2px;margin-bottom:10px}
+.wm-img-drop{border:1px dashed var(--border2);padding:16px;text-align:center;cursor:pointer;transition:all var(--transition);border-radius:6px;margin-bottom:10px}
 .wm-img-drop:hover{border-color:var(--red);background:rgba(229,56,59,.04)}
 .wm-img-drop p{font-family:var(--mono);font-size:9px;color:var(--dim);margin-top:4px}
-.wm-preview-thumb{width:48px;height:48px;object-fit:contain;border:1px solid var(--border);border-radius:2px;margin:6px auto;display:block}
+.wm-preview-thumb{width:48px;height:48px;object-fit:contain;border:1px solid var(--border);border-radius:6px;margin:6px auto;display:block}
 
 /* Section helpers */
 .s-divider{height:1px;background:var(--border);margin:12px 0}
@@ -933,8 +1047,8 @@ footer{background:var(--bg2);border-top:1px solid var(--border);padding:24px 16p
 .bipolar-row-val{font-family:var(--mono);font-size:10px;color:var(--red);font-weight:700;min-width:44px;text-align:right}
 .bipolar-wrap{position:relative;margin-bottom:18px}
 .bipolar-input{width:100%;display:block;accent-color:var(--red);cursor:pointer;margin:0}
-.bipolar-track-bg{position:relative;height:3px;background:var(--bg4);border-radius:2px;margin:5px 0 0;pointer-events:none}
-.bipolar-track-fill{position:absolute;top:0;height:100%;background:var(--red);border-radius:2px;pointer-events:none}
+.bipolar-track-bg{position:relative;height:3px;background:var(--bg4);border-radius:6px;margin:5px 0 0;pointer-events:none}
+.bipolar-track-fill{position:absolute;top:0;height:100%;background:var(--red);border-radius:6px;pointer-events:none}
 .bipolar-center-tick{position:absolute;top:-5px;left:50%;transform:translateX(-50%);width:2px;height:13px;background:var(--red);border-radius:1px;opacity:.7;pointer-events:none}
 .bipolar-tick-labels{display:flex;justify-content:space-between;margin-top:3px;position:relative}
 .bipolar-tick-labels span{font-family:var(--mono);font-size:8px;color:var(--muted);line-height:1}
@@ -942,7 +1056,7 @@ footer{background:var(--bg2);border-top:1px solid var(--border);padding:24px 16p
 
 /* Resize preset buttons */
 .resize-preset-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:5px;margin-top:4px}
-.resize-preset-btn{padding:7px 4px;background:var(--bg3);border:1px solid var(--border);color:var(--text);font-family:var(--mono);font-size:9px;font-weight:500;border-radius:2px;transition:all .15s;cursor:pointer;text-align:center}
+.resize-preset-btn{padding:7px 4px;background:var(--bg3);border:1px solid var(--border);color:var(--text);font-family:var(--mono);font-size:9px;font-weight:500;border-radius:6px;transition:all .15s;cursor:pointer;text-align:center}
 .resize-preset-btn:hover{border-color:var(--border2);background:var(--bg4)}
 .resize-preset-btn.active{color:#fff;border-color:var(--red);background:var(--red)}
 
@@ -950,7 +1064,7 @@ footer{background:var(--bg2);border-top:1px solid var(--border);padding:24px 16p
 #crop-overlay-canvas{position:absolute;z-index:4;cursor:crosshair;touch-action:none}
 
 /* Combined Crop / Resize tab switcher */
-.cr-tabs{display:flex;border:1px solid var(--border);border-radius:2px;overflow:hidden;margin-bottom:12px;flex-shrink:0}
+.cr-tabs{display:flex;border:1px solid var(--border);border-radius:6px;overflow:hidden;margin-bottom:12px;flex-shrink:0}
 .cr-tab{flex:1;padding:9px 6px;font-size:9px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;background:transparent;border:none;color:var(--muted);cursor:pointer;transition:all var(--transition);border-right:1px solid var(--border)}
 .cr-tab:last-child{border-right:none}
 .cr-tab:hover{color:var(--text);background:var(--bg4)}
@@ -958,7 +1072,7 @@ footer{background:var(--bg2);border-top:1px solid var(--border);padding:24px 16p
 
 /* Aspect ratio buttons */
 .aspect-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:5px;margin-bottom:4px}
-.aspect-btn{padding:7px 4px;background:var(--bg3);border:1px solid var(--border);color:var(--text);font-family:var(--mono);font-size:9px;font-weight:500;border-radius:2px;transition:all var(--transition);cursor:pointer;text-align:center;letter-spacing:.3px}
+.aspect-btn{padding:7px 4px;background:var(--bg3);border:1px solid var(--border);color:var(--text);font-family:var(--mono);font-size:9px;font-weight:500;border-radius:6px;transition:all var(--transition);cursor:pointer;text-align:center;letter-spacing:.3px}
 .aspect-btn:hover{border-color:var(--border2);background:var(--bg4)}
 .aspect-btn.active{color:#fff;border-color:var(--red);background:var(--red)}
 
@@ -966,7 +1080,7 @@ footer{background:var(--bg2);border-top:1px solid var(--border);padding:24px 16p
 .social-group{margin-bottom:10px}
 .social-group-title{font-family:var(--mono);font-size:7px;color:var(--muted);text-transform:uppercase;letter-spacing:1.5px;margin-bottom:5px;padding:0 1px}
 .social-preset-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:5px}
-.social-btn{padding:6px 3px;background:var(--bg3);border:1px solid var(--border);color:var(--text);font-family:var(--mono);font-size:8px;font-weight:500;border-radius:2px;transition:all var(--transition);cursor:pointer;text-align:center;line-height:1.3}
+.social-btn{padding:6px 3px;background:var(--bg3);border:1px solid var(--border);color:var(--text);font-family:var(--mono);font-size:8px;font-weight:500;border-radius:6px;transition:all var(--transition);cursor:pointer;text-align:center;line-height:1.3}
 .social-btn:hover{border-color:var(--border2);background:var(--bg4)}
 .social-btn.active{color:#fff;border-color:var(--red);background:var(--red)}
 .social-btn sub{font-size:6px;opacity:.7;display:block;letter-spacing:.3px}
@@ -997,7 +1111,7 @@ footer{background:var(--bg2);border-top:1px solid var(--border);padding:24px 16p
 .compare-bar-btn{
   background:var(--bg3);border:1px solid var(--border2);color:var(--text);
   font-family:var(--mono);font-size:8px;letter-spacing:1px;text-transform:uppercase;
-  padding:5px 14px;border-radius:2px;cursor:pointer;
+  padding:5px 14px;border-radius:6px;cursor:pointer;
   transition:all var(--transition);display:flex;align-items:center;gap:6px
 }
 .compare-bar-btn:hover{border-color:var(--muted);background:var(--bg4)}
@@ -1215,31 +1329,61 @@ footer{background:var(--bg2);border-top:1px solid var(--border);padding:24px 16p
       <div class="qa-box">
         <div class="qa-header"><div class="qa-dot"></div><span class="qa-label">Quick Adjust — Upload an image to apply</span></div>
         <div class="qa-controls">
-          <div class="qa-item">
-            <label for="qa-brightness">Brightness</label>
-            <input type="range" id="qa-brightness" min="-100" max="100" value="0" aria-label="Brightness"
-              oninput="document.getElementById('qa-b-val').textContent=this.value"/>
+
+          <div class="qa-fader-col">
             <div class="qa-val" id="qa-b-val">0</div>
+            <div class="qa-fader-track">
+              <input type="range" class="qa-fader-input" id="qa-brightness" min="-100" max="100" value="0" aria-label="Brightness"
+                oninput="document.getElementById('qa-b-val').textContent=this.value"/>
+            </div>
+            <label for="qa-brightness">Brightness</label>
           </div>
-          <div class="qa-item">
-            <label for="qa-contrast">Contrast</label>
-            <input type="range" id="qa-contrast" min="-100" max="100" value="0" aria-label="Contrast"
-              oninput="document.getElementById('qa-c-val').textContent=this.value"/>
+
+          <div class="qa-fader-col">
             <div class="qa-val" id="qa-c-val">0</div>
+            <div class="qa-fader-track">
+              <input type="range" class="qa-fader-input" id="qa-contrast" min="-100" max="100" value="0" aria-label="Contrast"
+                oninput="document.getElementById('qa-c-val').textContent=this.value"/>
+            </div>
+            <label for="qa-contrast">Contrast</label>
           </div>
-          <div class="qa-item">
-            <label for="qa-saturation">Saturation</label>
-            <input type="range" id="qa-saturation" min="-100" max="100" value="0" aria-label="Saturation"
-              oninput="document.getElementById('qa-s-val').textContent=this.value"/>
+
+          <div class="qa-dial-col">
+            <div class="qa-dial" id="qa-dial" role="slider" tabindex="0" aria-label="Preview intensity"
+              aria-valuemin="0" aria-valuemax="200" aria-valuenow="100" aria-valuetext="100%">
+              <div class="qa-dial-face" id="qa-dial-face"><div class="qa-dial-notch"></div></div>
+            </div>
+            <label>Preview</label>
+            <div class="qa-val" id="qa-dial-val">100%</div>
+          </div>
+
+          <div class="qa-fader-col">
             <div class="qa-val" id="qa-s-val">0</div>
+            <div class="qa-fader-track">
+              <input type="range" class="qa-fader-input" id="qa-saturation" min="-100" max="100" value="0" aria-label="Saturation"
+                oninput="document.getElementById('qa-s-val').textContent=this.value"/>
+            </div>
+            <label for="qa-saturation">Saturation</label>
           </div>
-          <div class="qa-item">
-            <label for="qa-sharpness">Sharpness</label>
-            <input type="range" id="qa-sharpness" min="0" max="100" value="0" aria-label="Sharpness"
-              oninput="document.getElementById('qa-sh-val').textContent=this.value"/>
+
+          <div class="qa-fader-col">
             <div class="qa-val" id="qa-sh-val">0</div>
+            <div class="qa-fader-track">
+              <input type="range" class="qa-fader-input" id="qa-sharpness" min="0" max="100" value="0" aria-label="Sharpness"
+                oninput="document.getElementById('qa-sh-val').textContent=this.value"/>
+            </div>
+            <label for="qa-sharpness">Sharpness</label>
           </div>
-          <button class="qa-btn" onclick="launchQA()" aria-label="Apply quick adjust">Edit →</button>
+
+          <div class="qa-toggle-col">
+            <button class="qa-toggle on" id="qa-apply-all" role="switch" aria-checked="true"
+              aria-label="Apply to all adjustment channels, including ones left untouched" onclick="toggleQAApplyAll(this)">
+              <span class="qa-toggle-knob"></span>
+            </button>
+            <label>Apply to All</label>
+          </div>
+
+          <button class="qa-btn" onclick="launchQA()" aria-label="Open in editor with these adjustments">Edit →</button>
         </div>
       </div>
     </section>
@@ -1438,6 +1582,24 @@ footer{background:var(--bg2);border-top:1px solid var(--border);padding:24px 16p
       <button class="btn-process" id="btn-process" disabled onclick="runProcess()" aria-label="Process file">⚡ Process</button>
       <button class="btn-dl" id="btn-dl" onclick="doDownload()" aria-label="Download result">↓ Download</button>
       <button class="btn-newfile" id="btn-newfile" onclick="confirmNewFile()" aria-label="Start with new file">← New File</button>
+    </div>
+    <div class="er-status" aria-label="System status">
+      <div class="er-status-title">System Status</div>
+      <div class="er-stat-row">
+        <span class="er-stat-lbl">Engine</span>
+        <div class="er-stat-bar"><div class="er-stat-fill" id="stat-engine-fill"></div></div>
+        <span class="er-stat-val" id="stat-engine-val">—</span>
+      </div>
+      <div class="er-stat-row">
+        <span class="er-stat-lbl">Memory</span>
+        <div class="er-stat-bar"><div class="er-stat-fill" id="stat-mem-fill"></div></div>
+        <span class="er-stat-val" id="stat-mem-val">—</span>
+      </div>
+      <div class="er-stat-row">
+        <span class="er-stat-lbl">Threads</span>
+        <div class="er-stat-bar"><div class="er-stat-fill" id="stat-threads-fill"></div></div>
+        <span class="er-stat-val" id="stat-threads-val">—</span>
+      </div>
     </div>
   </div>
 
@@ -1992,7 +2154,7 @@ const PANELS = {
     if (!S.settings.endTime)   S.settings.endTime   = floorDur;
     const selDur = Math.max(0, (S.settings.endTime || floorDur) - (S.settings.startTime || 0));
     return `
-      <div class="fx-row"><span class="fx-row-label">TIMELINE</span></div>
+      <div class="fx-row trim-track-hdr"><span class="trim-track-badge v1">V1</span><span class="fx-row-label" style="width:auto">Video Track</span></div>
       <div class="trim-timeline-wrap" id="trim-tl">
         <canvas id="trim-canvas"></canvas>
         <div class="trim-region" id="trim-region"></div>
@@ -2189,9 +2351,9 @@ const PANELS = {
   'video-vertical': () => `
     <div style="display:flex;flex-direction:column;align-items:center;gap:10px;padding:16px 8px">
       <div style="display:flex;gap:12px;align-items:center">
-        <div style="width:48px;height:27px;background:var(--bg4);border:1px solid var(--border2);border-radius:2px;display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-size:7px;color:var(--muted)">16:9</div>
+        <div style="width:48px;height:27px;background:var(--bg4);border:1px solid var(--border2);border-radius:6px;display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-size:7px;color:var(--muted)">16:9</div>
         <div style="color:var(--muted);font-size:14px">→</div>
-        <div style="width:16px;height:28px;background:rgba(229,56,59,.1);border:1px solid var(--red);border-radius:2px;display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-size:6px;color:var(--red)">9:16</div>
+        <div style="width:16px;height:28px;background:rgba(229,56,59,.1);border:1px solid var(--red);border-radius:6px;display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-size:6px;color:var(--red)">9:16</div>
       </div>
       <div style="text-align:center;font-size:11px;font-weight:600">Convert to Vertical (1080×1920)</div>
       <div style="font-family:var(--mono);font-size:8px;color:var(--muted);text-align:center;line-height:1.6">
@@ -2554,8 +2716,8 @@ const PANELS = {
     if (!S.settings.endTime)   S.settings.endTime   = endDef;
     const selDur = Math.max(0, (S.settings.endTime || endDef) - (S.settings.startTime || 0));
     return `
-      <div class="fx-row">
-        <span class="fx-row-label">TIMELINE</span>
+      <div class="fx-row trim-track-hdr">
+        <span class="trim-track-badge a1">A1</span><span class="fx-row-label" style="width:auto">Audio Track</span>
       </div>
       <div class="trim-timeline-wrap" id="trim-tl">
         <canvas id="trim-canvas"></canvas>
@@ -2738,7 +2900,7 @@ const PANELS = {
         </div>
       </div>
       <div style="font-family:var(--mono);font-size:8px;color:var(--dim);padding:6px 12px;
-        background:var(--bg4);border:1px solid var(--border);border-radius:2px;text-align:center">
+        background:var(--bg4);border:1px solid var(--border);border-radius:6px;text-align:center">
         Click PROCESS to apply
       </div>
     </div>`,
@@ -2768,11 +2930,11 @@ const PANELS = {
     <div style="display:flex;flex-direction:column;align-items:center;gap:10px;padding:16px 8px">
       <div style="display:flex;gap:6px;align-items:center">
         <div style="width:32px;height:32px;background:var(--bg4);border:1px solid var(--border2);
-          border-radius:2px;display:flex;align-items:center;justify-content:center;
+          border-radius:6px;display:flex;align-items:center;justify-content:center;
           font-family:var(--mono);font-size:8px;font-weight:700;color:var(--red)">ST</div>
         <div style="color:var(--muted);font-size:14px">→</div>
         <div style="width:32px;height:32px;background:rgba(229,56,59,.1);border:1px solid var(--red);
-          border-radius:2px;display:flex;align-items:center;justify-content:center;
+          border-radius:6px;display:flex;align-items:center;justify-content:center;
           font-family:var(--mono);font-size:8px;font-weight:700;color:var(--red)">M</div>
       </div>
       <div style="text-align:center">
@@ -2782,7 +2944,7 @@ const PANELS = {
         </div>
       </div>
       <div style="font-family:var(--mono);font-size:8px;color:var(--dim);padding:6px 12px;
-        background:var(--bg4);border:1px solid var(--border);border-radius:2px;text-align:center">
+        background:var(--bg4);border:1px solid var(--border);border-radius:6px;text-align:center">
         Click PROCESS to apply
       </div>
     </div>`,
@@ -3727,7 +3889,7 @@ function updateVignette(amount, imgEl) {
     top:${imgEl.offsetTop}px;
     width:${imgEl.offsetWidth}px;
     height:${imgEl.offsetHeight}px;
-    pointer-events:none;z-index:6;border-radius:2px;
+    pointer-events:none;z-index:6;border-radius:6px;
   `;
   const a = (amount / 100).toFixed(2);
   v.style.background = `radial-gradient(ellipse at center, transparent 25%, rgba(0,0,0,${a}) 100%)`;
@@ -5000,7 +5162,7 @@ function renderPreview() {
     buildAudioPlayer(area, f);
   } else {
     // Create image element properly to ensure it renders
-    area.innerHTML = `<img id="preview-img" src="${f.url}" alt="Preview of ${f.name}" style="max-width:90%;max-height:55vh;width:auto;height:auto;display:block;border:1px solid var(--border);object-fit:contain;border-radius:2px;background:transparent;"/><div class="preview-meta">${meta}</div>`;
+    area.innerHTML = `<img id="preview-img" src="${f.url}" alt="Preview of ${f.name}" style="max-width:90%;max-height:55vh;width:auto;height:auto;display:block;border:1px solid var(--border);object-fit:contain;border-radius:6px;background:transparent;"/><div class="preview-meta">${meta}</div>`;
     const imgEl = area.querySelector('#preview-img');
     if (imgEl) {
       imgEl.onload = () => {
@@ -5679,7 +5841,7 @@ function buildCompareUI() {
   // Wrap sits exactly over the image — pointer-events:all so entire area is draggable
   const wrap = document.createElement('div');
   wrap.id = 'compare-wrap';
-  wrap.style.cssText = `position:absolute;left:${iL}px;top:${iT}px;width:${iW}px;height:${iH}px;z-index:8;pointer-events:all;overflow:hidden;border-radius:2px;cursor:ew-resize;`;
+  wrap.style.cssText = `position:absolute;left:${iL}px;top:${iT}px;width:${iW}px;height:${iH}px;z-index:8;pointer-events:all;overflow:hidden;border-radius:6px;cursor:ew-resize;`;
 
   // "After" half (filtered) — visible on the RIGHT side of the divider
   // clip-path: inset(0 0 0 pct%) means clip from the left, so right side is visible
@@ -5717,7 +5879,7 @@ function buildCompareUI() {
     l.style.cssText = [
       `position:absolute;top:10px;${side}:10px`,
       `font-family:var(--mono);font-size:8px;font-weight:700;letter-spacing:1.5px`,
-      `padding:3px 8px;border-radius:2px;z-index:10;pointer-events:none`,
+      `padding:3px 8px;border-radius:6px;z-index:10;pointer-events:none`,
       isAfter
         ? 'background:var(--red);color:#fff;box-shadow:0 1px 4px rgba(229,56,59,.4)'
         : 'background:rgba(0,0,0,.7);color:rgba(255,255,255,.8);border:1px solid rgba(255,255,255,.15)'
@@ -5999,6 +6161,8 @@ document.addEventListener('DOMContentLoaded', () => {
   renderToolList();
   initCatShowcase();
   initHeroSpotlight();
+  initQADial();
+  initSystemStatus();
 
   if (typeof SharedArrayBuffer === 'undefined') {
     setStatus('partial', 'Photo only');
@@ -6057,6 +6221,39 @@ function setStatus(type, msg) {
   $('status-label').textContent = msg;
 }
 
+// Editor's "System Status" panel — real, browser-readable numbers only.
+// There is no DOM API for CPU/GPU/VRAM usage, so this deliberately doesn't
+// fake them; it reports what the page can actually know: engine readiness
+// (mirrors the nav status dot), JS heap (Chrome-only — degrades honestly
+// elsewhere), and logical CPU threads.
+function initSystemStatus() {
+  const engineOk = typeof SharedArrayBuffer !== 'undefined';
+  const eFill = $('stat-engine-fill'), eVal = $('stat-engine-val');
+  if (eFill) { eFill.style.width = (engineOk ? 100 : 55) + '%'; eFill.className = 'er-stat-fill ' + (engineOk ? 'ok' : 'warn'); }
+  if (eVal) eVal.textContent = engineOk ? 'Ready' : 'Photo';
+
+  const threads = navigator.hardwareConcurrency || 4;
+  const tFill = $('stat-threads-fill'), tVal = $('stat-threads-val');
+  if (tFill) tFill.style.width = Math.min(100, threads / 16 * 100).toFixed(0) + '%';
+  if (tVal) tVal.textContent = threads + 'x';
+
+  const paintMemory = () => {
+    const mFill = $('stat-mem-fill'), mVal = $('stat-mem-val');
+    const mem = performance.memory;
+    if (!mem || !mem.jsHeapSizeLimit) {
+      if (mFill) mFill.style.width = '0%';
+      if (mVal) mVal.textContent = 'N/A';
+      return;
+    }
+    const pct = mem.usedJSHeapSize / mem.jsHeapSizeLimit * 100;
+    if (mFill) { mFill.style.width = pct.toFixed(0) + '%'; mFill.classList.toggle('warn', pct > 75); }
+    if (mVal) mVal.textContent = (mem.usedJSHeapSize / 1048576).toFixed(0) + 'MB';
+  };
+  paintMemory();
+  clearInterval(window._memStatInterval);
+  window._memStatInterval = setInterval(paintMemory, 3000);
+}
+
 // ════════════════════════════════════════════════════════════════════════════
 // MODAL
 // ════════════════════════════════════════════════════════════════════════════
@@ -6113,6 +6310,55 @@ function closeMobilePanels() {
 // ════════════════════════════════════════════════════════════════════════════
 // QUICK ADJUST (Home page → Editor)
 // ════════════════════════════════════════════════════════════════════════════
+
+// Rotary "Preview" dial — pointer-drag (vertical, like a hardware synth knob)
+// or arrow keys set a real 0-200% intensity multiplier. 100% = the four fader
+// values pass through unchanged; below/above scales them down/up before
+// launchQA() hands them to the photo-effects tool.
+function initQADial() {
+  const dial = $('qa-dial'), face = $('qa-dial-face'), val = $('qa-dial-val');
+  if (!dial || !face || dial._bound) return;
+  dial._bound = true;
+  let value = 100;
+  const render = () => {
+    const deg = (value / 200) * 270 - 135; // -135deg..+135deg, 270° sweep
+    face.style.transform = `rotate(${deg}deg)`;
+    if (val) val.textContent = Math.round(value) + '%';
+    dial.setAttribute('aria-valuenow', Math.round(value));
+    dial.setAttribute('aria-valuetext', Math.round(value) + '%');
+  };
+  dial._getValue = () => value;
+  let dragging = false, startY = 0, startVal = 100;
+  dial.addEventListener('pointerdown', e => {
+    dragging = true; startY = e.clientY; startVal = value;
+    try { dial.setPointerCapture(e.pointerId); } catch (_) {}
+  });
+  dial.addEventListener('pointermove', e => {
+    if (!dragging) return;
+    const dy = startY - e.clientY; // dragging up increases value
+    value = Math.max(0, Math.min(200, startVal + dy * 1.2));
+    render();
+  });
+  const stop = () => { dragging = false; };
+  dial.addEventListener('pointerup', stop);
+  dial.addEventListener('pointercancel', stop);
+  dial.addEventListener('keydown', e => {
+    if (e.key === 'ArrowUp' || e.key === 'ArrowRight') { value = Math.min(200, value + 5); render(); e.preventDefault(); }
+    else if (e.key === 'ArrowDown' || e.key === 'ArrowLeft') { value = Math.max(0, value - 5); render(); e.preventDefault(); }
+    else if (e.key === 'Home') { value = 0; render(); }
+    else if (e.key === 'End') { value = 200; render(); }
+  });
+  render();
+}
+
+function toggleQAApplyAll(btn) {
+  const on = !btn.classList.contains('on');
+  btn.classList.toggle('on', on);
+  btn.setAttribute('aria-checked', String(on));
+}
+
+const QA_CLAMP = { brightness: [-100, 100], contrast: [-100, 100], saturation: [-100, 100], sharpness: [0, 100] };
+
 function launchQA() {
   goPage('editor');
   setCat('photo');
@@ -6120,10 +6366,20 @@ function launchQA() {
   if (tool) {
     selectTool(tool);
     setTimeout(() => {
-      S.settings.brightness = +$('qa-brightness').value;
-      S.settings.contrast   = +$('qa-contrast').value;
-      S.settings.saturation = +$('qa-saturation').value;
-      S.settings.sharpness  = +$('qa-sharpness').value;
+      const dial = $('qa-dial');
+      const intensity = dial && dial._getValue ? dial._getValue() / 100 : 1;
+      const applyAll = $('qa-apply-all')?.classList.contains('on') ?? true;
+      const raw = {
+        brightness: +$('qa-brightness').value,
+        contrast:   +$('qa-contrast').value,
+        saturation: +$('qa-saturation').value,
+        sharpness:  +$('qa-sharpness').value,
+      };
+      Object.entries(raw).forEach(([key, v]) => {
+        if (!applyAll && v === 0) return; // untouched channel — leave the tool's own value alone
+        const [lo, hi] = QA_CLAMP[key];
+        S.settings[key] = Math.max(lo, Math.min(hi, Math.round(v * intensity)));
+      });
       renderSettings('photo-effects');
       applyLivePreview();
     }, 80);
