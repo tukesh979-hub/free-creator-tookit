@@ -7,34 +7,40 @@
 <meta name="description" content="Free browser-based creator toolkit. Edit video, photo, and audio instantly. No watermark, no signup, no upload."/>
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
-<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet"/>
 <style>
-/* ═══════════ DESIGN TOKENS ═══════════ */
+/* ═══════════ DESIGN TOKENS ═══════════
+   2026-08-14 ground-up redesign: restrained monochrome + one precise red
+   accent, in the spirit of three.tools' restraint (not a copy of it) rather
+   than the earlier "sci-fi HUD hardware panel" identity. Geist isn't
+   reachable from a static single-file with no build step (no public CDN
+   @font-face), so per the brief's own fallback rule this uses Inter. */
 :root[data-theme="dark"]{
-  --bg:#0c0c0c;--bg2:#131313;--bg3:#1a1a1a;--bg4:#222;
-  --red:#e5383b;--red2:#ff4f52;
-  --border:#242424;--border2:#2e2e2e;
-  --text:#f0f0f0;--muted:#888;--dim:#3a3a3a;
+  --bg:#080808;--bg2:#0d0d0d;--bg3:#121212;--bg4:#171717;
+  --red:#ff3b3b;--red2:#ff5252;--red-dark:#b92727;
+  --border:#252525;--border2:#3a3a3a;
+  --text:#f5f5f5;--muted:#a0a0a0;--dim:#626262;
   --green:#22c55e;--amber:#f59e0b;--blue:#3b82f6;
-  /* Quick Adjust reads as a lit hardware panel against the dark page — a
-     deliberate inversion, not a theme bug. Light theme below just reuses
-     the normal card tokens since the whole page is already light there. */
-  --qa-bg:#f2f2ef;--qa-text:#161616;--qa-dim:#6c6c68;--qa-border:#dcdcd8;--qa-track:#d6d6d1;
+  --qa-bg:var(--bg2);--qa-text:var(--text);--qa-dim:var(--muted);--qa-border:var(--border);--qa-track:var(--border2);
 }
 :root[data-theme="light"]{
-  --bg:#fafaf8;--bg2:#fff;--bg3:#f4f4f0;--bg4:#ebebe6;
-  --red:#dc2626;--red2:#ef4444;
-  --border:#e5e5e0;--border2:#d4d4d0;
-  --text:#111;--muted:#666;--dim:#aaa;
+  --bg:#fafaf9;--bg2:#ffffff;--bg3:#f3f3f2;--bg4:#e9e9e7;
+  --red:#e0281f;--red2:#ff3b3b;--red-dark:#a31f18;
+  --border:#e3e3e0;--border2:#c9c9c5;
+  --text:#111111;--muted:#5c5c5c;--dim:#9c9c9c;
   --green:#16a34a;--amber:#d97706;--blue:#2563eb;
   --qa-bg:var(--bg3);--qa-text:var(--text);--qa-dim:var(--muted);--qa-border:var(--border);--qa-track:var(--border2);
 }
 :root{
-  --font:'Syne',sans-serif;
+  --font:'Inter',-apple-system,sans-serif;
   --mono:'JetBrains Mono',monospace;
-  --nav-h:54px;
-  --transition:.15s cubic-bezier(.4,0,.2,1);
-  --r-sm:6px;--r-md:10px;--r-lg:16px;--r-pill:999px;
+  --nav-h:56px;
+  --transition:.16s cubic-bezier(.2,0,0,1);
+  --transition-fast:.16s cubic-bezier(.2,0,0,1);
+  --transition-normal:.28s cubic-bezier(.2,0,0,1);
+  --transition-slow:.45s cubic-bezier(.2,0,0,1);
+  --r-sm:4px;--r-md:8px;--r-lg:12px;--r-xl:16px;--r-pill:999px;
+  --container:1220px;
 }
 
 /* Four corner "bolt" dots, composited as background layers — no extra DOM.
@@ -72,165 +78,121 @@ a{color:inherit;text-decoration:none}
 /* ═══════════ NAV ═══════════ */
 nav{
   height:var(--nav-h);background:var(--bg2);border-bottom:1px solid var(--border);
-  display:flex;align-items:center;padding:0 16px;position:sticky;top:0;z-index:100;flex-shrink:0
+  display:flex;align-items:center;padding:0 20px;position:sticky;top:0;z-index:100;flex-shrink:0
 }
-.logo{display:flex;align-items:center;gap:10px;margin-right:16px;padding-right:16px;border-right:1px solid var(--border);cursor:pointer}
-.logo-icon{width:28px;height:28px;background:var(--red);display:flex;align-items:center;justify-content:center;flex-shrink:0;border-radius:6px}
-.logo-title{font-size:12px;font-weight:800;letter-spacing:3px;line-height:1}
-.logo-sub{font-family:var(--mono);font-size:7px;letter-spacing:3px;color:var(--muted);margin-top:1px}
-.nav-links{display:flex}
+.logo{display:flex;align-items:center;gap:9px;margin-right:20px;padding-right:20px;border-right:1px solid var(--border);cursor:pointer}
+.logo-icon{width:24px;height:24px;background:var(--red);display:flex;align-items:center;justify-content:center;flex-shrink:0;border-radius:var(--r-sm)}
+.logo-title{font-size:12px;font-weight:700;letter-spacing:1.5px;line-height:1}
+.logo-sub{display:none}
+.nav-links{display:flex;gap:2px}
 .nav-btn{
-  font-size:10px;font-weight:700;letter-spacing:2px;text-transform:uppercase;
-  color:var(--muted);padding:6px 12px;position:relative;transition:color var(--transition)
+  font-size:11px;font-weight:500;letter-spacing:.2px;text-transform:uppercase;
+  color:var(--muted);padding:8px 13px;position:relative;transition:color var(--transition)
 }
 .nav-btn:hover{color:var(--text)}
 .nav-btn.active{color:var(--text)}
-.nav-btn.active::after{content:'';position:absolute;bottom:0;left:12px;right:12px;height:2px;background:var(--red)}
+.nav-btn.active::after{content:'';position:absolute;bottom:-1px;left:13px;right:13px;height:1.5px;background:var(--red)}
 .nav-space{flex:1}
-.status{display:flex;align-items:center;gap:6px;margin-right:12px}
-.status-dot{width:6px;height:6px;border-radius:50%;flex-shrink:0;transition:background var(--transition)}
-.status-dot.ok{background:var(--green);box-shadow:0 0 6px var(--green)}
-.status-dot.partial{background:var(--amber);box-shadow:0 0 6px var(--amber)}
+.status{display:flex;align-items:center;gap:6px;margin-right:16px}
+.status-dot{width:5px;height:5px;border-radius:50%;flex-shrink:0;transition:background var(--transition)}
+.status-dot.ok{background:var(--green)}
+.status-dot.partial{background:var(--amber)}
 .status-dot.off{background:var(--dim)}
-.status-label{font-family:var(--mono);font-size:8px;letter-spacing:2px;color:var(--muted);text-transform:uppercase}
+.status-label{font-family:var(--mono);font-size:10px;letter-spacing:.5px;color:var(--muted);text-transform:uppercase}
 .theme-toggle{
   width:28px;height:28px;display:flex;align-items:center;justify-content:center;
-  border:1px solid var(--border2);border-radius:50%;color:var(--muted);
-  margin-right:8px;transition:all var(--transition)
+  border:1px solid transparent;border-radius:var(--r-sm);color:var(--muted);
+  margin-right:10px;transition:all var(--transition)
 }
-.theme-toggle:hover{color:var(--text);border-color:var(--text)}
+.theme-toggle:hover{color:var(--text);border-color:var(--border)}
 .nav-cta{
-  background:var(--red);color:#fff;font-size:10px;font-weight:700;letter-spacing:2px;
-  text-transform:uppercase;padding:8px 14px;transition:background var(--transition);border-radius:6px
+  background:var(--red);color:#fff;font-size:11px;font-weight:500;letter-spacing:.2px;
+  text-transform:uppercase;padding:9px 15px;transition:background var(--transition);border-radius:var(--r-sm)
 }
 .nav-cta:hover{background:var(--red2)}
 .hamburger{display:none;width:32px;height:32px;align-items:center;justify-content:center;color:var(--text)}
 
 /* ═══════════ BUTTONS ═══════════ */
-.btn-red{background:var(--red);color:#fff;font-size:10px;font-weight:700;letter-spacing:2px;text-transform:uppercase;padding:11px 24px;transition:background var(--transition);display:inline-flex;align-items:center;gap:7px;border-radius:6px}
+.btn-red{background:var(--red);color:#fff;font-size:11px;font-weight:500;letter-spacing:.2px;text-transform:uppercase;padding:13px 22px;transition:background var(--transition);display:inline-flex;align-items:center;gap:7px;border-radius:var(--r-sm)}
 .btn-red:hover{background:var(--red2)}
-.btn-outline{background:transparent;color:var(--text);border:1px solid var(--border2);font-size:10px;font-weight:600;letter-spacing:2px;text-transform:uppercase;padding:11px 20px;transition:all var(--transition);display:inline-flex;align-items:center;gap:6px;border-radius:6px}
+.btn-outline{background:transparent;color:var(--text);border:1px solid var(--border2);font-size:11px;font-weight:500;letter-spacing:.2px;text-transform:uppercase;padding:13px 20px;transition:all var(--transition);display:inline-flex;align-items:center;gap:6px;border-radius:var(--r-sm)}
 .btn-outline:hover{border-color:var(--muted)}
 
-/* ═══════════ HERO ═══════════ */
-.hero{position:relative;padding:60px 20px 50px;text-align:center;background:radial-gradient(ellipse 70% 50% at 50% 0%,rgba(229,56,59,.05) 0%,transparent 65%);overflow:hidden}
-/* Pointer-tracked spotlight — the hero's one authored motion moment. Same
-   radial-follow trick as .cat-card-glow, scaled up to the whole section. */
-.hero-spotlight{
-  position:absolute;inset:0;opacity:0;transition:opacity .5s ease;pointer-events:none;z-index:0;
-  background:radial-gradient(circle 420px at var(--hx,50%) var(--hy,0%),rgba(229,56,59,.14),transparent 70%);
-}
-.hero.spotlit .hero-spotlight{opacity:1}
-/* Lift the static text content above the spotlight without touching
-   .hero-corners/.hero-dots, which are already position:absolute and must
-   keep that value — a blanket .hero>* rule would out-specificity and break them. */
-.badges,.hero h1,.hero p,.hero-btns{position:relative}
-@media(prefers-reduced-motion:reduce){.hero-spotlight{display:none}}
-.hero-corners{position:absolute;inset:0;pointer-events:none}
-.hc{position:absolute;width:14px;height:14px}
-.hc::before,.hc::after{content:'';position:absolute;background:var(--border2)}
-.hc::before{width:100%;height:2px;top:0;left:0}
-.hc::after{width:2px;height:100%;top:0;left:0}
-.hc.tl{top:16px;left:20px}
-.hc.tr{top:16px;right:20px;transform:scaleX(-1)}
-.hc.bl{bottom:16px;left:20px;transform:scaleY(-1)}
-.hc.br{bottom:16px;right:20px;transform:scale(-1)}
-.hero-dots{position:absolute;top:24px;display:grid;grid-template-columns:repeat(4,1fr);gap:5px;opacity:.2;pointer-events:none}
-.hero-dots.left{left:42px}
-.hero-dots.right{right:42px}
-.hero-dots span{display:block;width:3px;height:3px;border-radius:50%;background:var(--muted)}
-.badges{display:inline-flex;align-items:center;gap:12px;background:var(--bg3);border:1px solid var(--border);border-radius:20px;padding:5px 16px;margin-bottom:22px;flex-wrap:wrap;justify-content:center}
-.badge{display:flex;align-items:center;gap:5px;font-family:var(--mono);font-size:8px;letter-spacing:1.5px;color:var(--muted);text-transform:uppercase}
-.badge-dot{width:5px;height:5px;border-radius:50%;background:var(--red);flex-shrink:0}
-.hero h1{font-size:clamp(28px,5.5vw,60px);font-weight:800;letter-spacing:-1px;line-height:1.05;margin-bottom:14px}
+/* ═══════════ HERO ═══════════
+   No gradient wash, no corner brackets, no dot grids, no pointer-tracked
+   glow — the brief is explicit that typography carries the section, not
+   decoration. Generous vertical negative space instead. */
+.hero{position:relative;padding:96px 20px 64px;text-align:center;overflow:hidden}
+.hero-status{font-family:var(--mono);font-size:11px;letter-spacing:1.5px;color:var(--muted);text-transform:uppercase;margin-bottom:28px}
+.hero h1{font-size:clamp(40px,7.2vw,84px);font-weight:800;letter-spacing:-.04em;line-height:.95;margin-bottom:22px}
 .hero h1 span{color:var(--red)}
-.hero p{color:var(--muted);font-size:14px;line-height:1.7;margin-bottom:26px;padding:0 12px}
+.hero p{color:var(--muted);font-size:16px;line-height:1.65;margin:0 auto 34px;max-width:480px}
 .hero-btns{display:flex;gap:10px;justify-content:center;flex-wrap:wrap}
 
-/* ═══════════ UPLOAD WIDGET ═══════════ */
-.upload-box{max-width:540px;margin:0 auto 44px;background:var(--bg3);border:1px solid var(--border2);position:relative;border-radius:var(--r-lg)}
-.ub-screw{position:absolute;width:6px;height:6px;border-radius:50%;background:var(--border2);border:1px solid var(--border)}
-.ub-tabs{display:flex;border-bottom:1px solid var(--border)}
-.ub-tab{flex:1;padding:10px;font-size:9px;font-weight:700;letter-spacing:2px;text-transform:uppercase;border-bottom:2px solid transparent;color:var(--muted);transition:all var(--transition)}
+/* ═══════════ UPLOAD WORKSPACE ═══════════
+   A real application panel, not a marketing card: thin border, near-invisible
+   technical grid, restrained accent — no corner screws, no heavy shadow. */
+.upload-box{max-width:640px;margin:0 auto 44px;background:var(--bg3);border:1px solid var(--border);position:relative;border-radius:var(--r-lg);overflow:hidden}
+.ub-tabs{display:flex;border-bottom:1px solid var(--border);position:relative;z-index:1}
+.ub-tab{flex:1;padding:13px;font-size:11px;font-weight:500;letter-spacing:1px;text-transform:uppercase;border-bottom:1.5px solid transparent;color:var(--muted);transition:all var(--transition)}
 .ub-tab.active{color:var(--text);border-bottom-color:var(--red)}
-.ub-drop{display:block;margin:14px;border:1px dashed var(--border2);padding:28px 16px;text-align:center;cursor:pointer;transition:all var(--transition);border-radius:6px}
-.ub-drop:hover,.ub-drop.drag{border-color:var(--red);background:rgba(229,56,59,.04)}
-.ub-drop-icon{width:38px;height:38px;border:1px solid var(--border2);display:flex;align-items:center;justify-content:center;margin:0 auto 10px;color:var(--dim);transition:all var(--transition);border-radius:6px}
+.ub-drop{display:block;margin:20px;padding:56px 16px;text-align:center;cursor:pointer;transition:all var(--transition);border-radius:var(--r-md);position:relative;z-index:1}
+.ub-drop:hover,.ub-drop.drag{background:rgba(255,59,59,.03)}
+.ub-drop-icon{width:36px;height:36px;border:1px solid var(--border2);display:flex;align-items:center;justify-content:center;margin:0 auto 16px;color:var(--dim);transition:all var(--transition);border-radius:var(--r-sm)}
 .ub-drop:hover .ub-drop-icon,.ub-drop.drag .ub-drop-icon{border-color:var(--red);color:var(--red)}
-.ub-title{font-size:10px;font-weight:700;letter-spacing:2px;text-transform:uppercase;margin-bottom:4px}
-.ub-hint{font-family:var(--mono);font-size:8px;color:var(--dim)}
-.ub-browse{width:calc(100% - 28px);margin:0 14px 14px;border:1px solid var(--border);background:transparent;color:var(--muted);font-family:var(--mono);font-size:8px;letter-spacing:2px;text-transform:uppercase;padding:7px;transition:all var(--transition);border-radius:6px}
+.ub-title{font-size:13px;font-weight:600;letter-spacing:.2px;margin-bottom:6px}
+.ub-sub{font-size:12px;color:var(--muted);margin-bottom:14px}
+.ub-hint{font-family:var(--mono);font-size:10px;color:var(--dim);letter-spacing:.3px}
+.ub-browse{width:calc(100% - 40px);margin:0 20px 20px;border:1px solid var(--border);background:transparent;color:var(--muted);font-family:var(--mono);font-size:10px;letter-spacing:1px;text-transform:uppercase;padding:9px;transition:all var(--transition);border-radius:var(--r-sm);position:relative;z-index:1}
 .ub-browse:hover{border-color:var(--border2);color:var(--text)}
 
+/* Near-invisible technical grid — reused across upload workspace, editor
+   canvas, media demonstrations. 2-4% white opacity, large cell, static. */
+.tech-grid{position:relative}
+.tech-grid::before{
+  content:'';position:absolute;inset:0;pointer-events:none;z-index:0;
+  background-image:linear-gradient(rgba(255,255,255,.03) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.03) 1px,transparent 1px);
+  background-size:56px 56px
+}
+:root[data-theme="light"] .tech-grid::before{
+  background-image:linear-gradient(rgba(0,0,0,.03) 1px,transparent 1px),linear-gradient(90deg,rgba(0,0,0,.03) 1px,transparent 1px)
+}
+
 /* ═══════════ HOME SECTIONS ═══════════ */
-.home-wrap{max-width:980px;margin:0 auto;padding:0 16px 16px}
-.sec{margin-bottom:32px}
-.sec-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;flex-wrap:wrap;gap:8px}
-.sec-title{display:flex;align-items:center;gap:8px;font-size:10px;font-weight:700;letter-spacing:3px;text-transform:uppercase}
-.sec-title::before{content:'';display:block;width:3px;height:14px;background:var(--red);flex-shrink:0}
-.sec-link{font-family:var(--mono);font-size:8px;letter-spacing:1.5px;color:var(--muted);transition:color var(--transition)}
+.home-wrap{max-width:var(--container);margin:0 auto;padding:0 20px}
+.sec{margin-bottom:72px}
+.sec-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;flex-wrap:wrap;gap:8px}
+.sec-title{display:flex;align-items:center;gap:9px;font-size:12px;font-weight:600;letter-spacing:1.5px;text-transform:uppercase}
+.sec-title::before{content:'';display:block;width:3px;height:12px;background:var(--red);flex-shrink:0}
+.sec-link{font-family:var(--mono);font-size:11px;letter-spacing:.3px;color:var(--muted);transition:color var(--transition)}
 .sec-link:hover{color:var(--red)}
+@media(min-width:900px){.home-wrap{padding:0 64px}}
 
-.tool-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:8px}
+/* Tool rail — a hairline-divided list of compact rows, not a grid of
+   identical cards. Divider is a 1px background peeking through a 1px gap. */
+.tool-grid{display:flex;flex-direction:column;gap:1px;background:var(--border);border:1px solid var(--border);border-radius:var(--r-md);overflow:hidden}
 .tcard{
-  background-color:var(--bg3);
-  background-image:
-    radial-gradient(circle 2px at 9px 9px,var(--border2) 94%,transparent 96%),
-    radial-gradient(circle 2px at calc(100% - 9px) 9px,var(--border2) 94%,transparent 96%),
-    radial-gradient(circle 2px at 9px calc(100% - 9px),var(--border2) 94%,transparent 96%),
-    radial-gradient(circle 2px at calc(100% - 9px) calc(100% - 9px),var(--border2) 94%,transparent 96%);
-  background-repeat:no-repeat;
-  border:1px solid var(--border);padding:14px 12px;cursor:pointer;transition:all var(--transition);position:relative;overflow:hidden;border-radius:var(--r-md);text-align:left
+  background:var(--bg3);border:none;padding:15px 18px;cursor:pointer;
+  transition:background var(--transition-fast);position:relative;
+  display:flex;align-items:center;gap:16px;text-align:left;border-radius:0
 }
-.tcard:hover{border-color:var(--border2);transform:translateY(-1px)}
-.tcard:focus-visible{border-color:var(--red)}
-.tcard-s{position:absolute;width:4px;height:4px;border-radius:50%;background:var(--border2)}
-.tcard-s.tl{top:5px;left:5px}.tcard-s.tr{top:5px;right:5px}
-.tcard-ico{width:24px;height:24px;display:flex;align-items:center;justify-content:center;color:var(--red);margin-bottom:6px;margin-top:2px}
-.tcard-name{font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;margin-bottom:4px}
-.tcard-desc{font-family:var(--mono);font-size:8px;color:var(--dim);line-height:1.5;margin-bottom:10px}
-.tcard-line{position:absolute;bottom:0;left:0;width:18px;height:2px;background:var(--red)}
-/* Per-feature 3D icon tilt — shared by home grid cards, full tool-list cards,
-   and AI placeholder cards. Base transform reads CSS vars (--rx/--ry/--tz/--tsc)
-   that initTiltCards() drives live from pointer position; hover/focus-visible
-   supply a fixed fallback for touch and keyboard so the pop still reads without JS. */
-.tcard,.tp-card,.ai-card{perspective:600px}
-.tcard-ico,.tp-ico,.ai-ico{
-  --rx:0deg;--ry:0deg;--tz:0px;--tsc:1;
-  transform:translateZ(var(--tz)) rotateX(var(--rx)) rotateY(var(--ry)) scale(var(--tsc));
-  transition:transform .3s cubic-bezier(.34,1.56,.64,1),color .15s;
-}
-.tcard:hover .tcard-ico,.tcard:focus-visible .tcard-ico,
-.tp-card:hover .tp-ico,.tp-card:focus-visible .tp-ico,
-.ai-card:hover .ai-ico,.ai-card:focus-visible .ai-ico{
-  --rx:-6deg;--ry:14deg;--tz:14px;--tsc:1.14;color:var(--red2)
-}
-@media(prefers-reduced-motion:reduce){
-  .tcard-ico,.tp-ico,.ai-ico{transition:none}
-  .tcard:hover .tcard-ico,.tcard:focus-visible .tcard-ico,
-  .tp-card:hover .tp-ico,.tp-card:focus-visible .tp-ico,
-  .ai-card:hover .ai-ico,.ai-card:focus-visible .ai-ico{--rx:0deg;--ry:0deg;--tz:0px;--tsc:1}
-}
+.tcard:hover,.tcard:focus-visible{background:var(--bg4)}
+.tcard-ico{width:18px;height:18px;display:flex;align-items:center;justify-content:center;color:var(--muted);flex-shrink:0;transition:color var(--transition-fast)}
+.tcard:hover .tcard-ico,.tcard:focus-visible .tcard-ico{color:var(--red)}
+.tcard-body{flex:1;min-width:0;transition:transform var(--transition-fast)}
+.tcard:hover .tcard-body,.tcard:focus-visible .tcard-body,
+.tp-card:hover .tcard-body,.tp-card:focus-visible .tcard-body{transform:translateX(3px)}
+.tcard-name{font-size:13px;font-weight:600;margin-bottom:2px}
+.tcard-desc{font-size:12px;color:var(--muted);line-height:1.4;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.tcard-dot{width:4px;height:4px;border-radius:50%;background:var(--red);opacity:.3;flex-shrink:0;transition:opacity var(--transition-fast)}
+.tcard:hover .tcard-dot,.tcard:focus-visible .tcard-dot,
+.tp-card:hover .tcard-dot,.tp-card:focus-visible .tcard-dot{opacity:1}
+.tcard-arrow{color:var(--red);opacity:0;transform:translateX(-4px);transition:all var(--transition-fast);flex-shrink:0;font-size:13px}
+.tcard:hover .tcard-arrow,.tcard:focus-visible .tcard-arrow,
+.tp-card:hover .tcard-arrow,.tp-card:focus-visible .tcard-arrow{opacity:1;transform:translateX(0)}
+@media(prefers-reduced-motion:reduce){.tcard-body,.tcard-arrow{transition:none}}
 
-/* ═══════════ AMBIENT HOME BACKGROUND ═══════════ */
 #page-home.active{position:relative}
-.home-bg{position:absolute;inset:0;top:0;height:640px;overflow:hidden;pointer-events:none;z-index:0}
-.home-bg::before{
-  content:'';position:absolute;inset:-20% -50%;
-  background-image:linear-gradient(var(--border) 1px,transparent 1px),linear-gradient(90deg,var(--border) 1px,transparent 1px);
-  background-size:46px 46px;opacity:.35;
-  -webkit-mask-image:radial-gradient(ellipse 55% 60% at 50% 10%,#000 0%,transparent 72%);
-  mask-image:radial-gradient(ellipse 55% 60% at 50% 10%,#000 0%,transparent 72%);
-  animation:homeGridDrift 50s linear infinite;
-}
-.home-bg::after{
-  content:'';position:absolute;left:-10%;right:-10%;height:140px;top:-140px;
-  background:linear-gradient(to bottom,transparent,rgba(229,56,59,.09),transparent);
-  animation:homeScanSweep 10s ease-in-out infinite;
-}
-@keyframes homeGridDrift{to{transform:translate(46px,46px)}}
-@keyframes homeScanSweep{0%,100%{top:-140px}50%{top:560px}}
-@media(prefers-reduced-motion:reduce){.home-bg::before,.home-bg::after{animation:none}}
 #page-home .hero,#page-home>.home-wrap,#page-home>section{position:relative;z-index:1}
 
 /* ═══════════ CATEGORY SHOWCASE — 3D INTERACTIVE ICONS ═══════════ */
@@ -250,11 +212,11 @@ nav{
 }
 .cat-card:hover,.cat-card:focus-visible{
   border-color:var(--red);transform:translateY(-3px);
-  box-shadow:0 16px 40px -18px rgba(229,56,59,.45);
+  box-shadow:0 16px 40px -18px rgba(255,59,59,.45);
 }
 .cat-card-glow{
   position:absolute;inset:-1px;opacity:0;transition:opacity .3s;pointer-events:none;
-  background:radial-gradient(circle 220px at var(--mx,50%) var(--my,-20%),rgba(229,56,59,.16),transparent 70%);
+  background:radial-gradient(circle 220px at var(--mx,50%) var(--my,-20%),rgba(255,59,59,.16),transparent 70%);
 }
 .cat-card:hover .cat-card-glow{opacity:1}
 .cat-card::before{ /* corner brackets, HUD style */
@@ -286,14 +248,14 @@ nav{
 }
 .icon3d-ring{
   transform:translateZ(11px);border-radius:50%;
-  border:1px dashed rgba(229,56,59,.35);inset:11px;
+  border:1px dashed rgba(255,59,59,.35);inset:11px;
   animation:icon3dSpin 14s linear infinite;
 }
 @keyframes icon3dSpin{to{transform:translateZ(11px) rotate(360deg)}}
 .icon3d-icon{
   transform:translateZ(26px);display:flex;align-items:center;justify-content:center;color:var(--red);
 }
-.icon3d-icon svg{width:32px;height:32px;filter:drop-shadow(0 6px 10px rgba(229,56,59,.35))}
+.icon3d-icon svg{width:32px;height:32px;filter:drop-shadow(0 6px 10px rgba(255,59,59,.35))}
 .icon3d-shine{
   transform:translateZ(32px);border-radius:16px;mix-blend-mode:overlay;opacity:.9;
   background:radial-gradient(circle 60px at var(--mx,50%) var(--my,30%),rgba(255,255,255,.55),transparent 60%);
@@ -338,36 +300,24 @@ nav{
 @media(max-width:900px){.cs-grid{grid-template-columns:1fr}}
 
 /* AI Tools cards */
-.ai-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+.ai-grid{display:flex;flex-direction:column;gap:1px;background:var(--border);border:1px solid var(--border);border-radius:var(--r-md);overflow:hidden}
 .ai-card{
-  background-color:var(--bg3);
-  background-image:
-    radial-gradient(circle 2px at 9px 9px,var(--border2) 94%,transparent 96%),
-    radial-gradient(circle 2px at calc(100% - 9px) 9px,var(--border2) 94%,transparent 96%),
-    radial-gradient(circle 2px at 9px calc(100% - 9px),var(--border2) 94%,transparent 96%),
-    radial-gradient(circle 2px at calc(100% - 9px) calc(100% - 9px),var(--border2) 94%,transparent 96%);
-  background-repeat:no-repeat;
-  border:1px solid var(--border);padding:12px;cursor:pointer;transition:all var(--transition);position:relative;display:flex;align-items:flex-start;gap:10px;border-radius:var(--r-md);text-align:left
+  background:var(--bg3);border:none;padding:15px 18px;cursor:pointer;transition:background var(--transition-fast);
+  position:relative;display:flex;align-items:center;gap:16px;text-align:left;border-radius:0;width:100%
 }
-.ai-card:hover{border-color:var(--border2);transform:translateY(-1px)}
-.ai-ico{width:30px;height:30px;background:var(--bg4);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;flex-shrink:0;color:var(--red);border-radius:6px}
+.ai-card:hover,.ai-card:focus-visible{background:var(--bg4)}
+.ai-ico{width:18px;height:18px;display:flex;align-items:center;justify-content:center;flex-shrink:0;color:var(--muted);transition:color var(--transition-fast)}
+.ai-card:hover .ai-ico,.ai-card:focus-visible .ai-ico{color:var(--red)}
 .ai-body{flex:1;min-width:0}
-.ai-name{font-size:9px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;margin-bottom:3px;display:flex;align-items:center;gap:6px}
-.ai-badge{font-size:7px;background:var(--amber);color:#000;padding:1px 5px;border-radius:8px;letter-spacing:.5px;font-weight:700}
-.ai-desc{font-family:var(--mono);font-size:8px;color:var(--dim);line-height:1.4}
+.ai-name{font-size:13px;font-weight:600;margin-bottom:2px;display:flex;align-items:center;gap:8px}
+.ai-badge{font-family:var(--mono);font-size:9px;letter-spacing:.5px;color:var(--dim);border:1px solid var(--border2);padding:1px 6px;border-radius:var(--r-pill);text-transform:uppercase}
+.ai-desc{font-size:12px;color:var(--muted);line-height:1.4}
 
-/* Quick Adjust widget — deliberately a "lit hardware panel" (--qa-* tokens),
-   distinct from the surrounding dark page. See :root[data-theme] above. */
+/* Quick Adjust widget — styled as a miniature version of the real editor's
+   inspector panel: same dark surface, same technical labels. */
 .qa-box{
   background-color:var(--qa-bg);color:var(--qa-text);
-  background-image:
-    radial-gradient(circle 2.5px at 14px 14px,var(--qa-border) 94%,transparent 96%),
-    radial-gradient(circle 2.5px at calc(100% - 14px) 14px,var(--qa-border) 94%,transparent 96%),
-    radial-gradient(circle 2.5px at 14px calc(100% - 14px),var(--qa-border) 94%,transparent 96%),
-    radial-gradient(circle 2.5px at calc(100% - 14px) calc(100% - 14px),var(--qa-border) 94%,transparent 96%);
-  background-repeat:no-repeat;
-  border:1px solid var(--qa-border);padding:24px 20px;position:relative;border-radius:var(--r-lg);
-  box-shadow:0 20px 44px -28px rgba(0,0,0,.55)
+  border:1px solid var(--qa-border);padding:32px 24px;position:relative;border-radius:var(--r-lg)
 }
 .qa-header{display:flex;align-items:center;gap:8px;margin-bottom:22px}
 .qa-dot{width:7px;height:7px;border-radius:50%;background:var(--red)}
@@ -427,28 +377,102 @@ nav{
 .qa-btn{background:var(--red);color:#fff;font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;padding:11px 18px;border-radius:var(--r-sm);transition:background var(--transition)}
 .qa-btn:hover{background:var(--red2)}
 
-/* CTA section */
-.cta-wrap{text-align:center;padding:36px 16px 36px;position:relative;max-width:980px;margin:0 auto}
-.cta-line{position:absolute;left:15%;right:15%;height:1px;background:linear-gradient(to right,transparent,var(--border),transparent)}
-.cta h2{font-size:clamp(20px,4vw,28px);font-weight:800;margin:12px 0 18px}
+/* ═══════════ FEATURE SECTIONS (Video / Photo) — editorial split ═══════════
+   One strong visual composition per category, not five feature cards. */
+.feat{display:grid;grid-template-columns:1fr;gap:32px;align-items:center}
+@media(min-width:900px){
+  .feat{grid-template-columns:1.1fr 1fr;gap:56px}
+  .feat-reverse .feat-visual{order:2}
+  .feat-reverse .feat-content{order:1}
+}
+.feat-label{font-family:var(--mono);font-size:11px;letter-spacing:2px;color:var(--red);text-transform:uppercase;margin-bottom:14px}
+.feat-statement{font-size:clamp(24px,3.2vw,38px);font-weight:700;letter-spacing:-.02em;line-height:1.1;margin-bottom:16px}
+.feat-desc{color:var(--muted);font-size:15px;line-height:1.65;max-width:420px;margin-bottom:22px}
+.feat-tools{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:26px}
+.feat-tool-chip{font-family:var(--mono);font-size:10px;letter-spacing:.5px;color:var(--muted);border:1px solid var(--border);padding:5px 11px;border-radius:var(--r-pill);text-transform:uppercase}
+.feat-cta{font-size:11px;font-weight:500;letter-spacing:.2px;text-transform:uppercase;color:var(--text);display:inline-flex;align-items:center;gap:6px;padding-bottom:2px;border-bottom:1px solid var(--border2);transition:all var(--transition-fast)}
+.feat-cta:hover{color:var(--red);border-color:var(--red)}
+
+/* Video visual: abstract frame + scrub timeline, no stock footage */
+.feat-visual{border:1px solid var(--border);border-radius:var(--r-lg);overflow:hidden;background:var(--bg2);aspect-ratio:16/11;display:flex;flex-direction:column}
+.feat-frame{flex:1;display:flex;align-items:center;justify-content:center;position:relative}
+.feat-frame-play{width:52px;height:52px;border-radius:50%;border:1px solid var(--border2);display:flex;align-items:center;justify-content:center;color:var(--text)}
+.feat-video-tl{height:34px;border-top:1px solid var(--border);display:flex;align-items:center;padding:0 16px;gap:10px;flex-shrink:0}
+.feat-video-tl-track{flex:1;height:2px;background:var(--border2);position:relative;border-radius:var(--r-pill)}
+.feat-video-tl-fill{position:absolute;left:0;top:0;height:100%;width:38%;background:var(--red);border-radius:var(--r-pill)}
+.feat-video-tl-head{position:absolute;top:50%;left:38%;width:8px;height:8px;border-radius:50%;background:var(--red);transform:translate(-50%,-50%)}
+.feat-video-tl-time{font-family:var(--mono);font-size:9px;color:var(--dim);flex-shrink:0}
+
+/* Photo visual: crop-handle corners over an abstract frame */
+.feat-photo-frame{position:relative;width:78%;aspect-ratio:4/5;background:linear-gradient(160deg,var(--bg4),var(--bg3))}
+.feat-crop-h{position:absolute;width:14px;height:14px}
+.feat-crop-h::before,.feat-crop-h::after{content:'';position:absolute;background:var(--red)}
+.feat-crop-h::before{width:100%;height:2px;top:0;left:0}
+.feat-crop-h::after{width:2px;height:100%;top:0;left:0}
+.feat-crop-h.tl{top:-1px;left:-1px}
+.feat-crop-h.tr{top:-1px;right:-1px;transform:scaleX(-1)}
+.feat-crop-h.bl{bottom:-1px;left:-1px;transform:scaleY(-1)}
+.feat-crop-h.br{bottom:-1px;right:-1px;transform:scale(-1)}
+.feat-photo-meta{position:absolute;bottom:10px;left:10px;font-family:var(--mono);font-size:9px;color:rgba(255,255,255,.55);letter-spacing:.5px}
+
+/* ═══════════ AUDIO SECTION — full-width waveform, not a split ═══════════ */
+.audio-sec{border:1px solid var(--border);border-radius:var(--r-lg);padding:40px 32px;background:var(--bg2)}
+.audio-sec-head{display:flex;justify-content:space-between;align-items:flex-end;flex-wrap:wrap;gap:16px;margin-bottom:28px}
+.audio-wave-hero{display:flex;align-items:center;justify-content:center;gap:3px;height:100px;margin-bottom:26px}
+.audio-wave-hero-bar{width:3px;border-radius:var(--r-pill);background:var(--border2);transition:background var(--transition-slow);transform-origin:center;animation:audioWaveIdle 2.6s ease-in-out infinite}
+.audio-wave-hero-bar.hot{background:var(--red)}
+@keyframes audioWaveIdle{0%,100%{transform:scaleY(.86)}50%{transform:scaleY(1)}}
+@media(prefers-reduced-motion:reduce){.audio-wave-hero-bar{animation:none}}
+
+/* ═══════════ EDITOR SHOWCASE ═══════════ */
+.ed-showcase{border:1px solid var(--border);border-radius:var(--r-lg);overflow:hidden;background:var(--bg2)}
+.ed-showcase-chrome{display:grid;grid-template-columns:56px 1fr 220px;height:280px}
+@media(max-width:700px){.ed-showcase-chrome{grid-template-columns:1fr;height:auto}.ed-showcase-rail,.ed-showcase-inspector{display:none}}
+.ed-showcase-rail{border-right:1px solid var(--border);display:flex;flex-direction:column;align-items:center;padding-top:16px;gap:18px}
+.ed-showcase-rail-item{width:16px;height:16px;border-radius:var(--r-sm);border:1px solid var(--border2)}
+.ed-showcase-rail-item.on{border-color:var(--red);background:rgba(255,59,59,.1)}
+.ed-showcase-canvas{position:relative;display:flex;align-items:center;justify-content:center}
+.ed-showcase-canvas-frame{width:60%;aspect-ratio:1;border:1px solid var(--red);position:relative}
+.ed-showcase-canvas-meta{position:absolute;bottom:14px;left:14px;font-family:var(--mono);font-size:9px;color:var(--dim);display:flex;gap:12px}
+.ed-showcase-zoom{position:absolute;bottom:14px;right:14px;font-family:var(--mono);font-size:9px;color:var(--dim);display:flex;align-items:center;gap:8px}
+.ed-showcase-inspector{border-left:1px solid var(--border);padding:18px}
+.ed-showcase-inspector-title{font-size:11px;font-weight:600;margin-bottom:2px}
+.ed-showcase-inspector-sub{font-family:var(--mono);font-size:8px;color:var(--dim);text-transform:uppercase;letter-spacing:1px;margin-bottom:18px}
+.ed-showcase-row{margin-bottom:14px}
+.ed-showcase-row-lbl{font-family:var(--mono);font-size:8px;color:var(--dim);text-transform:uppercase;letter-spacing:1px;display:block;margin-bottom:6px}
+.ed-showcase-row-bar{height:1px;background:var(--border)}
+.ed-showcase-content{padding:32px}
+
+/* ═══════════ CTA section ═══════════ */
+.cta-wrap{text-align:center;padding:100px 20px;max-width:var(--container);margin:0 auto}
+.cta p.cta-eyebrow{font-family:var(--mono);font-size:11px;letter-spacing:2px;color:var(--muted);text-transform:uppercase;margin-bottom:16px}
+.cta h2{font-size:clamp(28px,4.5vw,46px);font-weight:700;letter-spacing:-.02em;margin-bottom:28px}
 .cta h2 span{color:var(--red)}
 
 /* ═══════════ FOOTER ═══════════ */
-footer{background:var(--bg2);border-top:1px solid var(--border);padding:24px 16px;margin-top:24px}
-.footer-inner{max-width:980px;margin:0 auto;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:16px}
+footer{background:var(--bg2);border-top:1px solid var(--border);padding:48px 20px 28px}
+.footer-inner{max-width:var(--container);margin:0 auto}
+.footer-top{display:grid;grid-template-columns:1.4fr repeat(3,1fr);gap:32px;margin-bottom:36px}
+@media(max-width:700px){.footer-top{grid-template-columns:1fr 1fr}}
+.footer-brand-name{font-size:13px;font-weight:700;letter-spacing:1px;margin-bottom:6px}
+.footer-tagline{font-size:12px;color:var(--muted)}
+.footer-col-title{font-family:var(--mono);font-size:10px;letter-spacing:1.5px;color:var(--dim);text-transform:uppercase;margin-bottom:14px}
+.footer-col-links{display:flex;flex-direction:column;gap:10px}
+.footer-bottom{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;padding-top:24px;border-top:1px solid var(--border)}
 .footer-logo{display:flex;align-items:center;gap:10px;font-family:var(--mono);font-size:9px;letter-spacing:2px;color:var(--muted);text-transform:uppercase}
-.footer-logo-icon{width:20px;height:20px;background:var(--red);display:flex;align-items:center;justify-content:center;border-radius:6px}
+.footer-logo-icon{width:20px;height:20px;background:var(--red);display:flex;align-items:center;justify-content:center;border-radius:var(--r-sm)}
 .footer-links{display:flex;gap:20px}
-.footer-link{font-family:var(--mono);font-size:9px;letter-spacing:1.5px;color:var(--muted);text-transform:uppercase;transition:color var(--transition)}
+.footer-link{font-size:12px;color:var(--muted);transition:color var(--transition)}
 .footer-link:hover{color:var(--text)}
 
 /* ═══════════ TOOL PAGES ═══════════ */
-.tp-wrap{max-width:940px;margin:0 auto;padding:28px 16px}
-.tp-hdr{display:flex;align-items:center;gap:10px;margin-bottom:18px;flex-wrap:wrap}
-.tp-bar{width:3px;height:22px;background:var(--red);flex-shrink:0}
-.tp-title{font-size:clamp(16px,3vw,20px);font-weight:800;letter-spacing:3px;text-transform:uppercase}
-.tp-div{flex:1;height:1px;background:var(--border);min-width:40px}
-.tp-cnt{font-family:var(--mono);font-size:9px;color:var(--dim)}
+.tp-wrap{max-width:var(--container);margin:0 auto;padding:48px 20px 60px}
+@media(min-width:900px){.tp-wrap{padding:64px 64px 80px}}
+.tp-hdr{display:flex;align-items:baseline;gap:14px;margin-bottom:32px;flex-wrap:wrap}
+.tp-bar{display:none}
+.tp-title{font-size:clamp(28px,4vw,40px);font-weight:700;letter-spacing:-.02em}
+.tp-div{flex:1;height:1px;background:var(--border);min-width:40px;align-self:center}
+.tp-cnt{font-family:var(--mono);font-size:11px;color:var(--dim)}
 
 /* ═══════════ PER-CATEGORY INTERACTIVE BANNER ═══════════ */
 .tpi{position:relative;width:100%;height:56px;border-radius:var(--r-sm);overflow:hidden;background:var(--bg4);border:1px solid var(--border);margin-bottom:18px}
@@ -472,9 +496,9 @@ footer{background:var(--bg2);border-top:1px solid var(--border);padding:24px 16p
 /* Video — hover-scrub filmstrip */
 .tpi-video{display:flex;align-items:center;gap:10px;padding:0 12px;cursor:pointer;touch-action:none}
 .tpi-video-strip{position:relative;flex:1;height:26px;border-radius:6px;overflow:hidden;background:repeating-linear-gradient(90deg,var(--bg3) 0 18px,var(--bg2) 18px 36px)}
-.tpi-video-strip::after{content:'';position:absolute;inset:0;width:var(--vprog,0%);background:linear-gradient(90deg,rgba(229,56,59,.22),rgba(229,56,59,.04))}
+.tpi-video-strip::after{content:'';position:absolute;inset:0;width:var(--vprog,0%);background:linear-gradient(90deg,rgba(255,59,59,.22),rgba(255,59,59,.04))}
 .tpi-video.idle .tpi-video-strip::after{animation:tpiVideoFill 3.6s linear infinite}
-.tpi-video-head{position:absolute;top:6px;bottom:6px;left:var(--vprog,0%);width:2px;background:var(--red);box-shadow:0 0 8px rgba(229,56,59,.75);transform:translateX(-1px)}
+.tpi-video-head{position:absolute;top:6px;bottom:6px;left:var(--vprog,0%);width:2px;background:var(--red);box-shadow:0 0 8px rgba(255,59,59,.75);transform:translateX(-1px)}
 .tpi-video.idle .tpi-video-head{animation:tpiVideoHead 3.6s linear infinite}
 @keyframes tpiVideoFill{0%{width:0%}90%,100%{width:100%}}
 @keyframes tpiVideoHead{0%{left:0%}90%,100%{left:100%}}
@@ -492,34 +516,32 @@ footer{background:var(--bg2);border-top:1px solid var(--border);padding:24px 16p
   .tpi-bar{animation:none}
 }
 
-.tp-search{margin-bottom:20px;position:relative}
+.tp-search{margin-bottom:32px;position:relative;max-width:360px}
 .tp-search-input{
-  width:100%;background:var(--bg3);border:1px solid var(--border2);
-  color:var(--text);padding:11px 14px 11px 38px;font-size:12px;
-  font-family:var(--mono);border-radius:6px;transition:border-color var(--transition)
+  width:100%;background:var(--bg3);border:1px solid var(--border);
+  color:var(--text);padding:10px 14px 10px 36px;font-size:13px;
+  font-family:var(--font);border-radius:var(--r-sm);transition:border-color var(--transition)
 }
-.tp-search-input:focus{border-color:var(--red)}
+.tp-search-input:focus{border-color:var(--border2)}
 .tp-search-icon{position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--dim);pointer-events:none}
-.tp-group{margin-bottom:24px}
-.tp-group-title{font-family:var(--mono);font-size:9px;letter-spacing:2px;color:var(--muted);text-transform:uppercase;margin-bottom:10px;padding-left:8px;border-left:2px solid var(--red)}
-.tp-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:10px}
+.tp-group{margin-bottom:40px}
+.tp-group-title{font-family:var(--mono);font-size:11px;letter-spacing:1.5px;color:var(--dim);text-transform:uppercase;margin-bottom:14px;padding-left:10px;border-left:1px solid var(--red)}
+
+/* Same hairline-divided rail pattern as the home tool directory */
+.tp-grid{display:flex;flex-direction:column;gap:1px;background:var(--border);border:1px solid var(--border);border-radius:var(--r-md);overflow:hidden}
 .tp-card{
-  background-color:var(--bg3);
-  background-image:
-    radial-gradient(circle 2px at 9px 9px,var(--border2) 94%,transparent 96%),
-    radial-gradient(circle 2px at calc(100% - 9px) 9px,var(--border2) 94%,transparent 96%),
-    radial-gradient(circle 2px at 9px calc(100% - 9px),var(--border2) 94%,transparent 96%),
-    radial-gradient(circle 2px at calc(100% - 9px) calc(100% - 9px),var(--border2) 94%,transparent 96%);
-  background-repeat:no-repeat;
-  border:1px solid var(--border);padding:14px 12px;cursor:pointer;transition:all var(--transition);position:relative;border-radius:var(--r-md);text-align:left
+  background:var(--bg3);border:none;padding:16px 20px;cursor:pointer;
+  transition:background var(--transition-fast);position:relative;
+  display:flex;align-items:center;gap:16px;text-align:left;border-radius:0;width:100%
 }
-.tp-card:hover{border-color:var(--border2);transform:translateY(-1px)}
-.tp-ico{width:22px;height:22px;display:flex;align-items:center;justify-content:center;color:var(--red);margin-bottom:6px;margin-top:2px}
-.tp-name{font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;margin-bottom:4px}
-.tp-desc{font-family:var(--mono);font-size:8px;color:var(--dim);line-height:1.5;margin-bottom:10px}
-.tp-foot{display:flex;justify-content:space-between;align-items:center}
-.tp-eng{font-family:var(--mono);font-size:7px;color:var(--dim);text-transform:uppercase;letter-spacing:1px}
-.tp-line{width:14px;height:2px;background:var(--red)}
+.tp-card:hover,.tp-card:focus-visible{background:var(--bg4)}
+.tp-ico{width:18px;height:18px;display:flex;align-items:center;justify-content:center;color:var(--muted);flex-shrink:0;transition:color var(--transition-fast)}
+.tp-card:hover .tp-ico,.tp-card:focus-visible .tp-ico{color:var(--red)}
+.tp-name{font-size:14px;font-weight:600;margin-bottom:2px}
+.tp-desc{font-size:12px;color:var(--muted);line-height:1.4}
+.tp-foot{display:flex;align-items:center;gap:12px;margin-left:auto;flex-shrink:0}
+.tp-eng{font-family:var(--mono);font-size:9px;color:var(--dim);text-transform:uppercase;letter-spacing:1px}
+.tp-line{display:none}
 
 /* ═══════════ EDITOR ═══════════ */
 .ed-cat{
@@ -531,7 +553,7 @@ footer{background:var(--bg2);border-top:1px solid var(--border);padding:24px 16p
   gap:3px;padding:10px 0;border-right:2px solid transparent;color:var(--dim);transition:all var(--transition)
 }
 .cat-btn:hover{color:var(--muted)}
-.cat-btn.active{color:var(--red);border-right-color:var(--red);background:rgba(229,56,59,.04)}
+.cat-btn.active{color:var(--red);border-right-color:var(--red);background:rgba(255,59,59,.04)}
 .cat-btn span{font-size:7px;font-weight:700;letter-spacing:.5px;text-transform:uppercase}
 
 .ed-tools{
@@ -544,7 +566,7 @@ footer{background:var(--bg2);border-top:1px solid var(--border);padding:24px 16p
   text-transform:uppercase;border-left:2px solid transparent;color:var(--muted);transition:all var(--transition);display:block
 }
 .tool-btn:hover{color:var(--text);background:rgba(255,255,255,.02)}
-.tool-btn.active{color:var(--red);border-left-color:var(--red);background:rgba(229,56,59,.06)}
+.tool-btn.active{color:var(--red);border-left-color:var(--red);background:rgba(255,59,59,.06)}
 .tool-btn.ai-soon{display:flex;align-items:center;justify-content:space-between;gap:6px;cursor:default;color:var(--dim)}
 .tool-btn.ai-soon:hover{color:var(--dim);background:none}
 .tool-btn-soon{font-family:var(--mono);font-size:7px;font-weight:700;letter-spacing:.5px;background:var(--amber);color:#000;padding:1px 5px;border-radius:8px;flex-shrink:0}
@@ -567,22 +589,32 @@ footer{background:var(--bg2);border-top:1px solid var(--border);padding:24px 16p
   flex:1;background:var(--bg);position:relative;display:flex;
   align-items:center;justify-content:center;overflow:hidden;min-height:0
 }
-.hud{position:absolute;width:15px;height:15px;pointer-events:none;z-index:2}
-.hud::before,.hud::after{content:'';position:absolute;background:var(--red)}
-.hud::before{width:100%;height:2px;top:0;left:0}
-.hud::after{width:2px;height:100%;top:0;left:0}
-.hud.tl{top:10px;left:10px}
-.hud.tr{top:10px;right:10px;transform:scaleX(-1)}
-.hud.bl{bottom:10px;left:10px;transform:scaleY(-1)}
-.hud.br{bottom:10px;right:10px;transform:scale(-1)}
+.ed-view::before{
+  content:'';position:absolute;inset:0;pointer-events:none;z-index:0;
+  background-image:linear-gradient(rgba(255,255,255,.025) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.025) 1px,transparent 1px);
+  background-size:48px 48px
+}
+:root[data-theme="light"] .ed-view::before{
+  background-image:linear-gradient(rgba(0,0,0,.025) 1px,transparent 1px),linear-gradient(90deg,rgba(0,0,0,.025) 1px,transparent 1px)
+}
+/* Restrained canvas-boundary corners — neutral, not red. Red is reserved for
+   an actual active selection (see the crop-specific overlays elsewhere). */
+.hud{position:absolute;width:9px;height:9px;pointer-events:none;z-index:2}
+.hud::before,.hud::after{content:'';position:absolute;background:var(--border2)}
+.hud::before{width:100%;height:1px;top:0;left:0}
+.hud::after{width:1px;height:100%;top:0;left:0}
+.hud.tl{top:14px;left:14px}
+.hud.tr{top:14px;right:14px;transform:scaleX(-1)}
+.hud.bl{bottom:14px;left:14px;transform:scaleY(-1)}
+.hud.br{bottom:14px;right:14px;transform:scale(-1)}
 
 .drop-zone{text-align:center;cursor:pointer;padding:20px;max-width:100%}
 .drop-icon{width:100px;height:74px;border:1px dashed var(--border2);display:flex;align-items:center;justify-content:center;margin:0 auto 14px;color:var(--red);transition:all var(--transition);border-radius:6px}
-.drop-icon:hover{border-color:var(--red);background:rgba(229,56,59,.04)}
+.drop-icon:hover{border-color:var(--red);background:rgba(255,59,59,.04)}
 .drop-zone h3{font-size:11px;font-weight:700;letter-spacing:3px;text-transform:uppercase;margin-bottom:5px}
 .drop-zone p{font-family:var(--mono);font-size:8px;color:var(--dim);margin-bottom:14px}
-.btn-browse{border:1px solid rgba(229,56,59,.4);color:var(--red);font-size:9px;font-weight:700;letter-spacing:2px;text-transform:uppercase;padding:7px 18px;transition:all var(--transition);border-radius:6px}
-.btn-browse:hover{background:rgba(229,56,59,.08);border-color:var(--red)}
+.btn-browse{border:1px solid rgba(255,59,59,.4);color:var(--red);font-size:9px;font-weight:700;letter-spacing:2px;text-transform:uppercase;padding:7px 18px;transition:all var(--transition);border-radius:6px}
+.btn-browse:hover{background:rgba(255,59,59,.08);border-color:var(--red)}
 
 /* Preview area */
 .preview-area{display:none;width:100%;height:100%;align-items:center;justify-content:center;flex-direction:column;gap:12px;padding:16px;overflow:auto}
@@ -615,7 +647,7 @@ footer{background:var(--bg2);border-top:1px solid var(--border);padding:24px 16p
 .audio-visualizer{position:absolute;inset:0;width:100%;height:100%;opacity:0;transition:opacity .3s;pointer-events:none}
 .audio-visualizer.show{opacity:1}
 .audio-wave-progress{
-  position:absolute;top:0;left:0;height:100%;background:rgba(229,56,59,.12);
+  position:absolute;top:0;left:0;height:100%;background:rgba(255,59,59,.12);
   pointer-events:none;transition:width .05s linear
 }
 .audio-wave-cursor{
@@ -675,7 +707,7 @@ footer{background:var(--bg2);border-top:1px solid var(--border);padding:24px 16p
 }
 .trim-timeline-wrap canvas{display:block;width:100%;height:100%;image-rendering:pixelated}
 .trim-region{
-  position:absolute;top:0;height:100%;background:rgba(229,56,59,.18);
+  position:absolute;top:0;height:100%;background:rgba(255,59,59,.18);
   border-left:2px solid var(--red);border-right:2px solid var(--red);pointer-events:none
 }
 .trim-handle{
@@ -702,7 +734,7 @@ footer{background:var(--bg2);border-top:1px solid var(--border);padding:24px 16p
   letter-spacing:1px;color:var(--muted)
 }
 .fmt-card:hover{border-color:var(--muted);color:var(--text)}
-.fmt-card.active{border-color:var(--red);color:var(--red);background:rgba(229,56,59,.08)}
+.fmt-card.active{border-color:var(--red);color:var(--red);background:rgba(255,59,59,.08)}
 .fmt-card-sub{font-family:var(--mono);font-size:7px;font-weight:400;letter-spacing:0;
   color:var(--dim);display:block;margin-top:1px}
 .fmt-info-line{font-family:var(--mono);font-size:8px;color:var(--muted);margin-bottom:8px;
@@ -726,7 +758,7 @@ footer{background:var(--bg2);border-top:1px solid var(--border);padding:24px 16p
 
 /* Crop region indicator (box-shadow spotlight) */
 .vid-crop-box{
-  position:absolute;border:2px solid rgba(229,56,59,.95);pointer-events:none;
+  position:absolute;border:2px solid rgba(255,59,59,.95);pointer-events:none;
   box-shadow:0 0 0 9999px rgba(0,0,0,.52)
 }
 /* Interactive video-crop: draggable box + resize handles, edge-anchored (never centered) */
@@ -755,7 +787,7 @@ footer{background:var(--bg2);border-top:1px solid var(--border);padding:24px 16p
 
 /* Speed badge */
 .vid-speed-badge{
-  position:absolute;bottom:8px;right:8px;background:rgba(229,56,59,.9);color:#fff;
+  position:absolute;bottom:8px;right:8px;background:rgba(255,59,59,.9);color:#fff;
   font-family:var(--mono);font-size:11px;font-weight:700;padding:3px 8px;border-radius:3px;
   letter-spacing:1px;pointer-events:none
 }
@@ -814,7 +846,7 @@ footer{background:var(--bg2);border-top:1px solid var(--border);padding:24px 16p
   border-radius:6px;cursor:pointer;transition:all var(--transition)
 }
 .lufs-btn:hover{border-color:var(--muted)}
-.lufs-btn.active{border-color:var(--red);background:rgba(229,56,59,.08)}
+.lufs-btn.active{border-color:var(--red);background:rgba(255,59,59,.08)}
 .lufs-btn-val{font-family:var(--mono);font-size:11px;font-weight:700;color:var(--text)}
 .lufs-btn.active .lufs-btn-val{color:var(--red)}
 .lufs-btn-label{font-size:8px;color:var(--muted);margin-top:1px}
@@ -836,7 +868,7 @@ footer{background:var(--bg2);border-top:1px solid var(--border);padding:24px 16p
 /* Processing overlay */
 .proc-overlay{position:absolute;inset:0;background:rgba(0,0,0,.85);display:none;flex-direction:column;align-items:center;justify-content:center;gap:12px;z-index:10;padding:16px}
 .proc-overlay.show{display:flex}
-.proc-spin{width:32px;height:32px;border:2px solid rgba(229,56,59,.2);border-top-color:var(--red);border-radius:50%;animation:spin .8s linear infinite}
+.proc-spin{width:32px;height:32px;border:2px solid rgba(255,59,59,.2);border-top-color:var(--red);border-radius:50%;animation:spin .8s linear infinite}
 @keyframes spin{to{transform:rotate(360deg)}}
 .proc-msg{font-size:11px;font-weight:600;text-align:center;color:#fff;line-height:1.5}
 .proc-bar-wrap{width:220px;max-width:80vw;height:2px;background:var(--border2)}
@@ -860,7 +892,7 @@ footer{background:var(--bg2);border-top:1px solid var(--border);padding:24px 16p
 }
 .ed-scrub-track{position:relative;flex:1;height:32px;border-radius:4px;overflow:hidden;background:var(--bg4);cursor:pointer}
 .ed-scrub-track canvas{display:block;width:100%;height:100%;image-rendering:pixelated}
-.ed-scrub-head{position:absolute;top:0;bottom:0;width:2px;background:var(--red);box-shadow:0 0 6px rgba(229,56,59,.7);left:0%;pointer-events:none}
+.ed-scrub-head{position:absolute;top:0;bottom:0;width:2px;background:var(--red);box-shadow:0 0 6px rgba(255,59,59,.7);left:0%;pointer-events:none}
 .ed-scrub-time{font-family:var(--mono);font-size:9px;color:var(--muted);flex-shrink:0;min-width:82px;text-align:right}
 
 /* Status bar */
@@ -976,7 +1008,7 @@ footer{background:var(--bg2);border-top:1px solid var(--border);padding:24px 16p
   .nav-links.show{display:flex}
   .nav-btn{padding:12px 20px;text-align:left}
   .nav-btn.active::after{display:none}
-  .nav-btn.active{background:rgba(229,56,59,.08);border-left:2px solid var(--red)}
+  .nav-btn.active{background:rgba(255,59,59,.08);border-left:2px solid var(--red)}
   .hamburger{display:flex}
   .status,.theme-toggle{display:none}
   .tool-grid{grid-template-columns:repeat(2,1fr)}
@@ -1024,17 +1056,17 @@ footer{background:var(--bg2);border-top:1px solid var(--border);padding:24px 16p
 .resize-preset-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:5px}
 .resize-preset-btn{padding:7px 4px;background:var(--bg3);border:1px solid var(--border);color:var(--muted);font-family:var(--mono);font-size:9px;border-radius:6px;transition:all var(--transition);cursor:pointer;text-align:center;letter-spacing:.5px}
 .resize-preset-btn:hover{color:var(--text);border-color:var(--border2)}
-.resize-preset-btn.active{color:var(--red);border-color:var(--red);background:rgba(229,56,59,.08)}
+.resize-preset-btn.active{color:var(--red);border-color:var(--red);background:rgba(255,59,59,.08)}
 
 .rot-btns{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:12px}
 .rot-btn{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;padding:10px 6px;background:var(--bg3);border:1px solid var(--border);color:var(--muted);border-radius:6px;transition:all var(--transition);font-family:var(--mono);font-size:8px;letter-spacing:1px;text-transform:uppercase;cursor:pointer}
 .rot-btn:hover{color:var(--text);border-color:var(--border2)}
-.rot-btn.active{color:var(--red);border-color:var(--red);background:rgba(229,56,59,.06)}
+.rot-btn.active{color:var(--red);border-color:var(--red);background:rgba(255,59,59,.06)}
 
 .fmt-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:5px;margin-top:4px}
 .fmt-btn{padding:8px 4px;background:var(--bg3);border:1px solid var(--border);color:var(--muted);font-family:var(--mono);font-size:9px;border-radius:6px;transition:all var(--transition);cursor:pointer;text-align:center;text-transform:uppercase;letter-spacing:.5px}
 .fmt-btn:hover{color:var(--text);border-color:var(--border2)}
-.fmt-btn.active{color:var(--red);border-color:var(--red);background:rgba(229,56,59,.08)}
+.fmt-btn.active{color:var(--red);border-color:var(--red);background:rgba(255,59,59,.08)}
 
 /* ─────── EFFECTS PANEL (consolidated) ─────── */
 .fx-row{display:flex;align-items:center;gap:8px;margin-bottom:6px;padding:6px 8px;background:var(--bg3);border:1px solid var(--border);border-radius:6px}
@@ -1068,7 +1100,7 @@ footer{background:var(--bg2);border-top:1px solid var(--border);padding:24px 16p
 .wm-mode-tab{flex:1;padding:8px;font-size:9px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;background:transparent;border:none;color:var(--muted);cursor:pointer;transition:all var(--transition)}
 .wm-mode-tab.active{background:var(--red);color:#fff}
 .wm-img-drop{border:1px dashed var(--border2);padding:16px;text-align:center;cursor:pointer;transition:all var(--transition);border-radius:6px;margin-bottom:10px}
-.wm-img-drop:hover{border-color:var(--red);background:rgba(229,56,59,.04)}
+.wm-img-drop:hover{border-color:var(--red);background:rgba(255,59,59,.04)}
 .wm-img-drop p{font-family:var(--mono);font-size:9px;color:var(--dim);margin-top:4px}
 .wm-preview-thumb{width:48px;height:48px;object-fit:contain;border:1px solid var(--border);border-radius:6px;margin:6px auto;display:block}
 
@@ -1129,7 +1161,7 @@ footer{background:var(--bg2);border-top:1px solid var(--border);padding:24px 16p
 }
 .compare-bar::before{
   content:'';position:absolute;inset:0;
-  background:linear-gradient(90deg,rgba(229,56,59,.04) 0%,transparent 60%);
+  background:linear-gradient(90deg,rgba(255,59,59,.04) 0%,transparent 60%);
   pointer-events:none
 }
 .compare-bar.show{display:flex}
@@ -1150,7 +1182,7 @@ footer{background:var(--bg2);border-top:1px solid var(--border);padding:24px 16p
   transition:all var(--transition);display:flex;align-items:center;gap:6px
 }
 .compare-bar-btn:hover{border-color:var(--muted);background:var(--bg4)}
-.compare-bar-btn.active{border-color:var(--red);background:rgba(229,56,59,.12);color:var(--red)}
+.compare-bar-btn.active{border-color:var(--red);background:rgba(255,59,59,.12);color:var(--red)}
 .compare-bar-hint{font-family:var(--mono);font-size:7.5px;color:var(--dim);flex:1;text-align:right}
 /* glowing red accent dot next to the bar when active */
 .compare-bar-dot{width:6px;height:6px;border-radius:50%;background:var(--red);flex-shrink:0;display:none;box-shadow:0 0 6px var(--red)}
@@ -1193,36 +1225,19 @@ footer{background:var(--bg2);border-top:1px solid var(--border);padding:24px 16p
 
 <!-- ══════════════════ HOME ══════════════════ -->
 <div id="page-home" class="page active">
-  <div class="home-bg" aria-hidden="true"></div>
-
   <section class="hero" aria-label="Hero" id="hero">
-    <div class="hero-spotlight" aria-hidden="true"></div>
-    <div class="hero-corners"><div class="hc tl"></div><div class="hc tr"></div><div class="hc bl"></div><div class="hc br"></div></div>
-    <div class="hero-dots left" id="hero-dots-left" aria-hidden="true"></div>
-    <div class="hero-dots right" id="hero-dots-right" aria-hidden="true"></div>
-    <div class="badges">
-      <div class="badge"><div class="badge-dot"></div>Free</div>
-      <div class="badge"><div class="badge-dot"></div>No Watermark</div>
-      <div class="badge"><div class="badge-dot"></div>No Signup</div>
-    </div>
+    <p class="hero-status">Free · No Watermark · No Signup</p>
     <h1>FREE CREATOR<br/><span>TOOLKIT</span></h1>
-    <p>Edit Video, Photo &amp; Audio instantly in your browser.<br/>No software. No limits. Just create.</p>
+    <p>Edit video, photo and audio directly in your browser.<br/>No software. No limits. Just create.</p>
     <div class="hero-btns">
-      <button class="btn-red" onclick="goPage('editor')" aria-label="Upload file and start editing">
-        <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M17 8l-5-5-5 5M12 3v12"/></svg>
-        Upload File
-      </button>
+      <button class="btn-red" onclick="goPage('editor')" aria-label="Upload file and start editing">Upload File →</button>
       <button class="btn-outline" onclick="goPage('video')" aria-label="Explore all tools">Explore Tools →</button>
     </div>
   </section>
 
-  <!-- Upload widget -->
-  <section style="padding:0 16px" aria-label="Quick upload">
-    <div class="upload-box">
-      <div class="ub-screw" style="top:6px;left:6px"></div>
-      <div class="ub-screw" style="top:6px;right:6px"></div>
-      <div class="ub-screw" style="bottom:6px;left:6px"></div>
-      <div class="ub-screw" style="bottom:6px;right:6px"></div>
+  <!-- Upload workspace -->
+  <section style="padding:0 20px" aria-label="Upload workspace">
+    <div class="upload-box tech-grid">
       <div class="ub-tabs" role="tablist">
         <button class="ub-tab active" data-tab="image" role="tab" aria-selected="true" onclick="setUWTab('image')">Image</button>
         <button class="ub-tab"        data-tab="audio" role="tab" aria-selected="false" onclick="setUWTab('audio')">Audio</button>
@@ -1234,12 +1249,13 @@ footer{background:var(--bg2);border-top:1px solid var(--border);padding:24px 16p
         ondragleave="this.classList.remove('drag')">
         <input type="file" id="ub-input" style="display:none" accept="image/*" onchange="onHomeFile(event)" aria-label="Upload file"/>
         <div class="ub-drop-icon" aria-hidden="true">
-          <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M17 8l-5-5-5 5M12 3v12"/></svg>
+          <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M17 8l-5-5-5 5M12 3v12"/></svg>
         </div>
-        <div class="ub-title">Drag &amp; Drop File Here</div>
-        <div class="ub-hint" id="ub-hint">JPG, PNG, WEBP · Max 50 MB</div>
+        <div class="ub-title">Drop your media here</div>
+        <div class="ub-sub">Drag &amp; drop or browse files</div>
+        <div class="ub-hint" id="ub-hint">JPG · PNG · WEBP · Max 50MB</div>
       </label>
-      <button class="ub-browse" onclick="document.getElementById('ub-input').click()" aria-label="Browse files">▤ Browse Files</button>
+      <button class="ub-browse" onclick="document.getElementById('ub-input').click()" aria-label="Browse files">Browse Files</button>
     </div>
   </section>
 
@@ -1276,7 +1292,7 @@ footer{background:var(--bg2);border-top:1px solid var(--border);padding:24px 16p
     <section class="sec" aria-label="AI tools coming soon">
       <div class="sec-head">
         <div class="sec-title">AI Tools</div>
-        <span class="sec-link" style="color:var(--amber)">Coming Soon</span>
+        <span class="sec-link" style="color:var(--dim)">Coming Soon</span>
       </div>
       <div class="ai-grid" id="home-ai"></div>
     </section>
@@ -1345,30 +1361,150 @@ footer{background:var(--bg2);border-top:1px solid var(--border);padding:24px 16p
       </div>
     </section>
 
+    <!-- Video feature — editorial split -->
+    <section class="sec feat" aria-label="Video tools showcase">
+      <div class="feat-visual tech-grid" aria-hidden="true">
+        <div class="feat-frame">
+          <div class="feat-frame-play">
+            <svg width="16" height="16" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+          </div>
+        </div>
+        <div class="feat-video-tl">
+          <span class="feat-video-tl-time">00:14</span>
+          <div class="feat-video-tl-track"><div class="feat-video-tl-fill"></div><div class="feat-video-tl-head"></div></div>
+          <span class="feat-video-tl-time">00:38</span>
+        </div>
+      </div>
+      <div class="feat-content">
+        <div class="feat-label">Video</div>
+        <h2 class="feat-statement">Cut without leaving your browser.</h2>
+        <p class="feat-desc">Trim, crop, resize, rotate and compress your footage directly in Nexus — no re-encode limits, nothing installed.</p>
+        <div class="feat-tools">
+          <span class="feat-tool-chip">Trim</span><span class="feat-tool-chip">Crop</span><span class="feat-tool-chip">Resize</span><span class="feat-tool-chip">Rotate</span><span class="feat-tool-chip">Compress</span>
+        </div>
+        <button class="feat-cta" onclick="goPage('video')" aria-label="Open video tools">Open Video Tools →</button>
+      </div>
+    </section>
+
+    <!-- Photo feature — reversed split -->
+    <section class="sec feat feat-reverse" aria-label="Photo tools showcase">
+      <div class="feat-visual tech-grid" aria-hidden="true" style="align-items:center;justify-content:center;display:flex">
+        <div class="feat-photo-frame">
+          <div class="feat-crop-h tl"></div><div class="feat-crop-h tr"></div>
+          <div class="feat-crop-h bl"></div><div class="feat-crop-h br"></div>
+          <div class="feat-photo-meta">2048 × 2560 · RGB</div>
+        </div>
+      </div>
+      <div class="feat-content">
+        <div class="feat-label">Photo</div>
+        <h2 class="feat-statement">Control every frame.</h2>
+        <p class="feat-desc">Crop, resize, rotate, compress and convert — pixel-accurate, with real-time preview before you export.</p>
+        <div class="feat-tools">
+          <span class="feat-tool-chip">Crop</span><span class="feat-tool-chip">Resize</span><span class="feat-tool-chip">Rotate</span><span class="feat-tool-chip">Compress</span><span class="feat-tool-chip">Convert</span>
+        </div>
+        <button class="feat-cta" onclick="goPage('photo')" aria-label="Open photo tools">Open Photo Tools →</button>
+      </div>
+    </section>
+
+    <!-- Audio feature — full-width waveform -->
+    <section class="sec" aria-label="Audio tools showcase">
+      <div class="audio-sec">
+        <div class="audio-sec-head">
+          <div>
+            <div class="feat-label">Audio</div>
+            <h2 class="feat-statement" style="margin-bottom:0">Hear every change.</h2>
+          </div>
+          <button class="feat-cta" onclick="goPage('audio')" aria-label="Open audio tools">Open Audio Tools →</button>
+        </div>
+        <div class="audio-wave-hero" id="audio-wave-hero" aria-hidden="true"></div>
+        <div class="feat-tools">
+          <span class="feat-tool-chip">Trim</span><span class="feat-tool-chip">Volume</span><span class="feat-tool-chip">Fade</span><span class="feat-tool-chip">Convert</span><span class="feat-tool-chip">Compress</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- Editor showcase -->
+    <section class="sec" aria-label="Editor showcase">
+      <div class="sec-head"><div class="sec-title">The Editor</div></div>
+      <div class="ed-showcase">
+        <div class="ed-showcase-chrome">
+          <div class="ed-showcase-rail" aria-hidden="true">
+            <div class="ed-showcase-rail-item on"></div>
+            <div class="ed-showcase-rail-item"></div>
+            <div class="ed-showcase-rail-item"></div>
+            <div class="ed-showcase-rail-item"></div>
+          </div>
+          <div class="ed-showcase-canvas tech-grid" aria-hidden="true">
+            <div class="ed-showcase-canvas-frame"></div>
+            <div class="ed-showcase-canvas-meta"><span>1080 × 1080</span><span>RGB</span></div>
+            <div class="ed-showcase-zoom"><span>−</span><span>100%</span><span>+</span></div>
+          </div>
+          <div class="ed-showcase-inspector" aria-hidden="true">
+            <div class="ed-showcase-inspector-title">Crop</div>
+            <div class="ed-showcase-inspector-sub">Tool Settings</div>
+            <div class="ed-showcase-row"><span class="ed-showcase-row-lbl">Aspect Ratio</span><div class="ed-showcase-row-bar"></div></div>
+            <div class="ed-showcase-row"><span class="ed-showcase-row-lbl">Width</span><div class="ed-showcase-row-bar"></div></div>
+            <div class="ed-showcase-row"><span class="ed-showcase-row-lbl">Height</span><div class="ed-showcase-row-bar"></div></div>
+          </div>
+        </div>
+        <div class="ed-showcase-content">
+          <h2 class="feat-statement" style="margin-bottom:14px">A real creative workstation.</h2>
+          <p class="feat-desc" style="margin-bottom:24px">Every tool runs in a full editor — category sidebar, live canvas, precise inspector. Nothing simulated, nothing waiting on a server.</p>
+          <button class="btn-red" onclick="goPage('editor')" aria-label="Launch editor">Launch Editor →</button>
+        </div>
+      </div>
+    </section>
+
     <!-- CTA -->
     <div class="cta-wrap">
-      <div class="cta-line" style="top:14px"></div>
       <div class="cta">
-        <p style="font-family:var(--mono);font-size:9px;letter-spacing:3px;color:var(--muted);text-transform:uppercase;padding-top:28px">Ready to Create?</p>
+        <p class="cta-eyebrow">Ready to create?</p>
         <h2>Launch the <span>Editor</span></h2>
-        <button class="btn-red" onclick="goPage('editor')" style="font-size:11px;padding:13px 36px" aria-label="Start editing">→ Start Editing Now →</button>
+        <button class="btn-red" onclick="goPage('editor')" aria-label="Start editing">Start Editing Now →</button>
       </div>
-      <div class="cta-line" style="bottom:14px"></div>
     </div>
   </div>
 
   <footer role="contentinfo">
     <div class="footer-inner">
-      <div class="footer-logo">
-        <div class="footer-logo-icon" aria-hidden="true">
-          <svg width="11" height="11" fill="white" viewBox="0 0 24 24"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+      <div class="footer-top">
+        <div>
+          <div class="footer-brand-name">NEXUS CREATOR</div>
+          <div class="footer-tagline">Free tools for creators.</div>
         </div>
-        Nexus Creator · © 2026
+        <div>
+          <div class="footer-col-title">Tools</div>
+          <div class="footer-col-links">
+            <a class="footer-link" href="#" onclick="event.preventDefault();goPage('video')">Video</a>
+            <a class="footer-link" href="#" onclick="event.preventDefault();goPage('photo')">Photo</a>
+            <a class="footer-link" href="#" onclick="event.preventDefault();goPage('audio')">Audio</a>
+            <a class="footer-link" href="#" onclick="event.preventDefault();setCat('ai');goPage('editor')">AI</a>
+          </div>
+        </div>
+        <div>
+          <div class="footer-col-title">Product</div>
+          <div class="footer-col-links">
+            <a class="footer-link" href="#" onclick="event.preventDefault();goPage('editor')">Editor</a>
+            <a class="footer-link" href="#" onclick="event.preventDefault();showAbout()">About</a>
+            <a class="footer-link" href="#" onclick="event.preventDefault()">Changelog</a>
+          </div>
+        </div>
+        <div>
+          <div class="footer-col-title">Legal</div>
+          <div class="footer-col-links">
+            <a class="footer-link" href="#" onclick="event.preventDefault()">Privacy</a>
+            <a class="footer-link" href="#" onclick="event.preventDefault()">Terms</a>
+          </div>
+        </div>
       </div>
-      <div class="footer-links">
-        <a class="footer-link" href="#" onclick="event.preventDefault();showAbout()">About</a>
-        <a class="footer-link" href="#" onclick="event.preventDefault()">Privacy</a>
-        <a class="footer-link" href="#" onclick="event.preventDefault()">Terms</a>
+      <div class="footer-bottom">
+        <div class="footer-logo">
+          <div class="footer-logo-icon" aria-hidden="true">
+            <svg width="11" height="11" fill="white" viewBox="0 0 24 24"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+          </div>
+          Nexus Creator
+        </div>
+        <span style="font-size:12px;color:var(--dim)">© 2026 Nexus Creator. All rights reserved.</span>
       </div>
     </div>
   </footer>
@@ -1512,8 +1648,8 @@ footer{background:var(--bg2);border-top:1px solid var(--border);padding:24px 16p
         <div class="drop-icon" aria-hidden="true">
           <svg width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M17 8l-5-5-5 5M12 3v12"/></svg>
         </div>
-        <h3>Drop File to Begin</h3>
-        <p>Video · Image · Audio supported</p>
+        <h3>No media loaded</h3>
+        <p>Drop a file here to begin · Video, Image, Audio</p>
         <button class="btn-browse" onclick="event.stopPropagation();document.getElementById('ed-file-input').click()" aria-label="Browse files">Browse Files</button>
         <input type="file" id="ed-file-input" style="display:none" accept="video/*,audio/*,image/*" onchange="onEdFile(event)" aria-label="Upload file"/>
       </div>
@@ -1834,40 +1970,14 @@ function toggleTheme() {
 // ════════════════════════════════════════════════════════════════════════════
 function toolCardHTML(t, onclick) {
   return `<button class="tcard" onclick="${onclick}" aria-label="${t.label}: ${t.desc}">
-    <div class="tcard-s tl"></div><div class="tcard-s tr"></div>
-    <div class="tcard-ico" aria-hidden="true">${iconSVG(t.icon, 18)}</div>
-    <div class="tcard-name">${t.label}</div>
-    <div class="tcard-desc">${t.desc}</div>
-    <div class="tcard-line"></div>
+    <div class="tcard-ico" aria-hidden="true">${iconSVG(t.icon, 17)}</div>
+    <div class="tcard-body">
+      <div class="tcard-name">${t.label}</div>
+      <div class="tcard-desc">${t.desc}</div>
+    </div>
+    <span class="tcard-dot" aria-hidden="true"></span>
+    <span class="tcard-arrow" aria-hidden="true">→</span>
   </button>`;
-}
-
-// Pointer-tracked 3D tilt for a card's icon — same math as the home category
-// showcase (initCatShowcase), reused for every individual feature card so all
-// 34 tools get the same interactive 3D icon, not just the 3 top-level categories.
-function initTiltCards(cardSel, icoSel) {
-  if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
-  document.querySelectorAll(cardSel).forEach(card => {
-    const icon = card.querySelector(icoSel);
-    if (!icon || icon._tiltBound) return;
-    icon._tiltBound = true;
-    const setVars = (rx, ry, tz, sc) => {
-      icon.style.setProperty('--rx', rx.toFixed(2) + 'deg');
-      icon.style.setProperty('--ry', ry.toFixed(2) + 'deg');
-      icon.style.setProperty('--tz', tz.toFixed(1) + 'px');
-      icon.style.setProperty('--tsc', sc.toFixed(3));
-    };
-    const reset = () => setVars(0, 0, 0, 1);
-    card.addEventListener('pointermove', e => {
-      if (e.pointerType === 'touch') return;
-      const r = card.getBoundingClientRect();
-      const px = (e.clientX - r.left) / r.width;
-      const py = (e.clientY - r.top)  / r.height;
-      setVars((0.5 - py) * 20, (px - 0.5) * 20, 14, 1.14);
-    });
-    card.addEventListener('pointerleave', reset);
-    card.addEventListener('blur', reset);
-  });
 }
 
 function renderHomeGrids() {
@@ -1879,16 +1989,10 @@ function renderHomeGrids() {
     <button class="ai-card" onclick="alert('${t.label} — Coming in Phase 2!\\n\\nThis will run entirely in your browser using Transformers.js — no server, no API keys.')" aria-label="${t.label} (coming soon)">
       <div class="ai-ico" aria-hidden="true">${iconSVG('ai', 14)}</div>
       <div class="ai-body">
-        <div class="ai-name">${t.label} <span class="ai-badge">SOON</span></div>
+        <div class="ai-name">${t.label} <span class="ai-badge">Coming Soon</span></div>
         <div class="ai-desc">${t.desc}</div>
       </div>
     </button>`).join('');
-  // Dot decorations
-  ['hero-dots-left','hero-dots-right'].forEach(id => {
-    $(id).innerHTML = Array(16).fill('<span></span>').join('');
-  });
-  initTiltCards('.tcard', '.tcard-ico');
-  initTiltCards('.ai-card', '.ai-ico');
 }
 
 function renderToolPage(cat) {
@@ -1906,17 +2010,19 @@ function renderToolPage(cat) {
       <div class="tp-grid">
         ${groups[g].map(t => `
           <button class="tp-card" onclick="launchTool('${t.id}')" data-name="${t.label.toLowerCase()}" data-desc="${t.desc.toLowerCase()}" aria-label="${t.label}: ${t.desc}">
-            <div class="tcard-s tl"></div><div class="tcard-s tr"></div>
             <div class="tp-ico" aria-hidden="true">${iconSVG(t.icon, 16)}</div>
-            <div class="tp-name">${t.label}</div>
-            <div class="tp-desc">${t.desc}</div>
-            <div class="tp-foot"><div class="tp-line"></div><span class="tp-eng">${t.eng}</span></div>
+            <div class="tcard-body">
+              <div class="tp-name">${t.label}</div>
+              <div class="tp-desc">${t.desc}</div>
+            </div>
+            <div class="tp-foot"><span class="tp-eng">${t.eng}</span></div>
+            <span class="tcard-dot" aria-hidden="true"></span>
+            <span class="tcard-arrow" aria-hidden="true">→</span>
           </button>`).join('')}
       </div>
     </div>`;
   });
   $('tp-' + cat).innerHTML = html;
-  initTiltCards('.tp-card', '.tp-ico');
   initCategoryBanner(cat);
 }
 
@@ -2334,7 +2440,7 @@ const PANELS = {
       <div style="display:flex;gap:12px;align-items:center">
         <div style="width:48px;height:27px;background:var(--bg4);border:1px solid var(--border2);border-radius:6px;display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-size:7px;color:var(--muted)">16:9</div>
         <div style="color:var(--muted);font-size:14px">→</div>
-        <div style="width:16px;height:28px;background:rgba(229,56,59,.1);border:1px solid var(--red);border-radius:6px;display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-size:6px;color:var(--red)">9:16</div>
+        <div style="width:16px;height:28px;background:rgba(255,59,59,.1);border:1px solid var(--red);border-radius:6px;display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-size:6px;color:var(--red)">9:16</div>
       </div>
       <div style="text-align:center;font-size:11px;font-weight:600">Convert to Vertical (1080×1920)</div>
       <div style="font-family:var(--mono);font-size:8px;color:var(--muted);text-align:center;line-height:1.6">
@@ -2914,7 +3020,7 @@ const PANELS = {
           border-radius:6px;display:flex;align-items:center;justify-content:center;
           font-family:var(--mono);font-size:8px;font-weight:700;color:var(--red)">ST</div>
         <div style="color:var(--muted);font-size:14px">→</div>
-        <div style="width:32px;height:32px;background:rgba(229,56,59,.1);border:1px solid var(--red);
+        <div style="width:32px;height:32px;background:rgba(255,59,59,.1);border:1px solid var(--red);
           border-radius:6px;display:flex;align-items:center;justify-content:center;
           font-family:var(--mono);font-size:8px;font-weight:700;color:var(--red)">M</div>
       </div>
@@ -3029,8 +3135,8 @@ function drawFadeCurve() {
 
   // Fill under the curve
   const isDark = document.documentElement.getAttribute('data-theme') !== 'light';
-  cx.fillStyle   = isDark ? 'rgba(229,56,59,.15)' : 'rgba(220,38,38,.10)';
-  cx.strokeStyle = isDark ? 'rgba(229,56,59,.8)'  : 'rgba(220,38,38,.7)';
+  cx.fillStyle   = isDark ? 'rgba(255,59,59,.15)' : 'rgba(224,40,31,.10)';
+  cx.strokeStyle = isDark ? 'rgba(255,59,59,.8)'  : 'rgba(224,40,31,.7)';
   cx.lineWidth = 1.5;
   cx.beginPath();
   cx.moveTo(0, H);
@@ -3202,13 +3308,13 @@ function initTrimTimeline() {
     ctx.clearRect(0, 0, W, H);
     // Video: draw a film-strip style gradient bar
     const grad = ctx.createLinearGradient(0, 0, W, 0);
-    grad.addColorStop(0,   'rgba(229,56,59,0.15)');
-    grad.addColorStop(0.5, 'rgba(229,56,59,0.35)');
-    grad.addColorStop(1,   'rgba(229,56,59,0.15)');
+    grad.addColorStop(0,   'rgba(255,59,59,0.15)');
+    grad.addColorStop(0.5, 'rgba(255,59,59,0.35)');
+    grad.addColorStop(1,   'rgba(255,59,59,0.15)');
     ctx.fillStyle = grad;
     ctx.fillRect(0, H * 0.25, W, H * 0.5);
     // Tick marks every ~40px to suggest a timeline
-    ctx.fillStyle = isDark ? 'rgba(229,56,59,0.25)' : 'rgba(220,38,38,0.2)';
+    ctx.fillStyle = isDark ? 'rgba(255,59,59,0.25)' : 'rgba(224,40,31,0.2)';
     for (let x = 0; x < W; x += 40) {
       ctx.fillRect(x, H * 0.1, 1, H * 0.8);
     }
@@ -3227,7 +3333,7 @@ function initTrimTimeline() {
         ctx.clearRect(0, 0, W, H);
         const step = Math.ceil(ch.length / W);
         const mid  = H / 2;
-        ctx.fillStyle = isDark ? 'rgba(229,56,59,0.55)' : 'rgba(220,38,38,0.45)';
+        ctx.fillStyle = isDark ? 'rgba(255,59,59,0.55)' : 'rgba(224,40,31,0.45)';
         for (let x = 0; x < W; x++) {
           let min = 1, max = -1;
           for (let j = 0; j < step; j++) {
@@ -3610,9 +3716,9 @@ function applyVideoPreview(id, s) {
       hint.className = 'vid-vertical-hint';
       hint.innerHTML = `
         <div style="text-align:center;color:#fff;font-family:var(--mono);font-size:9px;line-height:1.6">
-          <div style="border:2px solid rgba(229,56,59,.9);width:28px;height:50px;margin:0 auto 6px;
+          <div style="border:2px solid rgba(255,59,59,.9);width:28px;height:50px;margin:0 auto 6px;
                border-radius:3px;display:flex;align-items:center;justify-content:center;
-               font-size:8px;font-weight:700;color:rgba(229,56,59,.95)">9:16</div>
+               font-size:8px;font-weight:700;color:rgba(255,59,59,.95)">9:16</div>
           <div style="opacity:.9">Output: 1080 × 1920</div>
           <div style="opacity:.5;font-size:7px">Black bars if needed</div>
         </div>`;
@@ -4847,9 +4953,9 @@ function loadWMImage(e) {
 // FILE LOADING
 // ════════════════════════════════════════════════════════════════════════════
 const UW_HINTS = {
-  image: 'JPG, PNG, WEBP · Max 50 MB',
-  audio: 'MP3, WAV, AAC, FLAC · Max 200 MB',
-  video: 'MP4, MOV, WEBM, MKV · Max 500 MB',
+  image: 'JPG · PNG · WEBP · Max 50MB',
+  audio: 'MP3 · WAV · AAC · FLAC · Max 200MB',
+  video: 'MP4 · MOV · WEBM · MKV · Max 500MB',
 };
 
 function setUWTab(tab) {
@@ -5042,7 +5148,7 @@ function buildAudioPlayer(container, f) {
     const gap = 2;
     const barW = Math.max(1, (w / bars) - gap);
     const isDark = document.documentElement.getAttribute('data-theme') !== 'light';
-    vizCtx.fillStyle = isDark ? 'rgba(255,79,82,0.92)' : 'rgba(220,38,38,0.85)';
+    vizCtx.fillStyle = isDark ? 'rgba(255,79,82,0.92)' : 'rgba(224,40,31,0.85)';
     for (let i = 0; i < bars; i++) {
       const v = freqData[i] / 255;
       const barH = Math.max(2, v * h);
@@ -5124,8 +5230,8 @@ function buildAudioPlayer(container, f) {
     const step    = Math.ceil(samples.length / width);
     const mid     = height / 2;
     const isDark  = document.documentElement.getAttribute('data-theme') !== 'light';
-    const barClr  = isDark ? 'rgba(229,56,59,0.65)' : 'rgba(220,38,38,0.55)';
-    const bgClr   = isDark ? 'rgba(229,56,59,0.18)' : 'rgba(220,38,38,0.12)';
+    const barClr  = isDark ? 'rgba(255,59,59,0.65)' : 'rgba(224,40,31,0.55)';
+    const bgClr   = isDark ? 'rgba(255,59,59,0.18)' : 'rgba(224,40,31,0.12)';
 
     cx.clearRect(0, 0, width, height);
     for (let x = 0; x < width; x++) {
@@ -5173,7 +5279,7 @@ function buildAudioPlayer(container, f) {
         const H = apWave.clientHeight || 72;
         apCanvas.width = W; apCanvas.height = H;
         const cx = apCanvas.getContext('2d');
-        cx.strokeStyle = 'rgba(229,56,59,0.4)';
+        cx.strokeStyle = 'rgba(255,59,59,0.4)';
         cx.lineWidth = 1;
         cx.beginPath(); cx.moveTo(0, H/2); cx.lineTo(W, H/2); cx.stroke();
         ctx.close();
@@ -5916,7 +6022,7 @@ function buildCompareUI() {
   // Divider line + knob
   const divider = document.createElement('div');
   divider.id = 'compare-divider';
-  divider.style.cssText = 'position:absolute;top:0;bottom:0;left:50%;width:3px;background:var(--red);cursor:ew-resize;pointer-events:none;z-index:9;transform:translateX(-50%);box-shadow:0 0 10px rgba(229,56,59,.5);';
+  divider.style.cssText = 'position:absolute;top:0;bottom:0;left:50%;width:3px;background:var(--red);cursor:ew-resize;pointer-events:none;z-index:9;transform:translateX(-50%);box-shadow:0 0 10px rgba(255,59,59,.5);';
 
   const knob = document.createElement('div');
   knob.style.cssText = [
@@ -5938,7 +6044,7 @@ function buildCompareUI() {
       `font-family:var(--mono);font-size:8px;font-weight:700;letter-spacing:1.5px`,
       `padding:3px 8px;border-radius:6px;z-index:10;pointer-events:none`,
       isAfter
-        ? 'background:var(--red);color:#fff;box-shadow:0 1px 4px rgba(229,56,59,.4)'
+        ? 'background:var(--red);color:#fff;box-shadow:0 1px 4px rgba(255,59,59,.4)'
         : 'background:rgba(0,0,0,.7);color:rgba(255,255,255,.8);border:1px solid rgba(255,255,255,.15)'
     ].join(';');
     l.textContent = txt;
@@ -6106,23 +6212,6 @@ function initCatShowcase() {
   });
 }
 
-// Hero spotlight — one pointer-tracked glow, the hero's single authored motion
-// moment. Mirrors the .cat-card-glow radial-follow trick at section scale.
-function initHeroSpotlight() {
-  if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
-  const hero = $('hero');
-  if (!hero || hero._spotlightBound) return;
-  hero._spotlightBound = true;
-  hero.addEventListener('pointermove', e => {
-    if (e.pointerType === 'touch') return;
-    const r = hero.getBoundingClientRect();
-    hero.style.setProperty('--hx', ((e.clientX - r.left) / r.width  * 100).toFixed(1) + '%');
-    hero.style.setProperty('--hy', ((e.clientY - r.top)  / r.height * 100).toFixed(1) + '%');
-    hero.classList.add('spotlit');
-  });
-  hero.addEventListener('pointerleave', () => hero.classList.remove('spotlit'));
-}
-
 // ── PER-CATEGORY INTERACTIVE BANNERS ──────────────────────────────────────────
 // One signature hover interaction per tool-list page (Photo/Video/Audio), each
 // echoing what that category's tools actually do. Idle = a slow ambient loop
@@ -6216,9 +6305,9 @@ document.addEventListener('DOMContentLoaded', () => {
   renderToolPage('photo');
   renderToolPage('audio');
   renderToolList();
-  initHeroSpotlight();
   initQADial();
   initQAFaders();
+  initAudioWaveHero();
   initSystemStatus();
 
   if (typeof SharedArrayBuffer === 'undefined') {
@@ -6388,6 +6477,22 @@ function qaFaderInput(input, valId) {
 
 function initQAFaders() {
   document.querySelectorAll('.qa-fader-input').forEach(paintQAFader);
+}
+
+// Home page audio-section hero waveform — decorative, static heights with a
+// subtle idle breathing animation (CSS). A middle span is marked "hot" (red)
+// to suggest a selection, matching the rest of the app's sparse accent use.
+function initAudioWaveHero() {
+  const el = $('audio-wave-hero');
+  if (!el || el._bound) return;
+  el._bound = true;
+  const N = 72;
+  el.innerHTML = Array.from({ length: N }, (_, i) => {
+    const h = 8 + Math.round(Math.pow(Math.sin(i * 0.35), 2) * 66 + Math.abs(Math.sin(i * 1.7)) * 16);
+    const hot = i > N * 0.32 && i < N * 0.58;
+    const delay = (-(i * 0.045)).toFixed(2);
+    return `<div class="audio-wave-hero-bar${hot ? ' hot' : ''}" style="height:${h}px;animation-delay:${delay}s"></div>`;
+  }).join('');
 }
 
 // Rotary "Preview" dial — pointer-drag (vertical, like a hardware synth knob)

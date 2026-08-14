@@ -17,19 +17,22 @@ professional NLE replacement.
 
 ## Surfaces
 
-- **Home** (`#page-home`) — Persuade mode. Gets someone from "what is this"
-  to "editing my file" in one screen: hero, upload widget, tool grids per
-  category, a Quick Adjust panel that jumps straight into the editor with
-  values pre-set, an AI tools teaser, a closing CTA.
+- **Home** (`#page-home`) — Persuade mode. A single long page, each section a
+  different composition (not a repeated card grid): hero → upload workspace
+  → tool directory (Image/Audio/Video/AI, each a hairline-divided rail list)
+  → Quick Adjust interactive demo → Video editorial split → Photo editorial
+  split (reversed) → Audio full-width waveform → Editor showcase → final CTA
+  → footer.
 - **Video / Photo / Audio** (`#page-video/photo/audio`) — Operate mode. Full
-  tool catalog per category, searchable, each with a signature hover
-  interaction (compare strip / scrub filmstrip / frequency bars) that echoes
-  what that category's tools actually do.
+  tool catalog per category as a rail list (icon, name, description, arrow —
+  not cards), searchable, each with a signature hover interaction (compare
+  strip / scrub filmstrip / frequency bars) that echoes what that category's
+  tools actually do.
 - **Editor** (`#page-editor`) — Operate mode, the real workspace. Category
   rail (Video/Photo/Audio/AI Tools) → tool list → preview (drop zone / live
-  preview / persistent transport bar for video / processing overlay) →
-  settings panel → System Status. This is where every one of the ~34 real
-  tools actually runs.
+  preview / persistent transport bar for video / processing overlay, subtle
+  technical grid) → settings panel → System Status. This is where every one
+  of the ~34 real tools actually runs.
 
 ## Constraints that shape the design
 
@@ -45,17 +48,32 @@ professional NLE replacement.
 ## Open items (not addressed by this pass)
 
 - AI tools (remove-bg, enhance, auto-subtitle, noise-removal) are still
-  placeholders — "Coming Soon" everywhere they appear (home page cards, and
-  now the editor's AI Tools rail entry too), matching the mockups faithfully.
-- The mockups' persistent timeline shows 3 always-visible tracks (V1 video /
-  A1 audio / T1 text). Built: a real, single-track persistent transport bar
-  for video (filmstrip, play/pause, click-to-seek — see DESIGN.md's Timeline
-  section). Not built: a genuine multi-track timeline (simultaneous video +
-  audio + text tracks editable together) — the app's data model is one tool
-  acting on one file, not a multi-track project, so that's a product decision
-  (does Nexus Creator become a multi-track NLE?), not a visual one. Flag to
-  the user before attempting it.
-- System Status shows Engine/Memory/Threads instead of the mockup's literal
-  CPU/GPU/RAM/VRAM, since browsers can't read the latter. If the user wants
-  it to say CPU/GPU/RAM/VRAM anyway (accepting those are estimates/simulated,
-  clearly labeled as such), that's a product call — ask first.
+  placeholders — "Coming Soon" everywhere they appear (home page directory,
+  and the editor's AI Tools rail entry).
+- **Individual tool subpages were not built.** The 2026-08-14 ground-up
+  redesign brief asks for every one of ~34 tools to have its own dedicated
+  page (breadcrumb, H1, workspace-first, formats, workflow, features, FAQ,
+  related tools). Two real blockers: no server means no literal URL routing
+  (`/video/trim`) without a `pushState`-faked approach that breaks on direct
+  reload; and genuine non-generic FAQ/features copy for 34 tools is a
+  content-writing project, not something to template-generate without it
+  reading as filler. See DESIGN.md's "Deliberately NOT built" section for the
+  concrete next-step options. This is the largest remaining gap versus the
+  brief.
+- No genuine multi-track timeline (simultaneous video + audio + text tracks
+  edited together) — the app's data model is one tool acting on one file. A
+  real single-track video transport bar exists (filmstrip, play/pause, seek).
+  Building an actual multi-track editor is a product decision (does Nexus
+  Creator become a multi-track NLE?), not a visual one — flag to the user
+  before attempting it.
+- System Status shows Engine/Memory/Threads instead of literal CPU/GPU/RAM/
+  VRAM, since browsers can't read the latter. If the user wants it to say
+  CPU/GPU/RAM/VRAM anyway (accepting those are estimates, clearly labeled),
+  that's a product call — ask first.
+- No real zoom/pan on the editor canvas — a "ZOOM −100%+" control appears
+  only in the home page's illustrative Editor Showcase section, not in the
+  real editor, since there's no zoom functionality to back it.
+- Responsive was verified at 390px (mobile) and 1440px (desktop) plus a full
+  home-page scroll; tablet width (768-1024px) and the Photo/Audio category
+  pages specifically were not independently screenshotted (they share the
+  same template as Video, which was verified).
