@@ -420,6 +420,27 @@ Resize/Crop canvas frame — that already draws its own high-contrast red
 border on purpose (red is reserved for an active selection). Verified in
 both themes via screenshot.
 
+Follow-up: widened 2px → 5px per request, then swapped the flat translucent
+overlay for an actual gradient. `--preview-border` (the rgba overlay) is
+gone, replaced by `--preview-border-gradient` — a single token defined once
+in the base `:root{}` (not per-theme) as `linear-gradient(135deg,
+var(--red2), var(--red) 45%, var(--red-dark))`. Since it references the
+existing red tokens instead of hardcoding hex, it's already theme-correct
+without a light/dark split. Applied via `border:5px solid
+transparent;border-image:var(--preview-border-gradient) 1` on both the
+photo `<img>` and the video preview — `border-image` was the only way to
+get a CSS gradient onto a border on a *replaced element* (`<img>`/`<video>`)
+without wrapping it in an extra div. One accepted tradeoff: `border-image`
+doesn't respect `border-radius`, so corners are technically square under
+the gradient rather than following the existing 6px rounding — invisible in
+practice at this border width, confirmed by pixel-cropping both corners of
+a screenshot (lighter red2 top-left fading to dark red-dark bottom-right,
+matching the 135deg direction, no visible corner artifact). Reuses the same
+two template strings as the earlier fix, so it's automatically consistent
+across every photo/video tool without per-tool styling. The Resize/Crop
+canvas frame remains flat red on purpose (unrelated selection-UI element,
+not this "preview border").
+
 ## What NOT to do here
 
 - Don't hardcode a color — reach for `var(--…)`, including in inline
