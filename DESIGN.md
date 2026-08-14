@@ -172,11 +172,57 @@ filmstrip + playhead + track badge render correctly), mobile-width home page
 correctly, feature sections stack), light theme (confirmed token inversion
 holds across hero/upload/tool-rail/badges).
 
-**Not verified**: category pages other than Video (Photo/Audio use the same
-template/function, so they're very likely fine, but weren't independently
-screenshotted); the editor's crop/trim tool panels specifically at the new
-type scale; tablet breakpoint (768-1024px) specifically — only mobile (390px)
-and desktop (1440px) were checked.
+**Verified in a follow-up pass** (closing the gaps flagged above): tablet
+width (390/768/820px, editor + home), Photo and Audio category pages
+(confirmed same clean rail-list/search/banner layout as Video). Found and
+fixed a real bug that predated this redesign and carried forward unnoticed —
+see "Responsive fixes" below. Also found, and ruled out as a false positive,
+an apparent "blank editorial visual" at both tablet and desktop width: a
+clip-region `Page.captureScreenshot` call was silently returning black for
+that specific element regardless of viewport size, while a plain
+scroll-into-view + full-viewport screenshot showed it rendering correctly
+(play icon, scrub bar, technical grid, all present). **Lesson, stacked on
+the one above: if a screenshot shows something suspicious that contradicts
+plausible computed-style output (real dimensions, real colors, opacity:1,
+visibility:visible), cross-check with a second, differently-constructed
+screenshot before reporting it as a bug** — the capture method itself can be
+wrong, not just the page.
+
+**Still not independently verified**: the editor's crop/trim tool panels
+specifically at the new type scale.
+
+## Responsive fixes (found in a follow-up pass, predate this redesign)
+
+Two real bugs in the nav/editor responsive CSS — present before this
+redesign, carried forward unchanged by it since it touched tokens/typography/
+decoration, not the responsive rules, and confirmed via
+`Emulation.setDeviceMetricsOverride` (not a bare `--window-size` flag, which
+gives false results — see the process note at the top of this file):
+
+- **Editor was structurally broken at ≤900px width, not just cramped.**
+  `.ed-toolbar` (the mobile "Tools / No Tool / Settings" bar) is a direct
+  child of `#page-editor`, which is `flex-direction:row` at every width by
+  default. Without an override, the toolbar was laid out as a same-row flex
+  item sized to its own content (~270px) instead of a full-width bar stacked
+  above the content — squeezing the preview/drop-zone into a ~100-120px
+  sliver jammed against the right edge. Fixed with
+  `#page-editor.active{flex-direction:column}` inside the existing
+  `@media(max-width:900px)` block; `.ed-cat`/`.ed-tools`/`.ed-right` are
+  already `display:none`/`position:fixed` at that width so they don't
+  participate in the flow either way — only `.ed-toolbar` and `.ed-main` do,
+  and column stacking is what the toolbar always needed.
+- **Nav and editor sidebar collapse used two different breakpoints**
+  (700px vs 900px), so in the 701-899px gap the full desktop nav (all links,
+  status, theme toggle) rendered at the same time as the editor's mobile
+  toolbar and floating action buttons — two visible "Settings" affordances,
+  cramped nav wrapping. Moved the nav's collapse
+  (`.nav-links`/`.hamburger`/`.status`/`.theme-toggle`) into the same
+  `@media(max-width:900px)` block the editor already used; the grid
+  column-count tiers (`.tool-grid`, `.tp-grid`) are an independent concern
+  and stayed on their own 900/700px cascade.
+
+Verified at 320/390/768/820px (mobile toolbar drawer open + closed) and
+1440px (confirmed the fix didn't touch desktop).
 
 ## What NOT to do here
 

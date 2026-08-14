@@ -77,7 +77,8 @@ professional NLE replacement.
 - No real zoom/pan on the editor canvas — a "ZOOM −100%+" control appears
   only in the home page's illustrative Editor Showcase section, not in the
   real editor, since there's no zoom functionality to back it.
-- Responsive was verified at 390px (mobile) and 1440px (desktop) plus a full
-  home-page scroll; tablet width (768-1024px) and the Photo/Audio category
-  pages specifically were not independently screenshotted (they share the
-  same template as Video, which was verified).
+- Responsive is now verified at 320/390/768/820px and 1440px, home + editor +
+  Photo/Audio/Video category pages, both drawer states. Found and fixed a
+  real editor layout bug at ≤900px that predated this redesign (see
+  DESIGN.md's "Responsive fixes"). Still not independently verified: the
+  editor's crop/trim tool panels specifically at the new type scale.

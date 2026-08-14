@@ -1040,14 +1040,33 @@ footer{background:var(--bg2);border-top:1px solid var(--border);padding:48px 20p
 .modal-btns{display:flex;gap:8px;justify-content:flex-end}
 
 /* ═══════════ RESPONSIVE ═══════════ */
+/* Nav collapses to hamburger at the SAME 900px threshold the editor's
+   sidebars collapse at (below), and #page-editor.active switches to a
+   column layout at that width too. Both fix real, verified bugs — not
+   preference:
+   1. #page-editor.active is flex-direction:row at every width by default
+      (see the base rule near the top of the file). .ed-toolbar (the mobile
+      "Tools / No Tool / Settings" bar) is a direct child of #page-editor,
+      so without this override it was laid out as a same-row flex item
+      sized to its own content (~270px) instead of a full-width bar stacked
+      above the content — squeezing the actual preview/drop-zone into a
+      ~100px sliver jammed against the right edge. .ed-cat/.ed-tools/
+      .ed-right are already display:none/position:fixed at this width so
+      they don't participate in the flow either way.
+   2. Nav and editor sidebar collapse used to sit at two different
+      breakpoints (700px vs 900px) — in the 701-899px gap, the full desktop
+      nav (all links, status, theme toggle) rendered at the same time as
+      the editor's mobile toolbar and floating action buttons, producing
+      two visible "Settings" affordances and a cramped, wrapping nav.
+   Verified via Chrome DevTools Protocol with Emulation.setDeviceMetricsOverride
+   (mobile:true) at 320/390/768/820px plus 1440px desktop (confirmed
+   unaffected) — a bare --window-size headless flag does NOT reliably
+   reproduce mobile @media behavior and will misreport bugs that aren't
+   there (or hide ones that are). */
 @media(max-width:900px){
   .tool-grid{grid-template-columns:repeat(3,1fr)}
   .ai-grid{grid-template-columns:repeat(2,1fr)}
   .tp-grid{grid-template-columns:repeat(3,1fr)}
-  .qa-controls{grid-template-columns:repeat(2,1fr);gap:14px}
-  .qa-btn{grid-column:span 2;margin-top:6px}
-}
-@media(max-width:700px){
   .nav-links{display:none;position:fixed;top:var(--nav-h);left:0;right:0;background:var(--bg2);border-bottom:1px solid var(--border);flex-direction:column;padding:8px 0;z-index:99}
   .nav-links.show{display:flex}
   .nav-btn{padding:12px 20px;text-align:left}
@@ -1055,12 +1074,15 @@ footer{background:var(--bg2);border-top:1px solid var(--border);padding:48px 20p
   .nav-btn.active{background:rgba(255,59,59,.08);border-left:2px solid var(--red)}
   .hamburger{display:flex}
   .status,.theme-toggle{display:none}
+}
+@media(max-width:700px){
   .tool-grid{grid-template-columns:repeat(2,1fr)}
   .tp-grid{grid-template-columns:repeat(2,1fr)}
   .footer-inner{flex-direction:column;text-align:center}
 }
 @media(max-width:900px){
   /* Editor: collapse sidebars into slide-out drawers at tablet/phone width */
+  #page-editor.active{flex-direction:column}
   .ed-cat{display:none !important;width:0 !important;flex:0 0 0 !important}
   .ed-tools{
     position:fixed;left:-260px;top:var(--nav-h);bottom:0;width:240px;z-index:95;
@@ -1074,7 +1096,8 @@ footer{background:var(--bg2);border-top:1px solid var(--border);padding:48px 20p
     background:var(--bg2);border-left:1px solid var(--border)
   }
   .ed-right.show{right:0}
-  .ed-toolbar{display:flex}
+  .ed-toolbar{display:flex;width:100%}
+  .ed-main{width:100%;min-width:0}
   .mobile-fab{display:flex}
 }
 @media(max-width:480px){
