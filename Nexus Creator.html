@@ -820,12 +820,25 @@ footer{background:var(--bg2);border-top:1px solid var(--border);padding:48px 20p
   padding:5px 8px;background:var(--bg4);border-left:2px solid var(--border2);border-radius:1px}
 
 /* ═══════════ VIDEO PREVIEW WRAP + LIVE-PREVIEW OVERLAY ═══════════ */
-.vid-preview-wrap{position:relative;display:inline-flex;max-width:90%;max-height:78vh}
+/* Border/shadow live on the WRAP, not the <video>/<img> itself — CSS
+   filter() rasterizes an element's entire rendered box (border included),
+   so a filter applied directly to the media element would recolor the
+   border too as Effects sliders move. Keeping them on a separate,
+   never-filtered parent keeps the border a constant red regardless of
+   brightness/contrast/saturation/hue-rotate applied to the content. */
+.vid-preview-wrap,.img-preview-wrap{
+  position:relative;display:inline-flex;max-width:90%;max-height:78vh;
+  border:5px solid transparent;border-image:var(--preview-border-gradient) 1;border-radius:6px;
+  box-shadow:0 8px 28px rgba(0,0,0,.35);
+}
 .vid-preview-wrap video{
   max-width:100%;max-height:78vh;width:auto;height:auto;display:block;
-  border:5px solid transparent;border-image:var(--preview-border-gradient) 1;object-fit:contain;background:#000;border-radius:6px;
-  box-shadow:0 8px 28px rgba(0,0,0,.35);
+  object-fit:contain;background:#000;border-radius:6px;
   transition:filter .1s,transform .1s
+}
+.img-preview-wrap img{
+  max-width:100%;max-height:78vh;width:auto;height:auto;display:block;
+  object-fit:contain;background:transparent;border-radius:6px;
 }
 .vid-overlay{position:absolute;inset:0;pointer-events:none;z-index:3;overflow:hidden;border-radius:6px}
 
@@ -4387,8 +4400,13 @@ function initResizeFrameCanvas() {
   if (S.settings.cropScale    === undefined) S.settings.cropScale    = 1;
   if (S.settings.cropRotation === undefined) S.settings.cropRotation = 0;
 
-  // Hide the underlying preview image — canvas handles all rendering
+  // Hide the underlying preview image AND its bordered wrapper — canvas
+  // handles all rendering, including its own gradient frame (see redraw()
+  // below), so the wrapper's border would otherwise sit stale/misaligned
+  // behind it whenever the target aspect ratio differs from the source.
   img.style.visibility = 'hidden';
+  const wrapEl = img.closest('.img-preview-wrap');
+  if (wrapEl) wrapEl.style.visibility = 'hidden';
 
   // Create or reuse the overlay canvas — sized to exactly match the frame,
   // no larger. Absolutely positioned + centered manually each redraw (the
@@ -4472,12 +4490,19 @@ function initResizeFrameCanvas() {
     ctx.drawImage(img, drawX, drawY, renderW, renderH);
     ctx.restore();
 
-    // 3 — frame border + corner L-marks
-    const cs = 14, lw = 2.5;
+    // 3 — frame border + corner L-marks. Same red2→red→red-dark diagonal as
+    // --preview-border-gradient (every other tool's border) — canvas can't
+    // read a CSS var, so the stops are the dark-theme hex values directly,
+    // matching how this frame's color has always been theme-independent.
+    const cs = 14, lw = 2.5, bw = 5;
+    const frameGrad = ctx.createLinearGradient(0, 0, fW, fH);
+    frameGrad.addColorStop(0,    '#ff5252');
+    frameGrad.addColorStop(0.45, '#ff3b3b');
+    frameGrad.addColorStop(1,    '#b92727');
     ctx.save();
-    ctx.strokeStyle = '#e5383b';
-    ctx.lineWidth = 1;
-    ctx.strokeRect(0.5, 0.5, fW - 1, fH - 1);
+    ctx.strokeStyle = frameGrad;
+    ctx.lineWidth = bw;
+    ctx.strokeRect(bw / 2, bw / 2, fW - bw, fH - bw);
     ctx.lineWidth = lw; ctx.lineCap = 'square';
     ctx.beginPath();
     ctx.moveTo(0,    cs);   ctx.lineTo(0,    0);    ctx.lineTo(cs,    0);
@@ -4564,7 +4589,8 @@ function initResizeFrameCanvas() {
     oc.removeEventListener('mousemove', onHover);
     document.removeEventListener('mousemove', onMove);
     document.removeEventListener('mouseup',   onUp);
-    img.style.visibility = '';   // restore image visibility
+    img.style.visibility = '';   // restore image + border wrapper visibility
+    if (wrapEl) wrapEl.style.visibility = '';
     window._resizeFrameRedraw = null;
   };
 }
@@ -5185,6 +5211,7 @@ function setCRTab(tab, btn) {
     if (window._resizeDragCleanup) { window._resizeDragCleanup(); window._resizeDragCleanup = null; }
     const rfc = $('resize-frame-canvas'); if (rfc) rfc.remove();
     if (img) { img.style.visibility = ''; img.style.aspectRatio = ''; img.style.objectFit = 'contain'; img.style.objectPosition = ''; img.style.width = ''; img.style.height = ''; img.style.background = ''; img.style.cursor = ''; img.style.transform = ''; }
+    const wrapEl0 = img?.closest('.img-preview-wrap'); if (wrapEl0) wrapEl0.style.visibility = '';
     const ov = $('crop-overlay-canvas'); if (ov) ov.remove();
     if (S.file?.type === 'image') requestAnimationFrame(() => requestAnimationFrame(initCropOverlay));
   } else {
@@ -5626,7 +5653,7 @@ function renderPreview() {
   } else {
     hideEdScrubber();
     // Create image element properly to ensure it renders
-    area.innerHTML = `<img id="preview-img" src="${f.url}" alt="Preview of ${f.name}" style="max-width:90%;max-height:78vh;width:auto;height:auto;display:block;border:5px solid transparent;border-image:var(--preview-border-gradient) 1;object-fit:contain;border-radius:6px;background:transparent;box-shadow:0 8px 28px rgba(0,0,0,.35);"/><div class="preview-meta">${meta}</div>`;
+    area.innerHTML = `<div class="img-preview-wrap" id="img-preview-wrap"><img id="preview-img" src="${f.url}" alt="Preview of ${f.name}"/></div><div class="preview-meta">${meta}</div>`;
     const imgEl = area.querySelector('#preview-img');
     if (imgEl) {
       imgEl.onload = () => {

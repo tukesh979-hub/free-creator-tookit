@@ -437,9 +437,55 @@ practice at this border width, confirmed by pixel-cropping both corners of
 a screenshot (lighter red2 top-left fading to dark red-dark bottom-right,
 matching the 135deg direction, no visible corner artifact). Reuses the same
 two template strings as the earlier fix, so it's automatically consistent
-across every photo/video tool without per-tool styling. The Resize/Crop
-canvas frame remains flat red on purpose (unrelated selection-UI element,
-not this "preview border").
+across every photo/video tool without per-tool styling.
+
+**Follow-up: the border was on the wrong element.** Two real bugs reported
+together: (1) Effects sliders (brightness/contrast/saturation/hue) visibly
+recolored the border as they moved, and (2) the border vanished entirely on
+the Resize/Crop tab. Same root cause for both: `border-image` lived directly
+on `#preview-img`/`#preview-vid`, but so does every live-preview effect —
+`applyLivePreview()` sets `img.style.filter = 'brightness(...) ...'` on that
+exact element, and CSS `filter` rasterizes an element's *entire* rendered
+box as one unit, border included, so the gradient was getting brightness/
+contrast/hue-rotated right along with the photo. Separately,
+`initResizeFrameCanvas()` sets `img.style.visibility = 'hidden'` to let the
+canvas take over rendering — since the border lived on that same now-hidden
+element, it disappeared with it, leaving only the canvas frame's flat
+`#e5383b` 1px stroke.
+
+Fixed by moving the border+shadow off the media element entirely, onto a
+non-filtered parent: added `.img-preview-wrap` (mirroring the `.vid-preview-
+wrap` pattern video already had) and moved `border-image`/`box-shadow` from
+`.vid-preview-wrap video` up to `.vid-preview-wrap` itself. `filter` is only
+ever set on the inner `<img>`/`<video>`, so it now has no way to touch the
+border — confirmed by cranking brightness/contrast/saturation/hue-rotate to
+extreme values via CDP and screenshotting: the image content shifted
+dramatically, the border didn't move at all.
+
+For Resize/Crop: hiding just the inner `<img>` now leaves the wrapper (and
+its border) visible behind the canvas, which would show a stale natural-
+aspect ring misaligned with the canvas's own target-aspect frame — so
+`initResizeFrameCanvas()`/its cleanup/`setCRTab()` now toggle
+`img.closest('.img-preview-wrap')`'s visibility alongside the image's, and
+the canvas's own frame stroke (`redraw()`, "frame border + corner L-marks")
+was upgraded from flat `#e5383b` to a `ctx.createLinearGradient(0,0,fW,fH)`
+using the same red2→red→red-dark stops (hardcoded, since canvas can't read
+`var()` — this frame was already theme-independent before) at 5px instead
+of 1px. Net effect: there's always a red-gradient border on-screen no
+matter which tool is active, it just changes mechanism (CSS `border-image`
+for the wrapper, canvas stroke for Resize/Crop) — never a flat color, never
+absent. Verified corner colors by pixel-cropping the canvas frame the same
+way as the CSS version (light red2 top-left → dark red-dark bottom-right),
+and confirmed switching Resize→Crop→Resize doesn't leave the wrapper stuck
+hidden.
+
+One side note while auditing this: `drawWatermarkPreview()` positions its
+canvas via `img.parentNode` and `img.offsetLeft/Top/Width/Height` — still
+correct with the new wrapper in between, since it dynamically reads
+whatever `img.parentNode` currently is rather than assuming it's
+`#ed-preview` directly, and `offsetWidth/Height` on the unbordered `<img>`
+now measures pure content size instead of content+the-old-inline-border, if
+anything slightly more accurate than before.
 
 ## What NOT to do here
 
