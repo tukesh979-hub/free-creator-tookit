@@ -170,27 +170,6 @@ nav{
 
 /* Tool rail — a hairline-divided list of compact rows, not a grid of
    identical cards. Divider is a 1px background peeking through a 1px gap. */
-.tool-grid{display:flex;flex-direction:column;gap:1px;background:var(--border);border:1px solid var(--border);border-radius:var(--r-md);overflow:hidden}
-.tcard{
-  background:var(--bg3);border:none;padding:15px 18px;cursor:pointer;
-  transition:background var(--transition-fast);position:relative;
-  display:flex;align-items:center;gap:16px;text-align:left;border-radius:0
-}
-.tcard:hover,.tcard:focus-visible{background:var(--bg4)}
-.tcard-ico{width:18px;height:18px;display:flex;align-items:center;justify-content:center;color:var(--muted);flex-shrink:0;transition:color var(--transition-fast)}
-.tcard:hover .tcard-ico,.tcard:focus-visible .tcard-ico{color:var(--red)}
-.tcard-body{flex:1;min-width:0;transition:transform var(--transition-fast)}
-.tcard:hover .tcard-body,.tcard:focus-visible .tcard-body,
-.tp-card:hover .tcard-body,.tp-card:focus-visible .tcard-body{transform:translateX(3px)}
-.tcard-name{font-size:15px;font-weight:600;margin-bottom:2px}
-.tcard-desc{font-size:14px;color:var(--muted);line-height:1.4;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.tcard-dot{width:4px;height:4px;border-radius:50%;background:var(--red);opacity:.3;flex-shrink:0;transition:opacity var(--transition-fast)}
-.tcard:hover .tcard-dot,.tcard:focus-visible .tcard-dot,
-.tp-card:hover .tcard-dot,.tp-card:focus-visible .tcard-dot{opacity:1}
-.tcard-arrow{color:var(--red);opacity:0;transform:translateX(-4px);transition:all var(--transition-fast);flex-shrink:0;font-size:15px}
-.tcard:hover .tcard-arrow,.tcard:focus-visible .tcard-arrow,
-.tp-card:hover .tcard-arrow,.tp-card:focus-visible .tcard-arrow{opacity:1;transform:translateX(0)}
-@media(prefers-reduced-motion:reduce){.tcard-body,.tcard-arrow{transition:none}}
 
 #page-home.active{position:relative}
 #page-home .hero,#page-home>.home-wrap,#page-home>section{position:relative;z-index:1}
@@ -300,18 +279,6 @@ nav{
 @media(max-width:900px){.cs-grid{grid-template-columns:1fr}}
 
 /* AI Tools cards */
-.ai-grid{display:flex;flex-direction:column;gap:1px;background:var(--border);border:1px solid var(--border);border-radius:var(--r-md);overflow:hidden}
-.ai-card{
-  background:var(--bg3);border:none;padding:15px 18px;cursor:pointer;transition:background var(--transition-fast);
-  position:relative;display:flex;align-items:center;gap:16px;text-align:left;border-radius:0;width:100%
-}
-.ai-card:hover,.ai-card:focus-visible{background:var(--bg4)}
-.ai-ico{width:18px;height:18px;display:flex;align-items:center;justify-content:center;flex-shrink:0;color:var(--muted);transition:color var(--transition-fast)}
-.ai-card:hover .ai-ico,.ai-card:focus-visible .ai-ico{color:var(--red)}
-.ai-body{flex:1;min-width:0}
-.ai-name{font-size:15px;font-weight:600;margin-bottom:2px;display:flex;align-items:center;gap:8px}
-.ai-badge{font-family:var(--mono);font-size:12px;letter-spacing:.5px;color:var(--dim);border:1px solid var(--border2);padding:1px 6px;border-radius:var(--r-pill);text-transform:uppercase}
-.ai-desc{font-size:14px;color:var(--muted);line-height:1.4}
 
 /* Quick Adjust widget — styled as a miniature version of the real editor's
    inspector panel: same dark surface, same technical labels. */
@@ -423,7 +390,11 @@ nav{
    as the specific focal mark. Generated from TOOLS/AI_TOOLS data — see
    renderFeatureGrid(). */
 .fgrid-head{margin-bottom:28px}
-.fgrid-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(216px,1fr));gap:14px}
+/* .tool-grid (home directory previews), .tp-grid (category pages + related
+   tools) and .ai-grid (AI placeholders) all render the same .fgrid-card
+   component now — one grid system site-wide instead of three, see
+   fgridCardHTML()/fgridAICardHTML(). */
+.fgrid-grid,.tool-grid,.tp-grid,.ai-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(216px,1fr));gap:14px;background:none;border:none}
 .fgrid-card{
   background:var(--bg2);border:1px solid var(--border);border-radius:var(--r-lg);
   overflow:hidden;text-align:left;transition:border-color var(--transition-fast),transform var(--transition-fast);
@@ -592,20 +563,6 @@ footer{background:var(--bg2);border-top:1px solid var(--border);padding:48px 20p
 .tp-group-title{font-family:var(--mono);font-size:14px;letter-spacing:1.5px;color:var(--dim);text-transform:uppercase;margin-bottom:14px;padding-left:10px;border-left:1px solid var(--red)}
 
 /* Same hairline-divided rail pattern as the home tool directory */
-.tp-grid{display:flex;flex-direction:column;gap:1px;background:var(--border);border:1px solid var(--border);border-radius:var(--r-md);overflow:hidden}
-.tp-card{
-  background:var(--bg3);border:none;padding:16px 20px;cursor:pointer;
-  transition:background var(--transition-fast);position:relative;
-  display:flex;align-items:center;gap:16px;text-align:left;border-radius:0;width:100%
-}
-.tp-card:hover,.tp-card:focus-visible{background:var(--bg4)}
-.tp-ico{width:18px;height:18px;display:flex;align-items:center;justify-content:center;color:var(--muted);flex-shrink:0;transition:color var(--transition-fast)}
-.tp-card:hover .tp-ico,.tp-card:focus-visible .tp-ico{color:var(--red)}
-.tp-name{font-size:16px;font-weight:600;margin-bottom:2px}
-.tp-desc{font-size:14px;color:var(--muted);line-height:1.4}
-.tp-foot{display:flex;align-items:center;gap:12px;margin-left:auto;flex-shrink:0}
-.tp-eng{font-family:var(--mono);font-size:12px;color:var(--dim);text-transform:uppercase;letter-spacing:1px}
-.tp-line{display:none}
 
 /* ═══════════ INDIVIDUAL TOOL PAGE ═══════════
    Breadcrumb → H1 → workspace (the real tool, before any marketing) →
@@ -2215,12 +2172,7 @@ function toolPageHTML(t) {
       ${related.length ? `
       <div class="sec-head"><div class="sec-title">Related Tools</div></div>
       <div class="tp-grid">
-        ${related.map(rt => `
-          <button class="tp-card" onclick="openToolPage('${rt.id}')" aria-label="${rt.label}: ${rt.desc}">
-            <div class="tp-ico" aria-hidden="true">${iconSVG(rt.icon, 16)}</div>
-            <div class="tcard-body"><div class="tp-name">${rt.label}</div><div class="tp-desc">${rt.desc}</div></div>
-            <span class="tcard-dot" aria-hidden="true"></span><span class="tcard-arrow" aria-hidden="true">→</span>
-          </button>`).join('')}
+        ${related.map(fgridCardHTML).join('')}
       </div>` : ''}
     </div>`;
 }
@@ -2253,31 +2205,11 @@ function onToolPageDrop(e, toolId) {
   goPage('editor');
 }
 
-function toolCardHTML(t, onclick) {
-  return `<button class="tcard" onclick="${onclick}" aria-label="${t.label}: ${t.desc}">
-    <div class="tcard-ico" aria-hidden="true">${iconSVG(t.icon, 17)}</div>
-    <div class="tcard-body">
-      <div class="tcard-name">${t.label}</div>
-      <div class="tcard-desc">${t.desc}</div>
-    </div>
-    <span class="tcard-dot" aria-hidden="true"></span>
-    <span class="tcard-arrow" aria-hidden="true">→</span>
-  </button>`;
-}
-
 function renderHomeGrids() {
   ['photo','audio','video'].forEach(cat => {
-    $('home-' + cat).innerHTML = byCat(cat).slice(0,5).map(t => toolCardHTML(t, `openToolPage('${t.id}')`)).join('');
+    $('home-' + cat).innerHTML = byCat(cat).slice(0,5).map(fgridCardHTML).join('');
   });
-  // AI tools
-  $('home-ai').innerHTML = AI_TOOLS.map(t => `
-    <button class="ai-card" onclick="alert('${t.label} — Coming in Phase 2!\\n\\nThis will run entirely in your browser using Transformers.js — no server, no API keys.')" aria-label="${t.label} (coming soon)">
-      <div class="ai-ico" aria-hidden="true">${iconSVG('ai', 14)}</div>
-      <div class="ai-body">
-        <div class="ai-name">${t.label} <span class="ai-badge">Coming Soon</span></div>
-        <div class="ai-desc">${t.desc}</div>
-      </div>
-    </button>`).join('');
+  $('home-ai').innerHTML = AI_TOOLS.map(fgridAICardHTML).join('');
 }
 
 // Illustrated overview grid — every real tool plus the AI placeholders,
@@ -2303,7 +2235,7 @@ function fgridCardHTML(t) {
     visualExtra = `<span class="fgrid-cat-tag">Audio</span><div class="fgrid-wave">${fgridWaveBars(t.id.length)}</div>`;
   }
   return `
-    <button class="fgrid-card" onclick="openToolPage('${t.id}')" aria-label="${t.label}: ${t.desc}">
+    <button class="fgrid-card" onclick="openToolPage('${t.id}')" data-name="${t.label.toLowerCase()}" data-desc="${t.desc.toLowerCase()}" aria-label="${t.label}: ${t.desc}">
       <div class="fgrid-visual cat-${t.cat}">
         ${visualExtra}
         <div class="fgrid-ico" aria-hidden="true">${iconSVG(t.icon, 22)}</div>
@@ -2350,17 +2282,7 @@ function renderToolPage(cat) {
     html += `<div class="tp-group">
       <div class="tp-group-title">${g}</div>
       <div class="tp-grid">
-        ${groups[g].map(t => `
-          <button class="tp-card" onclick="openToolPage('${t.id}')" data-name="${t.label.toLowerCase()}" data-desc="${t.desc.toLowerCase()}" aria-label="${t.label}: ${t.desc}">
-            <div class="tp-ico" aria-hidden="true">${iconSVG(t.icon, 16)}</div>
-            <div class="tcard-body">
-              <div class="tp-name">${t.label}</div>
-              <div class="tp-desc">${t.desc}</div>
-            </div>
-            <div class="tp-foot"><span class="tp-eng">${t.eng}</span></div>
-            <span class="tcard-dot" aria-hidden="true"></span>
-            <span class="tcard-arrow" aria-hidden="true">→</span>
-          </button>`).join('')}
+        ${groups[g].map(fgridCardHTML).join('')}
       </div>
     </div>`;
   });
@@ -2370,7 +2292,7 @@ function renderToolPage(cat) {
 
 function filterTools(cat, query) {
   const q = query.toLowerCase().trim();
-  document.querySelectorAll(`#tp-${cat} .tp-card`).forEach(card => {
+  document.querySelectorAll(`#tp-${cat} .fgrid-card`).forEach(card => {
     const name = card.dataset.name || '';
     const desc = card.dataset.desc || '';
     card.style.display = (name.includes(q) || desc.includes(q)) ? '' : 'none';

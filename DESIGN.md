@@ -78,12 +78,20 @@ it's a normal dark panel now, token-aliased for easy adjustment later.
 - **The "Pick Your Craft" 3D category showcase section removed** from the
   home page — an earlier session's addition, not in the new brief's 12-section
   structure. Markup recoverable from git history if wanted back later.
-- **Tool cards converted from a card grid to a hairline-divided rail list**
-  (`.tool-grid`/`.tp-grid`: `display:flex;flex-direction:column;gap:1px`
-  with the gap showing through as a divider) — the brief explicitly and
-  repeatedly bans "card + card + card + card + card" and asks for "compact
-  professional tool tiles / rails" instead. Applied identically to the home
-  tool directory, AI tools list, and every category page's full tool listing.
+- ~~Tool cards converted from a card grid to a hairline-divided rail list~~
+  **— reverted in a later pass.** This brief explicitly banned
+  "card + card + card + card + card" in favor of rail rows, but the user
+  directly asked afterward for tool listings back in "a Grid Box with proper
+  image not svg," pointing at an earlier reference build's card sizing as the
+  benchmark. `.tool-grid`/`.tp-grid`/`.ai-grid` are real CSS grid again
+  (`repeat(auto-fill,minmax(216px,1fr))`), and every tool-listing surface
+  site-wide — home directory, category pages, related tools, AI
+  placeholders — now renders through one shared component,
+  `fgridCardHTML()`/`fgridAICardHTML()` (see "Feature grid" below), instead
+  of three separate rail-row templates. If a future brief wants rail rows
+  back, that's a real design reversal to flag explicitly, not something to
+  infer from this file alone — the user's most recent direct instruction
+  wins.
 - **`.hud` editor-canvas corner brackets softened** from thick always-on red
   L-brackets to thin neutral (`var(--border2)`) marks — red is reserved for
   an actual active selection/crop, not permanent canvas chrome.
@@ -148,17 +156,27 @@ something more visual, "images explaining what it does" per tool.
 
 No real photo/screenshot assets exist or can be generated for 34 tools, so
 this is built compositionally rather than as 34 bespoke illustrations:
-`renderFeatureGrid()` generates one `.fgrid-card` per `TOOLS`/`AI_TOOLS`
-entry, each composing a **category-styled frame** (photo = crop-handle
-corners, same motif as the editorial section; video = a scrub bar with
-playhead; audio = a waveform baseline; ai = plain plate + amber "Soon"
-badge) with the tool's **own real icon** from the existing `TOOL_ICONS` set
-(the same icons the rail lists already use) as the focal mark, plus name and
-`desc`. Generated straight from data — never hand-duplicated, consistent
-with how individual tool pages are built. Verified via screenshot at desktop
-(4-column) and mobile (1-column, `auto-fill minmax(216px,1fr)` handles the
-reflow with no CSS overrides needed) — all 34 cards, including the AI
-placeholders' "Soon" badges, render correctly.
+`fgridCardHTML(t)`/`fgridAICardHTML(t)` compose a **category-styled frame**
+(photo = crop-handle corners, same motif as the editorial section; video = a
+scrub bar with playhead; audio = a waveform baseline; ai = plain plate +
+amber "Soon" badge) with the tool's **own real icon** from the existing
+`TOOL_ICONS` set as the focal mark, plus name and `desc`. Generated straight
+from data — never hand-duplicated.
+
+**This became the one canonical tool-card component, not just this
+section's.** In a follow-up pass the user asked for every tool *listing*
+site-wide back in grid form (see the struck-through rail-list entry above),
+so `fgridCardHTML`/`fgridAICardHTML` now also power the home directory
+previews (`renderHomeGrids`), every category page's full listing
+(`renderToolPage`), and Related Tools (`toolPageHTML`) — one component, one
+place to change the tool-card look. `renderFeatureGrid()` (this section
+specifically) is the only caller that renders the complete, unfiltered
+`TOOLS`/`AI_TOOLS` arrays; the others slice/group/filter first. Verified via
+screenshot at desktop (4-column) and mobile (1-2 column, `auto-fill
+minmax(216px,1fr)` handles the reflow with no CSS overrides needed) across
+all four call sites, plus a live `filterTools()` check confirming search
+still works against the new `.fgrid-card` markup (`data-name`/`data-desc`
+carried over from the old `.tp-card` attributes).
 
 Sits between the AI Tools rail and Quick Adjust — after the compact
 directory (quick scan + jump to editor), before the interactive demo.
