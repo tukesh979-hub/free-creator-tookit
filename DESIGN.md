@@ -233,6 +233,48 @@ wrong, not just the page.
 **Still not independently verified**: the editor's crop/trim tool panels
 specifically at the new type scale.
 
+## Real bug: Effects panel sliders overlapping their own labels
+
+The type-scale passes above (10-16px, then 13-20px) fixed readability but
+broke a layout that depended on the old smaller size: `fxRow()` (the
+Brightness/Contrast/Saturation/Hue/Sharpness/Blur/Vignette sliders in the
+Effects panel) put the label in a fixed `width:76px` column sharing a row
+with the slider track. At the bigger font, "BRIGHTNESS"/"SATURATION"
+overflowed that 76px and visually overlapped the track — the slider's own
+line rendered straight through the label text.
+
+Rather than just widen the label column (fragile — the next type-scale
+change breaks it again the same way), restructured to a two-row pattern:
+label + value on their own flex row, full-width `<input type=range>` on the
+row below. New classes (`.fx-slider`/`.fx-slider-hdr`/`.fx-slider-label`/
+`.fx-slider-val`), *not* a change to `.fx-row` itself — `.fx-row` is reused
+elsewhere (POSITION/TYPE/TRUE PEAK rows, the video/audio track-badge
+headers) for label-plus-other-content layouts that don't have this failure
+mode, and blanket-converting it risked breaking those. Also had to update
+`applyFxPreset()`'s slider-sync code, which queried `.fx-row`/`.fx-row-val`
+by class name to push preset values into the visible sliders — missed this
+initially, would have silently broken "click a preset, sliders don't move."
+Verified: clean stacked layout, no overlap, and preset-sync still works.
+
+Same lesson as the panel-widening note below: a font-size change isn't
+component-agnostic. Check every layout that positions text next to a fixed-
+width sibling before shipping "make it bigger," not just the font-size
+declarations themselves.
+
+## Editor panels widened again — still felt cramped after the first pass
+
+The panel widths bumped alongside the first type-scale increase (.ed-cat
+56->72px, .ed-tools 140->184px, .ed-right 240->280px) weren't enough —
+reported as "congested" with a follow-up screenshot. Widened again, more
+generously this time: `.ed-cat` 72->84px, `.ed-tools` 184->224px, `.ed-right`
+280->344px, plus real padding increases inside them (`.tool-btn` 8px/12px->
+11px/18px, `.er-body`/`.er-head`/`.er-foot`/`.er-status` all bumped from
+12-14px to 16-20px). Mobile drawer variants updated to match — `.ed-tools`
+drawer 240->260px isn't needed (was already wider than desktop), but
+`.ed-right` drawer now uses `width:min(344px, 92vw)` so it matches the new
+344px desktop panel on tablets while still fitting narrow phones without
+overflowing past the screen edge.
+
 ## Editor preview: real vertical-centering bug + image too small
 
 User reported a big "black fill box" around the loaded image with the image

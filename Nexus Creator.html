@@ -610,24 +610,24 @@ footer{background:var(--bg2);border-top:1px solid var(--border);padding:48px 20p
 
 /* ═══════════ EDITOR ═══════════ */
 .ed-cat{
-  width:72px;background:var(--bg2);border-right:1px solid var(--border);
-  display:flex;flex-direction:column;align-items:center;padding-top:6px;flex-shrink:0
+  width:84px;background:var(--bg2);border-right:1px solid var(--border);
+  display:flex;flex-direction:column;align-items:center;padding-top:10px;flex-shrink:0
 }
 .cat-btn{
   width:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;
-  gap:3px;padding:10px 0;border-right:2px solid transparent;color:var(--dim);transition:all var(--transition)
+  gap:5px;padding:14px 4px;border-right:2px solid transparent;color:var(--dim);transition:all var(--transition)
 }
 .cat-btn:hover{color:var(--muted)}
 .cat-btn.active{color:var(--red);border-right-color:var(--red);background:rgba(255,59,59,.04)}
 .cat-btn span{font-size:15px;font-weight:700;letter-spacing:.5px;text-transform:uppercase}
 
 .ed-tools{
-  width:184px;background:var(--bg2);border-right:1px solid var(--border);
+  width:224px;background:var(--bg2);border-right:1px solid var(--border);
   overflow-y:auto;flex-shrink:0
 }
-.ed-tools-lbl{padding:10px 12px 6px;font-family:var(--mono);font-size:15px;letter-spacing:2px;color:var(--dim);text-transform:uppercase}
+.ed-tools-lbl{padding:14px 18px 8px;font-family:var(--mono);font-size:15px;letter-spacing:2px;color:var(--dim);text-transform:uppercase}
 .tool-btn{
-  width:100%;text-align:left;padding:8px 12px;font-size:16px;font-weight:700;letter-spacing:1px;
+  width:100%;text-align:left;padding:11px 18px;font-size:16px;font-weight:700;letter-spacing:1px;
   text-transform:uppercase;border-left:2px solid transparent;color:var(--muted);transition:all var(--transition);display:block
 }
 .tool-btn:hover{color:var(--text);background:rgba(255,255,255,.02)}
@@ -982,18 +982,18 @@ footer{background:var(--bg2);border-top:1px solid var(--border);padding:48px 20p
 
 /* Right settings panel */
 .ed-right{
-  width:280px;background:var(--bg2);border-left:1px solid var(--border);
+  width:344px;background:var(--bg2);border-left:1px solid var(--border);
   display:flex;flex-direction:column;overflow:hidden;flex-shrink:0
 }
-.er-head{padding:12px 14px;border-bottom:1px solid var(--border)}
+.er-head{padding:16px 20px;border-bottom:1px solid var(--border)}
 .er-tool{font-size:18px;font-weight:700;letter-spacing:2px;color:var(--red);text-transform:uppercase;margin-bottom:2px}
 .er-sub{font-family:var(--mono);font-size:15px;letter-spacing:2px;color:var(--dim);text-transform:uppercase}
-.er-body{flex:1;padding:14px;overflow-y:auto}
-.er-foot{padding:10px;border-top:1px solid var(--border);display:flex;flex-direction:column;gap:6px}
+.er-body{flex:1;padding:20px;overflow-y:auto}
+.er-foot{padding:14px 20px;border-top:1px solid var(--border);display:flex;flex-direction:column;gap:8px}
 
 /* System status — honest, browser-readable stats only. No fabricated
    CPU/GPU/VRAM numbers: the DOM has no API for those. */
-.er-status{padding:12px 14px 14px;border-top:1px solid var(--border);flex-shrink:0}
+.er-status{padding:16px 20px 18px;border-top:1px solid var(--border);flex-shrink:0}
 .er-status-title{font-family:var(--mono);font-size:15px;letter-spacing:2px;color:var(--dim);text-transform:uppercase;margin-bottom:10px}
 .er-stat-row{display:grid;grid-template-columns:66px 1fr 46px;align-items:center;gap:8px;margin-bottom:7px}
 .er-stat-row:last-child{margin-bottom:0}
@@ -1116,13 +1116,13 @@ footer{background:var(--bg2);border-top:1px solid var(--border);padding:48px 20p
   #page-editor.active{flex-direction:column}
   .ed-cat{display:none !important;width:0 !important;flex:0 0 0 !important}
   .ed-tools{
-    position:fixed;left:-280px;top:var(--nav-h);bottom:0;width:260px;z-index:95;
+    position:fixed;left:-260px;top:var(--nav-h);bottom:0;width:240px;z-index:95;
     background:var(--bg2);border-right:1px solid var(--border);
     transition:left .25s cubic-bezier(.4,0,.2,1)
   }
   .ed-tools.show{left:0}
   .ed-right{
-    position:fixed;right:-300px;top:var(--nav-h);bottom:0;width:280px;z-index:95;
+    position:fixed;right:calc(-1 * min(344px, 92vw));top:var(--nav-h);bottom:0;width:min(344px,92vw);z-index:95;
     transition:right .25s cubic-bezier(.4,0,.2,1);
     background:var(--bg2);border-left:1px solid var(--border)
   }
@@ -1169,6 +1169,18 @@ footer{background:var(--bg2);border-top:1px solid var(--border);padding:48px 20p
 /* ─────── EFFECTS PANEL (consolidated) ─────── */
 .fx-row{display:flex;align-items:center;gap:8px;margin-bottom:6px;padding:6px 8px;background:var(--bg3);border:1px solid var(--border);border-radius:6px}
 .fx-row-label{font-family:var(--mono);font-size:16px;font-weight:600;color:var(--text);text-transform:uppercase;letter-spacing:1px;width:76px;flex-shrink:0}
+/* Slider-specific variant of .fx-row — label+value stack ABOVE a full-width
+   track instead of sharing a row with it. The side-by-side layout above
+   worked at the old smaller type scale; at the current one, labels like
+   "BRIGHTNESS"/"SATURATION" overflowed their 76px reserved width and
+   visually overlapped the slider track itself. Stacking is also just a
+   better fit for touch/precision — the slider gets the panel's full width
+   instead of whatever was left over after a fixed label column. */
+.fx-slider{margin-bottom:10px;padding:10px 12px;background:var(--bg3);border:1px solid var(--border);border-radius:6px}
+.fx-slider-hdr{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:7px;gap:10px}
+.fx-slider-label{font-family:var(--mono);font-size:15px;font-weight:600;color:var(--text);text-transform:uppercase;letter-spacing:1px}
+.fx-slider-val{font-family:var(--mono);font-size:16px;font-weight:700;color:var(--red);flex-shrink:0}
+.fx-slider input[type=range]{width:100%;display:block;margin:0}
 .trim-track-hdr{margin-bottom:8px}
 .trim-track-badge{
   font-family:var(--mono);font-size:15px;font-weight:800;letter-spacing:.5px;
@@ -2991,13 +3003,13 @@ const PANELS = {
     const fxRow = (label, key, min, max, def) => {
       const sid = 'fx_'+key;
       if (S.settings[key]===undefined) S.settings[key]=def;
-      return `<div class="fx-row">
-        <span class="fx-row-label">${label}</span>
-        <div class="fx-row-range">
-          <input type="range" min="${min}" max="${max}" step="1" value="${S.settings[key]}" aria-label="${label}"
-            oninput="setS('${key}',+this.value);document.getElementById('fx_${key}').textContent=this.value;applyLivePreview()"/>
+      return `<div class="fx-slider">
+        <div class="fx-slider-hdr">
+          <span class="fx-slider-label">${label}</span>
+          <span class="fx-slider-val" id="fx_${key}">${S.settings[key]}</span>
         </div>
-        <span class="fx-row-val" id="fx_${key}">${S.settings[key]}</span>
+        <input type="range" min="${min}" max="${max}" step="1" value="${S.settings[key]}" aria-label="${label}"
+          oninput="setS('${key}',+this.value);document.getElementById('fx_${key}').textContent=this.value;applyLivePreview()"/>
       </div>`;
     };
     const activePreset = S.settings.fxPreset || 'none';
@@ -5081,12 +5093,12 @@ function applyFxPreset(name, btn) {
   // Sync all sliders to new values without full re-render
   // Sync sliders directly by querying the range inputs inside fx-rows
   const fxKeys = ['brightness','contrast','saturation','hue','sharpness','blur','vignette'];
-  const fxRows = $('er-body')?.querySelectorAll('.fx-row') || [];
+  const fxRows = $('er-body')?.querySelectorAll('.fx-slider') || [];
   fxRows.forEach((row, i) => {
     const key = fxKeys[i];
     if (!key) return;
     const inp = row.querySelector('input[type=range]');
-    const val = row.querySelector('.fx-row-val');
+    const val = row.querySelector('.fx-slider-val');
     if (inp) inp.value = S.settings[key] !== undefined ? S.settings[key] : 0;
     if (val) val.textContent = S.settings[key] !== undefined ? S.settings[key] : 0;
   });
