@@ -104,26 +104,43 @@ per the brief's explicit media-system rules. The audio waveform
 (`initAudioWaveHero()`) has a genuine subtle idle animation (`scaleY` breathe,
 staggered delays) rather than being static.
 
+## Individual tool pages (built in a follow-up pass)
+
+Every tool in `TOOLS` (and, by construction, any future one added to that
+array) now gets a real dedicated page: breadcrumb (`Nexus / {Category} /
+{Tool}`) → H1 → short description → a large drop-zone workspace (the real
+tool — dropping or browsing a file loads it, preselects that tool, and goes
+straight to the editor) → format metadata → "How It Works" (4 steps) →
+"Features" (4, in a 2×2 rail grid) → "FAQ" (3 questions) → "Related Tools"
+(up to 5, same category, reusing the `.tp-card` rail component).
+
+`toolPageHTML(t)` in the script generates this from `TOOLS` data —
+`toolPageSteps()`, `toolPageFeatures()`, `toolPageFAQ()`. **Every sentence in
+the generated copy is either a real, checkable product fact (runs in-browser,
+file never leaves the device, no watermark, no signup, which engine it uses)
+or the tool's own actual `desc` field** — never invented marketing claims or
+lorem-ipsum filler. This was the deliberate resolution to the constraint
+below: real facts generalize honestly across all 30 tools; fabricated
+per-tool copy would not have.
+
+**Routing**: no real URL per tool (`openToolPage(id)` swaps `#tool-page-body`
+and calls the existing `goPage('tool')` SPA mechanism, same pattern as every
+other page). The product is a single static HTML file with no server and no
+build step, so literal paths like `/video/trim` aren't reachable the way a
+server-rendered site would do it — `history.pushState` could fake the URL
+bar but would 404 on direct reload/share with no server to resolve it. If
+shareable tool URLs matter later, that's a hosting decision (a real static
+build/server), not a template one — the template itself is already
+per-tool-ready.
+
+**Entry points**: both the home page's tool-directory rail rows and every
+category page's full tool listing now call `openToolPage(id)` instead of
+jumping straight to the editor (`launchTool(id)` still exists, now unused,
+left in place rather than deleted in case a "skip straight to editor"
+fast-path is wanted later).
+
 ## Deliberately NOT built — flag before attempting
 
-- **Individual tool subpages** (`/video/trim`, `/photo/crop`, etc. — full
-  breadcrumb/H1/workspace/formats/workflow/features/FAQ/related-tools
-  structure per tool). The brief asks for this on all ~34 tools. Two real
-  constraints stopped this from being built in this pass: (1) the product is
-  explicitly a single static HTML file with no server and no build step, so
-  literal URL routing (`/video/trim`) isn't achievable the way a
-  server-rendered site would do it — it would need client-side
-  `history.pushState` faked routing, which breaks on direct reload/share
-  since there's no server to resolve the path; (2) authoring genuine,
-  non-generic "how it works / features / FAQ" copy for 34 tools individually
-  is a real content-writing project, not a template-fill exercise — filling
-  it with generated-but-thin copy would violate the brief's own "avoid
-  fake/meaningless marketing sections" rule more than skipping it does.
-  **Recommended next step**: decide with the user whether (a) a shared
-  in-app tool-page template with real per-tool copy (written, not generated)
-  is worth commissioning, and (b) whether routing should be simulated via
-  `pushState` (accepting reload-to-home as a known limitation) or the product
-  should gain an actual static-hosting build step.
 - **A literal multi-track (V1 video / A1 audio / T1 text) timeline** — the
   app's data model is one tool acting on one file, not a multi-track project.
   Building the mockup's persistent 3-track timeline literally would mean

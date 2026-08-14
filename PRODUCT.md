@@ -27,7 +27,15 @@ professional NLE replacement.
   tool catalog per category as a rail list (icon, name, description, arrow —
   not cards), searchable, each with a signature hover interaction (compare
   strip / scrub filmstrip / frequency bars) that echoes what that category's
-  tools actually do.
+  tools actually do. Clicking a tool opens its dedicated page rather than
+  jumping straight to the editor.
+- **Individual tool page** (`#page-tool`, one shared container rendered per
+  tool via `openToolPage(id)`) — Persuade-then-Operate. Breadcrumb → H1 →
+  description → a real upload workspace (drop a file here and it goes
+  straight into the editor with that tool preselected) → formats → How It
+  Works → Features → FAQ → Related Tools. Content is generated from real
+  `TOOLS` data and true product facts, not per-tool copywriting or filler —
+  see DESIGN.md for exactly what's generated vs. fixed.
 - **Editor** (`#page-editor`) — Operate mode, the real workspace. Category
   rail (Video/Photo/Audio/AI Tools) → tool list → preview (drop zone / live
   preview / persistent transport bar for video / processing overlay, subtle
@@ -50,16 +58,12 @@ professional NLE replacement.
 - AI tools (remove-bg, enhance, auto-subtitle, noise-removal) are still
   placeholders — "Coming Soon" everywhere they appear (home page directory,
   and the editor's AI Tools rail entry).
-- **Individual tool subpages were not built.** The 2026-08-14 ground-up
-  redesign brief asks for every one of ~34 tools to have its own dedicated
-  page (breadcrumb, H1, workspace-first, formats, workflow, features, FAQ,
-  related tools). Two real blockers: no server means no literal URL routing
-  (`/video/trim`) without a `pushState`-faked approach that breaks on direct
-  reload; and genuine non-generic FAQ/features copy for 34 tools is a
-  content-writing project, not something to template-generate without it
-  reading as filler. See DESIGN.md's "Deliberately NOT built" section for the
-  concrete next-step options. This is the largest remaining gap versus the
-  brief.
+- **Individual tool pages are built**, but without real per-tool URLs
+  (`/video/trim`) — the product has no server, so routing is in-app only
+  (`openToolPage(id)` swaps content and uses the same SPA page-switching
+  every other page uses). If shareable/bookmarkable tool URLs matter later,
+  that requires an actual hosting decision (a real static build/server), not
+  a template change — see DESIGN.md.
 - No genuine multi-track timeline (simultaneous video + audio + text tracks
   edited together) — the app's data model is one tool acting on one file. A
   real single-track video transport bar exists (filmstrip, play/pause, seek).

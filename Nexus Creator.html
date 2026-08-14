@@ -543,6 +543,50 @@ footer{background:var(--bg2);border-top:1px solid var(--border);padding:48px 20p
 .tp-eng{font-family:var(--mono);font-size:9px;color:var(--dim);text-transform:uppercase;letter-spacing:1px}
 .tp-line{display:none}
 
+/* ═══════════ INDIVIDUAL TOOL PAGE ═══════════
+   Breadcrumb → H1 → workspace (the real tool, before any marketing) →
+   formats → how-it-works → features → FAQ → related tools. */
+.tpg-wrap{max-width:var(--container);margin:0 auto;padding:32px 20px 80px}
+@media(min-width:900px){.tpg-wrap{padding:40px 64px 100px}}
+.tpg-crumb{font-family:var(--mono);font-size:11px;color:var(--dim);letter-spacing:.3px;margin-bottom:24px;display:flex;align-items:center;gap:7px;text-transform:uppercase}
+.tpg-crumb a{color:var(--dim);transition:color var(--transition-fast)}
+.tpg-crumb a:hover{color:var(--text)}
+.tpg-hero{margin-bottom:32px;max-width:640px}
+.tpg-h1{font-size:clamp(30px,4.5vw,44px);font-weight:700;letter-spacing:-.02em;margin-bottom:14px}
+.tpg-desc{font-size:16px;color:var(--muted);line-height:1.6}
+
+.tpg-workspace{border:1px solid var(--border);border-radius:var(--r-lg);background:var(--bg3);margin-bottom:18px;position:relative;overflow:hidden}
+.tpg-drop{display:block;padding:64px 20px;text-align:center;cursor:pointer;transition:background var(--transition-fast);position:relative;z-index:1}
+.tpg-drop:hover,.tpg-drop.drag{background:rgba(255,59,59,.03)}
+.tpg-drop-icon{width:44px;height:44px;border:1px solid var(--border2);display:flex;align-items:center;justify-content:center;margin:0 auto 18px;color:var(--dim);border-radius:var(--r-sm);transition:all var(--transition-fast)}
+.tpg-drop:hover .tpg-drop-icon,.tpg-drop.drag .tpg-drop-icon{border-color:var(--red);color:var(--red)}
+.tpg-drop-title{font-size:15px;font-weight:600;margin-bottom:6px}
+.tpg-drop-sub{font-size:13px;color:var(--muted);margin-bottom:18px}
+.tpg-browse{border:1px solid var(--border);background:transparent;color:var(--muted);font-family:var(--mono);font-size:10px;letter-spacing:1px;text-transform:uppercase;padding:9px 18px;border-radius:var(--r-sm);transition:all var(--transition-fast)}
+.tpg-browse:hover{border-color:var(--border2);color:var(--text)}
+.tpg-formats{font-family:var(--mono);font-size:11px;color:var(--dim);margin-bottom:56px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.tpg-badge{display:inline-flex;align-items:center;gap:6px}
+.tpg-badge::before{content:'';width:4px;height:4px;border-radius:50%;background:var(--red);flex-shrink:0}
+
+.tpg-steps{display:grid;grid-template-columns:repeat(4,1fr);gap:24px;margin-bottom:64px}
+@media(max-width:700px){.tpg-steps{grid-template-columns:1fr 1fr}}
+.tpg-step-num{font-family:var(--mono);font-size:11px;color:var(--red);margin-bottom:8px}
+.tpg-step-title{font-size:13px;font-weight:600;margin-bottom:4px}
+.tpg-step-desc{font-size:12px;color:var(--muted);line-height:1.5}
+
+.tpg-features{display:grid;grid-template-columns:1fr;gap:1px;background:var(--border);border:1px solid var(--border);border-radius:var(--r-md);overflow:hidden;margin-bottom:64px}
+@media(min-width:700px){.tpg-features{grid-template-columns:1fr 1fr}}
+.tpg-feature{background:var(--bg3);padding:20px}
+.tpg-feature-title{font-size:13px;font-weight:600;margin-bottom:6px;display:flex;align-items:center;gap:8px}
+.tpg-feature-title::before{content:'';width:4px;height:4px;border-radius:50%;background:var(--red);flex-shrink:0}
+.tpg-feature-desc{font-size:12px;color:var(--muted);line-height:1.5}
+
+.tpg-faq{margin-bottom:64px;max-width:720px}
+.tpg-faq-item{border-bottom:1px solid var(--border);padding:18px 0}
+.tpg-faq-item:first-child{padding-top:0}
+.tpg-faq-q{font-size:14px;font-weight:600;margin-bottom:8px}
+.tpg-faq-a{font-size:13px;color:var(--muted);line-height:1.6}
+
 /* ═══════════ EDITOR ═══════════ */
 .ed-cat{
   width:56px;background:var(--bg2);border-right:1px solid var(--border);
@@ -1580,6 +1624,11 @@ footer{background:var(--bg2);border-top:1px solid var(--border);padding:48px 20p
   </div>
 </div>
 
+<!-- ══════════════════ INDIVIDUAL TOOL PAGE ══════════════════ -->
+<div id="page-tool" class="page">
+  <div id="tool-page-body"></div>
+</div>
+
 <!-- ══════════════════ EDITOR ══════════════════ -->
 <div id="page-editor" class="page">
   <!-- Mobile toolbar -->
@@ -1968,6 +2017,146 @@ function toggleTheme() {
 // ════════════════════════════════════════════════════════════════════════════
 // RENDER GRIDS
 // ════════════════════════════════════════════════════════════════════════════
+// ════════════════════════════════════════════════════════════════════════════
+// INDIVIDUAL TOOL PAGES
+// One dedicated page per tool (breadcrumb, H1, workspace-first, formats,
+// how-it-works, features, FAQ, related tools) — data-driven from TOOLS
+// rather than 30 hand-authored pages. Every sentence here is either a real,
+// checkable fact about the product (runs in-browser, file never leaves the
+// device, no watermark, no signup) or the tool's own actual description —
+// never generic filler. See DESIGN.md for why this exists instead of real
+// server-routed URLs.
+const TOOL_PAGE_FORMATS = {
+  video: 'MP4 · MOV · WEBM · MKV',
+  photo: 'JPG · PNG · WEBP · GIF',
+  audio: 'MP3 · WAV · AAC · FLAC · OGG',
+};
+const TOOL_PAGE_CAT_NOUN = { video: 'Video', photo: 'Images', audio: 'Audio' };
+
+function toolPageTitle(t) {
+  return `${t.label} ${TOOL_PAGE_CAT_NOUN[t.cat] || t.cat}`;
+}
+
+function toolPageSteps(t) {
+  const mediaWord = t.cat === 'photo' ? 'image' : t.cat;
+  const engineLabel = t.eng === 'ffmpeg' ? 'FFmpeg.wasm' : 'the Canvas API';
+  return [
+    { n: '01', title: 'Upload', desc: `Drop your ${mediaWord} file or browse to select one.` },
+    { n: '02', title: 'Adjust', desc: `Set your ${t.label.toLowerCase()} options — the preview updates instantly.` },
+    { n: '03', title: 'Process', desc: `Runs locally in your browser using ${engineLabel}.` },
+    { n: '04', title: 'Download', desc: 'Save the result. Nothing is uploaded, nothing is kept.' },
+  ];
+}
+
+function toolPageFeatures(t) {
+  const engineNote = t.eng === 'ffmpeg'
+    ? 'Powered by FFmpeg.wasm running locally in your browser — the same engine behind professional video tools, with no server round-trip.'
+    : "Powered by the browser's native Canvas API — instant, pixel-accurate processing with no upload required.";
+  const siblingCount = byCat(t.cat).length - 1;
+  return [
+    { title: 'Runs entirely in your browser', desc: engineNote },
+    { title: 'Your file never leaves your device', desc: "Nothing is uploaded to a server — processing happens locally, so there's no wait on an upload and nothing to trust a third party with." },
+    { title: 'No signup, no watermark', desc: 'Free to use with no account, no trial limits, and no watermark added to your export.' },
+    { title: t.label, desc: `${t.desc}. Part of Nexus's ${t.cat} toolkit, alongside ${siblingCount} other ${t.cat} tool${siblingCount === 1 ? '' : 's'}.` },
+  ];
+}
+
+function toolPageFAQ(t) {
+  return [
+    { q: `Do I need to install anything to use ${t.label}?`, a: `No. ${t.label} runs entirely in your browser — no software, no browser extension, no signup.` },
+    { q: 'Is there a file size limit?', a: "Nexus is limited by your browser's available memory rather than a fixed cap — very large files may simply take longer to process." },
+    { q: 'Will this add a watermark to my file?', a: 'No — Nexus never adds a watermark, on any tool, because there is no paid plan gating it.' },
+  ];
+}
+
+function toolPageHTML(t) {
+  const catLabel = t.cat[0].toUpperCase() + t.cat.slice(1);
+  const related = byCat(t.cat).filter(x => x.id !== t.id).slice(0, 5);
+  const mediaWord = t.cat === 'photo' ? 'image' : t.cat;
+  return `
+    <div class="tpg-wrap">
+      <div class="tpg-crumb">
+        <a href="#" onclick="event.preventDefault();goPage('home')">Nexus</a><span>/</span>
+        <a href="#" onclick="event.preventDefault();goPage('${t.cat}')">${catLabel}</a><span>/</span>
+        <span>${t.label}</span>
+      </div>
+      <div class="tpg-hero">
+        <h1 class="tpg-h1">${toolPageTitle(t)}</h1>
+        <p class="tpg-desc">${t.desc} — free, instant, processed entirely in your browser.</p>
+      </div>
+
+      <div class="tpg-workspace tech-grid">
+        <label class="tpg-drop" id="tpg-drop"
+          ondrop="onToolPageDrop(event,'${t.id}')"
+          ondragover="event.preventDefault();this.classList.add('drag')"
+          ondragleave="this.classList.remove('drag')">
+          <input type="file" id="tpg-input" style="display:none" accept="${t.cat === 'photo' ? 'image' : t.cat}/*" onchange="onToolPageFile(event,'${t.id}')" aria-label="Upload file"/>
+          <div class="tpg-drop-icon" aria-hidden="true">${iconSVG('upload', 18)}</div>
+          <div class="tpg-drop-title">Drop your ${mediaWord} here</div>
+          <div class="tpg-drop-sub">or browse to select a file</div>
+          <button class="tpg-browse" type="button" onclick="event.stopPropagation();document.getElementById('tpg-input').click()">Browse Files</button>
+        </label>
+      </div>
+      <div class="tpg-formats">
+        <span class="tpg-badge">${TOOL_PAGE_FORMATS[t.cat] || ''}</span><span>·</span><span>Free</span><span>·</span><span>No Watermark</span><span>·</span><span>No Signup</span>
+      </div>
+
+      <div class="sec-head"><div class="sec-title">How It Works</div></div>
+      <div class="tpg-steps">
+        ${toolPageSteps(t).map(s => `<div><div class="tpg-step-num">${s.n}</div><div class="tpg-step-title">${s.title}</div><div class="tpg-step-desc">${s.desc}</div></div>`).join('')}
+      </div>
+
+      <div class="sec-head"><div class="sec-title">Features</div></div>
+      <div class="tpg-features">
+        ${toolPageFeatures(t).map(f => `<div class="tpg-feature"><div class="tpg-feature-title">${f.title}</div><div class="tpg-feature-desc">${f.desc}</div></div>`).join('')}
+      </div>
+
+      <div class="sec-head"><div class="sec-title">FAQ</div></div>
+      <div class="tpg-faq">
+        ${toolPageFAQ(t).map(f => `<div class="tpg-faq-item"><div class="tpg-faq-q">${f.q}</div><div class="tpg-faq-a">${f.a}</div></div>`).join('')}
+      </div>
+
+      ${related.length ? `
+      <div class="sec-head"><div class="sec-title">Related Tools</div></div>
+      <div class="tp-grid">
+        ${related.map(rt => `
+          <button class="tp-card" onclick="openToolPage('${rt.id}')" aria-label="${rt.label}: ${rt.desc}">
+            <div class="tp-ico" aria-hidden="true">${iconSVG(rt.icon, 16)}</div>
+            <div class="tcard-body"><div class="tp-name">${rt.label}</div><div class="tp-desc">${rt.desc}</div></div>
+            <span class="tcard-dot" aria-hidden="true"></span><span class="tcard-arrow" aria-hidden="true">→</span>
+          </button>`).join('')}
+      </div>` : ''}
+    </div>`;
+}
+
+function openToolPage(id) {
+  const t = byId(id);
+  if (!t) return;
+  $('tool-page-body').innerHTML = toolPageHTML(t);
+  goPage('tool');
+}
+
+function onToolPageFile(e, toolId) {
+  const f = e.target.files[0];
+  if (!f) return;
+  const t = byId(toolId);
+  loadFile(f);
+  if (t) selectTool(t);
+  goPage('editor');
+}
+
+function onToolPageDrop(e, toolId) {
+  e.preventDefault();
+  const drop = $('tpg-drop');
+  if (drop) drop.classList.remove('drag');
+  const f = e.dataTransfer.files[0];
+  if (!f) return;
+  const t = byId(toolId);
+  loadFile(f);
+  if (t) selectTool(t);
+  goPage('editor');
+}
+
 function toolCardHTML(t, onclick) {
   return `<button class="tcard" onclick="${onclick}" aria-label="${t.label}: ${t.desc}">
     <div class="tcard-ico" aria-hidden="true">${iconSVG(t.icon, 17)}</div>
@@ -1982,7 +2171,7 @@ function toolCardHTML(t, onclick) {
 
 function renderHomeGrids() {
   ['photo','audio','video'].forEach(cat => {
-    $('home-' + cat).innerHTML = byCat(cat).slice(0,5).map(t => toolCardHTML(t, `launchTool('${t.id}')`)).join('');
+    $('home-' + cat).innerHTML = byCat(cat).slice(0,5).map(t => toolCardHTML(t, `openToolPage('${t.id}')`)).join('');
   });
   // AI tools
   $('home-ai').innerHTML = AI_TOOLS.map(t => `
@@ -2009,7 +2198,7 @@ function renderToolPage(cat) {
       <div class="tp-group-title">${g}</div>
       <div class="tp-grid">
         ${groups[g].map(t => `
-          <button class="tp-card" onclick="launchTool('${t.id}')" data-name="${t.label.toLowerCase()}" data-desc="${t.desc.toLowerCase()}" aria-label="${t.label}: ${t.desc}">
+          <button class="tp-card" onclick="openToolPage('${t.id}')" data-name="${t.label.toLowerCase()}" data-desc="${t.desc.toLowerCase()}" aria-label="${t.label}: ${t.desc}">
             <div class="tp-ico" aria-hidden="true">${iconSVG(t.icon, 16)}</div>
             <div class="tcard-body">
               <div class="tp-name">${t.label}</div>
