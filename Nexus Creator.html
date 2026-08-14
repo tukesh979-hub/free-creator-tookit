@@ -4385,50 +4385,57 @@ function initResizeFrameCanvas() {
   // Hide the underlying preview image — canvas handles all rendering
   img.style.visibility = 'hidden';
 
-  // Create or reuse the overlay canvas — covers the ENTIRE preview area
+  // Create or reuse the overlay canvas — sized to exactly match the frame,
+  // no larger. Absolutely positioned + centered manually each redraw (the
+  // hidden <img> still occupies flex layout space, so flexbox auto-centering
+  // would center the img+canvas as a group rather than the canvas alone).
   let oc = $('resize-frame-canvas');
   if (!oc) {
     oc = document.createElement('canvas');
     oc.id = 'resize-frame-canvas';
-    oc.style.cssText = 'position:absolute;top:0;left:0;pointer-events:all;z-index:5;cursor:default;';
+    oc.style.cssText = 'position:absolute;pointer-events:all;z-index:5;cursor:default;';
     previewEl.appendChild(oc);
   }
 
-  // ── Frame geometry: centered in the full preview ────────────────────────────
-  // pW/pH must match the exact box the plain <img> constrains itself to
+  // ── Frame geometry ───────────────────────────────────────────────────────────
+  // Sized identically to the box the plain <img> constrains itself to
   // (max-width:90% of previewEl, max-height:78vh — see renderPreview()) or
   // switching between Crop and Resize visibly jumps: two tools showing the
-  // same loaded file at two independently-computed sizes.
+  // same loaded file at two independently-computed sizes. No extra margin
+  // beyond that box — the canvas IS the frame, so there's no dead space
+  // around the image to paint a background into.
   function getFrame() {
     const pRect = previewEl.getBoundingClientRect();
-    const pW = Math.round(pRect.width * 0.9);
-    const pH = Math.round(Math.min(pRect.height, window.innerHeight * 0.78));
+    const maxW = Math.round(pRect.width * 0.9);
+    const maxH = Math.round(Math.min(pRect.height, window.innerHeight * 0.78));
 
     const tarW = +S.settings.width  || S.file?.width  || 1920;
     const tarH = +S.settings.height || S.file?.height || 1080;
     const tarAR = tarW / tarH;
-    const preAR = pW / pH;
+    const maxAR = maxW / maxH;
 
-    // Frame fills 90% of the available space in the tighter dimension
     let fW, fH;
-    if (tarAR > preAR) { fW = Math.round(pW * 0.90); fH = Math.round(fW / tarAR); }
-    else               { fH = Math.round(pH * 0.90); fW = Math.round(fH * tarAR); }
+    if (tarAR > maxAR) { fW = maxW; fH = Math.round(fW / tarAR); }
+    else               { fH = maxH; fW = Math.round(fH * tarAR); }
 
-    const fX = Math.round((pW - fW) / 2);
-    const fY = Math.round((pH - fH) / 2);
-    return { pW, pH, fX, fY, fW, fH };
+    return { fW, fH };
   }
 
   // ── Draw ────────────────────────────────────────────────────────────────────
   function redraw() {
     if (!img.naturalWidth) return;
-    const { pW, pH, fX, fY, fW, fH } = getFrame();
+    const { fW, fH } = getFrame();
 
-    // Resize canvas to cover the full preview area
-    if (oc.width !== pW || oc.height !== pH) {
-      oc.width = pW; oc.height = pH;
-      oc.style.width = pW + 'px'; oc.style.height = pH + 'px';
+    // Resize canvas to exactly the frame size (no outer envelope)
+    if (oc.width !== fW || oc.height !== fH) {
+      oc.width = fW; oc.height = fH;
+      oc.style.width = fW + 'px'; oc.style.height = fH + 'px';
     }
+
+    // Center the frame within the preview area
+    const pRect = previewEl.getBoundingClientRect();
+    oc.style.left = Math.round((pRect.width  - fW) / 2) + 'px';
+    oc.style.top  = Math.round((pRect.height - fH) / 2) + 'px';
 
     const ctx    = oc.getContext('2d');
     const natW   = img.naturalWidth;
@@ -4447,15 +4454,15 @@ function initResizeFrameCanvas() {
     const drawX     = -(renderW - fW) * ox - fW / 2;
     const drawY     = -(renderH - fH) * oy - fH / 2;
 
-    // 1 — solid dark background covering everything (no bleed-through)
-    ctx.fillStyle = '#0c0c0c';
-    ctx.fillRect(0, 0, pW, pH);
+    // 1 — background only matters where the image doesn't fully cover the
+    // frame (letterbox/fit mode); crop-fill always covers it edge-to-edge.
+    if (mode === 'letterbox') { ctx.fillStyle = '#000'; ctx.fillRect(0, 0, fW, fH); }
+    else { ctx.clearRect(0, 0, fW, fH); }
 
     // 2 — draw transformed image clipped strictly inside the frame
     ctx.save();
-    ctx.beginPath(); ctx.rect(fX, fY, fW, fH); ctx.clip();
-    if (mode === 'letterbox') { ctx.fillStyle = '#000'; ctx.fillRect(fX, fY, fW, fH); }
-    ctx.translate(fX + fW/2, fY + fH/2);
+    ctx.beginPath(); ctx.rect(0, 0, fW, fH); ctx.clip();
+    ctx.translate(fW/2, fH/2);
     ctx.rotate(rotRad);
     ctx.drawImage(img, drawX, drawY, renderW, renderH);
     ctx.restore();
@@ -4465,13 +4472,13 @@ function initResizeFrameCanvas() {
     ctx.save();
     ctx.strokeStyle = '#e5383b';
     ctx.lineWidth = 1;
-    ctx.strokeRect(fX + 0.5, fY + 0.5, fW - 1, fH - 1);
+    ctx.strokeRect(0.5, 0.5, fW - 1, fH - 1);
     ctx.lineWidth = lw; ctx.lineCap = 'square';
     ctx.beginPath();
-    ctx.moveTo(fX,       fY+cs);   ctx.lineTo(fX,      fY);      ctx.lineTo(fX+cs,    fY);
-    ctx.moveTo(fX+fW-cs, fY);      ctx.lineTo(fX+fW,   fY);      ctx.lineTo(fX+fW,    fY+cs);
-    ctx.moveTo(fX+fW,    fY+fH-cs);ctx.lineTo(fX+fW,   fY+fH);   ctx.lineTo(fX+fW-cs, fY+fH);
-    ctx.moveTo(fX+cs,    fY+fH);   ctx.lineTo(fX,      fY+fH);   ctx.lineTo(fX,       fY+fH-cs);
+    ctx.moveTo(0,    cs);   ctx.lineTo(0,    0);    ctx.lineTo(cs,    0);
+    ctx.moveTo(fW-cs,0);    ctx.lineTo(fW,   0);    ctx.lineTo(fW,    cs);
+    ctx.moveTo(fW,   fH-cs);ctx.lineTo(fW,   fH);   ctx.lineTo(fW-cs, fH);
+    ctx.moveTo(cs,   fH);   ctx.lineTo(0,    fH);   ctx.lineTo(0,     fH-cs);
     ctx.stroke();
 
     // 4 — dimension label inside frame (top-left)
@@ -4479,7 +4486,7 @@ function initResizeFrameCanvas() {
     const tarH2 = +S.settings.height || S.file?.height || 1080;
     ctx.font = '700 9px "JetBrains Mono",monospace';
     ctx.fillStyle = 'rgba(255,255,255,0.4)';
-    ctx.fillText(`${tarW2} × ${tarH2}`, fX + 7, fY + 14);
+    ctx.fillText(`${tarW2} × ${tarH2}`, 7, 14);
     ctx.restore();
   }
 
@@ -4499,8 +4506,8 @@ function initResizeFrameCanvas() {
 
   function isInsideFrame(e) {
     const { cx, cy } = getCanvasXY(e);
-    const { fX, fY, fW, fH } = getFrame();
-    return cx >= fX && cx <= fX+fW && cy >= fY && cy <= fY+fH;
+    const { fW, fH } = getFrame();
+    return cx >= 0 && cx <= fW && cy >= 0 && cy <= fH;
   }
 
   function onDown(e) {

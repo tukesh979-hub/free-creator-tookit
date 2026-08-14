@@ -366,6 +366,39 @@ gives false results — see the process note at the top of this file):
 Verified at 320/390/768/820px (mobile toolbar drawer open + closed) and
 1440px (confirmed the fix didn't touch desktop).
 
+## Resize tool: black pillarbox around the frame
+
+Reported with screenshots: Crop tab showed the image clean, no backdrop;
+Resize tab showed the same image sitting inside a large solid-`#0c0c0c`
+rectangle, with black bars on both sides even in Crop-to-Fill mode where the
+image should cover edge-to-edge.
+
+Root cause: `getFrame()` (the Resize overlay canvas's geometry function)
+computed two nested boxes — an outer envelope `pW × pH` (90% of the preview
+area's width, capped at 78vh height, matching the plain `<img>`'s CSS
+constraint) and an inner `fW × fH` frame inset a further 10% inside that
+envelope. The canvas was sized to the *outer* envelope and unconditionally
+filled solid `#0c0c0c` before drawing the frame — so anything in the 10%
+margin between the two boxes rendered as flat near-black dead space around
+the image, regardless of fit mode.
+
+Fixed by collapsing the two boxes into one: `getFrame()` now returns only
+`{fW, fH}`, computed directly against the same envelope the plain `<img>`
+uses (no extra 90%-of-90% inset), and the canvas is sized to exactly `fW ×
+fH` — the canvas *is* the frame, so there's no leftover area to paint a
+background into. It's centered in the preview area by setting `left`/`top`
+explicitly from `previewEl`'s rect on every redraw (not by flex
+auto-centering — the hidden `<img>` sibling still occupies its own layout
+box even at `visibility:hidden`, so letting flexbox center the pair would
+reproduce the earlier "centering a group" bug from the black-box/portrait-
+image fix above). The solid-black fill is now conditional on `letterbox`
+mode only, and only covers `0,0,fW,fH` — real letterboxing (image doesn't
+cover a mismatched-aspect frame) still shows correctly, it just no longer
+bleeds past the frame's own border. Verified via direct CDP reproduction:
+Crop and Resize now render the identical frame size/position for the same
+file (no jump switching tabs), and Letterbox mode's bars stay strictly
+inside the red frame border with nothing outside it.
+
 ## What NOT to do here
 
 - Don't hardcode a color — reach for `var(--…)`, including in inline
