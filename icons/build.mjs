@@ -51,18 +51,28 @@ function normalizeRaster(srcPath) {
   return { buf, mime: 'image/png' };
 }
 
+// Walks a directory to any depth — files can sit directly in
+// icons/<segment>/ or organized into subfolders (icons/video/basic/,
+// icons/video/effects/, etc.); only the filename (the tool id) matters.
+function walk(dir, out) {
+  let entries;
+  try { entries = readdirSync(dir, { withFileTypes: true }); } catch { return; }
+  for (const entry of entries) {
+    const full = join(dir, entry.name);
+    if (entry.isDirectory()) { walk(full, out); continue; }
+    const ext = extname(entry.name).toLowerCase();
+    if (!RASTER_EXT.has(ext) && ext !== '.svg') continue;
+    out.push(full);
+  }
+}
+
 function findIconFiles() {
   const found = new Map(); // id -> absolute path
   for (const seg of SEGMENTS) {
-    const dir = join(ROOT, seg);
-    let entries;
-    try { entries = readdirSync(dir); } catch { continue; }
-    for (const name of entries) {
-      const ext = extname(name).toLowerCase();
-      if (!RASTER_EXT.has(ext) && ext !== '.svg') continue;
-      const id = basename(name, extname(name));
-      const full = join(dir, name);
-      if (statSync(full).isDirectory()) continue;
+    const files = [];
+    walk(join(ROOT, seg), files);
+    for (const full of files) {
+      const id = basename(full, extname(full));
       found.set(id, full);
     }
   }
