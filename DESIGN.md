@@ -399,6 +399,27 @@ Crop and Resize now render the identical frame size/position for the same
 file (no jump switching tabs), and Letterbox mode's bars stay strictly
 inside the red frame border with nothing outside it.
 
+## Editor preview: image/video border was invisible
+
+The plain preview `<img>` and `<video>` both had `border:1px solid
+var(--border)`. `--border` is `#252525` in dark mode against an `.ed-view`
+background of `#080808` — a ~4% lightness difference, effectively invisible
+— and symmetric in light mode (`#e3e3e0` border on `#fafaf9` bg). Worse,
+even a higher-contrast dark gray wouldn't reliably show up against a photo
+whose own edge pixels happen to be dark (exactly the case in the reported
+screenshot).
+
+Added a new token, `--preview-border` — a translucent light overlay in dark
+mode (`rgba(255,255,255,.22)`) and a translucent dark overlay in light mode
+(`rgba(0,0,0,.18)`) — so the border reads by contrast against the canvas
+background regardless of what color the image's own edge happens to be, and
+regardless of theme. Applied at `2px` (was `1px`) with a soft
+`box-shadow:0 8px 28px rgba(0,0,0,.35)` for depth, to both the photo
+`<img>` (`renderPreview()`) and `.vid-preview-wrap video`. Doesn't touch the
+Resize/Crop canvas frame — that already draws its own high-contrast red
+border on purpose (red is reserved for an active selection). Verified in
+both themes via screenshot.
+
 ## What NOT to do here
 
 - Don't hardcode a color — reach for `var(--…)`, including in inline
