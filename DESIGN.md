@@ -233,6 +233,32 @@ wrong, not just the page.
 **Still not independently verified**: the editor's crop/trim tool panels
 specifically at the new type scale.
 
+## Type scale — second, larger pass
+
+The first readability pass (6-9px labels bumped into a 10-16px range) wasn't
+enough — reported "still smaller" afterward. Re-mapped a second time, working
+off the *already-bumped* values, into a 13-20px range (9→13, 10→14, 11→15,
+12→16, 13→17, 14→18, 15→19, 16→20, 18→22, 28→32px), plus inline `<svg
+width= height=>` icon dimensions bumped on the same scale (11→14 through
+24→26px) and `iconSVG()`'s default param 18→20.
+
+**Widening text without widening its container just wraps — this bit the
+editor sidebar.** `.ed-tools` was still 140px wide; "EXTRACT AUDIO"/"REMOVE
+AUDIO"/"TO VERTICAL" at the new 16px stopped fitting on one line. Whenever a
+type-scale pass touches a fixed-width panel with real label text in it
+(not just a paragraph that can reflow), check the panel's width against the
+new font size, not just the font-size rule itself. Widened `.ed-cat` 56→72px,
+`.ed-tools` 140→184px, `.ed-right` 240→280px (desktop and the matching mobile
+drawer variants), and `.er-stat-row`'s grid columns 50px/36px→66px/46px for
+the System Status labels/values. Verified via screenshot at desktop
+(1440px, no wrapping) and mobile (390px, still reflows cleanly).
+
+Still genuinely fixed-px, not fluid/viewport-relative, except the hero H1
+(already `clamp()`-based). If this still reads small on a specific display,
+the next lever isn't another blanket px bump — it's `clamp()`-driven fluid
+type on the recurring small-label patterns, which needs to know the actual
+viewport/resolution in question rather than guessing a third time.
+
 ## Responsive fixes (found in a follow-up pass, predate this redesign)
 
 Two real bugs in the nav/editor responsive CSS — present before this
