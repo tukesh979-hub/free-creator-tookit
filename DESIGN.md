@@ -233,6 +233,38 @@ wrong, not just the page.
 **Still not independently verified**: the editor's crop/trim tool panels
 specifically at the new type scale.
 
+## Editor preview: real vertical-centering bug + image too small
+
+User reported a big "black fill box" around the loaded image with the image
+sitting off-center. Measured it precisely (`getBoundingClientRect()` on the
+image and its `.ed-view` container, not eyeballing a screenshot) rather than
+guessing, since this session already burned a round on a false-positive
+"blank visual" that turned out to be a screenshot-tooling artifact.
+
+**Horizontal centering was already exact** (59.6px both sides). **Vertical
+centering had a real ~33px offset**, caused by `.preview-meta` (the
+`filename · size · dimensions` caption) being an inline flex sibling of
+`#preview-img` inside `.preview-area`'s centered flex column — flexbox was
+centering the *(image + caption)* group as one unit, which visibly pushes
+the image itself above true center by roughly half the caption's height.
+Fixed by taking `.preview-meta` out of the centering flow entirely:
+`position:absolute;bottom:12px` within `.preview-area` (now
+`position:relative`), so the image is the sole flex-centered child and
+centers on its own. Applies to both the photo and video preview branches
+(they share the same `.preview-area`/`.preview-meta` structure).
+Re-measured after the fix: 71.0px top and bottom, effectively identical.
+
+**Separately, the image was capped at only 55vh** — on a wide-but-short
+editor canvas, a square or portrait image hitting that height cap leaves
+large empty margins on both sides, which read as an oversized "black box."
+Bumped the cap to 78vh in the four places it's defined
+(`.vid-preview-wrap`, the `<video>` inline style, the photo `<img>` inline
+style, and the Resize tool's `getFrame()` — the same four spots that had to
+move together last time to avoid the Crop/Resize scale-jump bug). Verified
+with a real 1080×1080 test image: renders at 702×702 now vs. ~495×495
+before, ~42% larger per side, still centered exactly, and Crop/Resize still
+agree on height (702px both).
+
 ## Type scale — second, larger pass
 
 The first readability pass (6-9px labels bumped into a 10-16px range) wasn't

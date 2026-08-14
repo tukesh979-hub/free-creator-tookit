@@ -681,12 +681,22 @@ footer{background:var(--bg2);border-top:1px solid var(--border);padding:48px 20p
 .btn-browse{border:1px solid rgba(255,59,59,.4);color:var(--red);font-size:16px;font-weight:700;letter-spacing:2px;text-transform:uppercase;padding:7px 18px;transition:all var(--transition);border-radius:6px}
 .btn-browse:hover{background:rgba(255,59,59,.08);border-color:var(--red)}
 
-/* Preview area */
-.preview-area{display:none;width:100%;height:100%;align-items:center;justify-content:center;flex-direction:column;gap:12px;padding:16px;overflow:auto}
+/* Preview area — position:relative so .preview-meta can pin to the bottom
+   edge (see below) instead of sitting inline in the centering flow, which
+   was pushing the image itself above true center. */
+.preview-area{display:none;width:100%;height:100%;align-items:center;justify-content:center;flex-direction:column;gap:12px;padding:16px;overflow:auto;position:relative}
 .preview-area.show{display:flex}
 /* video styling now lives inside .vid-preview-wrap */
 .preview-area audio{width:100%;max-width:420px}
-.preview-meta{display:flex;gap:14px;font-family:var(--mono);font-size:16px;color:var(--dim);flex-wrap:wrap;justify-content:center}
+/* Absolutely positioned so it never affects the image's own vertical
+   centering — previously an inline flex sibling of #preview-img inside a
+   centered flex column, which centered the (image + caption) group as a
+   unit and visibly shifted the image itself above true center. */
+.preview-meta{
+  position:absolute;left:16px;right:16px;bottom:12px;
+  display:flex;gap:14px;font-family:var(--mono);font-size:16px;color:var(--dim);
+  flex-wrap:wrap;justify-content:center;pointer-events:none
+}
 .preview-meta span{display:flex;align-items:center;gap:4px}
 /* legacy card kept for fallback */
 .audio-card{background:var(--bg3);border:1px solid var(--border);padding:10px 12px;display:flex;align-items:center;gap:10px;width:100%;max-width:400px;border-radius:6px}
@@ -806,9 +816,9 @@ footer{background:var(--bg2);border-top:1px solid var(--border);padding:48px 20p
   padding:5px 8px;background:var(--bg4);border-left:2px solid var(--border2);border-radius:1px}
 
 /* ═══════════ VIDEO PREVIEW WRAP + LIVE-PREVIEW OVERLAY ═══════════ */
-.vid-preview-wrap{position:relative;display:inline-flex;max-width:90%;max-height:55vh}
+.vid-preview-wrap{position:relative;display:inline-flex;max-width:90%;max-height:78vh}
 .vid-preview-wrap video{
-  max-width:100%;max-height:55vh;width:auto;height:auto;display:block;
+  max-width:100%;max-height:78vh;width:auto;height:auto;display:block;
   border:1px solid var(--border);object-fit:contain;background:#000;border-radius:6px;
   transition:filter .1s,transform .1s
 }
@@ -4374,13 +4384,13 @@ function initResizeFrameCanvas() {
 
   // ── Frame geometry: centered in the full preview ────────────────────────────
   // pW/pH must match the exact box the plain <img> constrains itself to
-  // (max-width:90% of previewEl, max-height:55vh — see renderPreview()) or
+  // (max-width:90% of previewEl, max-height:78vh — see renderPreview()) or
   // switching between Crop and Resize visibly jumps: two tools showing the
   // same loaded file at two independently-computed sizes.
   function getFrame() {
     const pRect = previewEl.getBoundingClientRect();
     const pW = Math.round(pRect.width * 0.9);
-    const pH = Math.round(Math.min(pRect.height, window.innerHeight * 0.55));
+    const pH = Math.round(Math.min(pRect.height, window.innerHeight * 0.78));
 
     const tarW = +S.settings.width  || S.file?.width  || 1920;
     const tarH = +S.settings.height || S.file?.height || 1080;
@@ -5592,7 +5602,7 @@ function renderPreview() {
   } else {
     hideEdScrubber();
     // Create image element properly to ensure it renders
-    area.innerHTML = `<img id="preview-img" src="${f.url}" alt="Preview of ${f.name}" style="max-width:90%;max-height:55vh;width:auto;height:auto;display:block;border:1px solid var(--border);object-fit:contain;border-radius:6px;background:transparent;"/><div class="preview-meta">${meta}</div>`;
+    area.innerHTML = `<img id="preview-img" src="${f.url}" alt="Preview of ${f.name}" style="max-width:90%;max-height:78vh;width:auto;height:auto;display:block;border:1px solid var(--border);object-fit:contain;border-radius:6px;background:transparent;"/><div class="preview-meta">${meta}</div>`;
     const imgEl = area.querySelector('#preview-img');
     if (imgEl) {
       imgEl.onload = () => {
