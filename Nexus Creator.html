@@ -624,6 +624,10 @@ footer{background:var(--bg2);border-top:1px solid var(--border);padding:48px 20p
 .cat-btn:hover{color:var(--muted)}
 .cat-btn.active{color:var(--red);border-right-color:var(--red);background:rgba(255,59,59,.04)}
 .cat-btn span{font-size:15px;font-weight:700;letter-spacing:.5px;text-transform:uppercase}
+/* A loaded file locks out the other categories — switching would leave the
+   tool list built for a file type that isn't actually loaded. */
+.cat-btn.locked{opacity:.35;cursor:not-allowed}
+.cat-btn.locked:hover{color:var(--dim)}
 
 .ed-tools{
   width:224px;background:var(--bg2);border-right:1px solid var(--border);
@@ -2238,7 +2242,11 @@ function onToolPageFile(e, toolId) {
   if (!f) return;
   const t = byId(toolId);
   loadFile(f);
-  if (t) selectTool(t);
+  // Only jump to this specific tool if the dropped file actually matches
+  // its category — a photo dropped on the Video-Trim page should land on
+  // Photo's first tool (loadFile already did that), not a video tool
+  // pointed at a file that isn't a video.
+  if (t && catForFileType(getType(f)) === t.cat) selectTool(t);
   goPage('editor');
 }
 
@@ -2250,7 +2258,7 @@ function onToolPageDrop(e, toolId) {
   if (!f) return;
   const t = byId(toolId);
   loadFile(f);
-  if (t) selectTool(t);
+  if (t && catForFileType(getType(f)) === t.cat) selectTool(t);
   goPage('editor');
 }
 
@@ -2369,12 +2377,37 @@ function launchTool(id) {
 // ════════════════════════════════════════════════════════════════════════════
 // EDITOR — CATEGORY & TOOL
 // ════════════════════════════════════════════════════════════════════════════
+// image files live under the 'photo' category everywhere else in the tool
+// registry — this is the one place that mapping needs to be shared logic
+// rather than re-derived inline.
+const catForFileType = type => type === 'image' ? 'photo' : type;
+
 function setCat(cat) {
+  // A loaded file locks the sidebar to its own category — switching to
+  // Video tools with a photo loaded (or vice versa) left every tool in
+  // that list operating on a file of the wrong type.
+  if (S.file && cat !== 'ai' && cat !== catForFileType(S.file.type)) {
+    showStatus('error', `✕ This file is ${S.file.type === 'image' ? 'a photo' : 'an ' + S.file.type + ' file'} — start a new file to use ${cat[0].toUpperCase() + cat.slice(1)} tools.`);
+    return;
+  }
   S.cat = cat;
   document.querySelectorAll('.cat-btn').forEach(b => {
     b.classList.toggle('active', b.dataset.cat === cat);
   });
   renderToolList();
+}
+
+// Dims out the category tabs a loaded file can't switch to. Called
+// whenever S.file changes (load and reset) — setCat()'s own guard above
+// is what actually blocks the switch; this just makes that visible before
+// the user clicks rather than after.
+function updateCatLock() {
+  const requiredCat = S.file ? catForFileType(S.file.type) : null;
+  document.querySelectorAll('.cat-btn').forEach(b => {
+    const locked = !!requiredCat && b.dataset.cat !== 'ai' && b.dataset.cat !== requiredCat;
+    b.classList.toggle('locked', locked);
+    b.setAttribute('aria-disabled', String(locked));
+  });
 }
 
 function renderToolList() {
@@ -5386,9 +5419,10 @@ async function loadFile(file) {
     const meta = await readFileMetadata(file, type);
     Object.assign(S.file, meta);
 
-    // Auto-switch sidebar category
-    const cat = type === 'image' ? 'photo' : type;
+    // Auto-switch sidebar category, then lock the other tabs to it
+    const cat = catForFileType(type);
     setCat(cat);
+    updateCatLock();
 
     // Auto-select first tool of that category
     const tools = byCat(cat);
@@ -5700,6 +5734,7 @@ function resetEditor() {
   if (S.file && S.file.url) URL.revokeObjectURL(S.file.url);
   S.file = null;
   S.outputBlob = null;
+  updateCatLock();
   $('ed-drop').style.display = 'block';
   const area = $('ed-preview');
   area.classList.remove('show');

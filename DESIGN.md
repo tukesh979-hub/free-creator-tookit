@@ -527,6 +527,36 @@ new per-tool fallback works, not just the regular tools grid.
 `icons/README.md` has the full filename checklist (all 36 ids across the
 four folders) so future uploads don't need this file re-explained.
 
+## Editor category tabs weren't locked to the loaded file
+
+Real bug, not cosmetic: `loadFile()` auto-switched the sidebar to the right
+category (`setCat(cat)`) when a file loaded, but `setCat()` itself had no
+guard — clicking Video/Photo/Audio afterward switched the tool list freely
+regardless of what was actually loaded. Load a photo, click "Video," pick
+Trim, and the tool panel would build itself around a video file that
+didn't exist.
+
+Fixed with a single source of truth, `catForFileType(type)` (image→photo,
+video/audio pass through), used in three places: `setCat()` now refuses
+the switch (and shows a status message explaining why) if a file is loaded
+and the target category doesn't match it; a new `updateCatLock()` dims the
+mismatched tabs (`.cat-btn.locked`, called from `loadFile()` and
+`resetEditor()`) so it's visible *before* the click, not just blocked
+after; and `onToolPageFile`/`onToolPageDrop` (dropping a file directly on
+a specific tool's page) now only jump to that tool if the dropped file's
+type actually matches it, otherwise falling through to `loadFile()`'s own
+correct auto-selection. AI Tools stays exempt from the lock — it's all
+"Coming Soon" placeholders, not real per-file processing, so there's
+nothing to protect there.
+
+Verified via CDP end-to-end, not just read the diff: loaded a photo,
+confirmed Video/Audio tabs got `.locked` + a click on Video left `S.cat`
+at `'photo'` + showed the explanatory status message; reset and confirmed
+all three unlocked again; loaded audio and confirmed the inverse (Photo/
+Video locked, Audio not, AI still clickable and unaffected); and opened
+the Video→Trim tool page and dropped a photo onto it, confirming it lands
+on Photo→Crop rather than leaving a photo loaded under a video tool.
+
 ## What NOT to do here
 
 - Don't hardcode a color — reach for `var(--…)`, including in inline
