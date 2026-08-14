@@ -1975,6 +1975,15 @@ const AI_TOOLS = [
   {id:'ai-denoise',   label:'Noise Removal', desc:'Remove background noise'},
 ];
 
+// Per-tool custom icon overrides, keyed by tool id, as data: URIs — filled
+// in by icons/build.mjs from whatever's dropped in icons/<segment>/<id>.*.
+// A tool with no entry here just keeps its built-in iconSVG() glyph (see
+// toolIconHTML() below), so partial uploads never break the grid.
+// CUSTOM_ICONS:START
+const CUSTOM_ICONS = {
+};
+// CUSTOM_ICONS:END
+
 const byCat = c => TOOLS.filter(t => t.cat === c);
 const byId  = id => TOOLS.find(t => t.id === id);
 const $ = id => document.getElementById(id);
@@ -2265,6 +2274,16 @@ function fgridWaveBars(seed) {
   }).join('');
 }
 
+// Renders a custom uploaded icon (CUSTOM_ICONS[id]) if one exists for this
+// tool, otherwise falls back to the built-in inline-SVG glyph.
+function toolIconHTML(id, fallbackKey, size) {
+  const custom = CUSTOM_ICONS[id];
+  if (custom) {
+    return `<img src="${custom}" width="${size}" height="${size}" alt="" style="display:block;object-fit:contain"/>`;
+  }
+  return iconSVG(fallbackKey, size);
+}
+
 function fgridCardHTML(t) {
   let visualExtra = '';
   if (t.cat === 'photo') {
@@ -2278,7 +2297,7 @@ function fgridCardHTML(t) {
     <button class="fgrid-card" onclick="openToolPage('${t.id}')" data-name="${t.label.toLowerCase()}" data-desc="${t.desc.toLowerCase()}" aria-label="${t.label}: ${t.desc}">
       <div class="fgrid-visual cat-${t.cat}">
         ${visualExtra}
-        <div class="fgrid-ico" aria-hidden="true">${iconSVG(t.icon, 24)}</div>
+        <div class="fgrid-ico" aria-hidden="true">${toolIconHTML(t.id, t.icon, 24)}</div>
       </div>
       <div class="fgrid-body">
         <div class="fgrid-name">${t.label}</div>
@@ -2292,7 +2311,7 @@ function fgridAICardHTML(t) {
     <button class="fgrid-card" onclick="alert('${t.label} — Coming in Phase 2!\\n\\nThis will run entirely in your browser using Transformers.js — no server, no API keys.')" aria-label="${t.label} (coming soon)">
       <div class="fgrid-visual cat-ai">
         <span class="fgrid-soon-tag">Soon</span>
-        <div class="fgrid-ico" aria-hidden="true">${iconSVG('ai', 24)}</div>
+        <div class="fgrid-ico" aria-hidden="true">${toolIconHTML(t.id, 'ai', 24)}</div>
       </div>
       <div class="fgrid-body">
         <div class="fgrid-name">${t.label}</div>

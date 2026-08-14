@@ -487,6 +487,46 @@ whatever `img.parentNode` currently is rather than assuming it's
 now measures pure content size instead of content+the-old-inline-border, if
 anything slightly more accurate than before.
 
+## Custom tool icons — drop-in folder + build script
+
+User wants to hand-generate real icon art (segmented by video/photo/audio)
+rather than keep using the built-in inline-SVG glyph set, and wants a
+low-friction handoff: drop image files in, they end up on the site, no
+back-and-forth pasting code.
+
+Since this is a single static HTML file with no backend, "uploaded to the
+website" can only mean embedded as `data:` URIs directly in the file — there's
+no server to host separate asset files against. Landed on: a plain folder
+(`icons/{video,photo,audio,ai}/<tool-id>.{png,webp,jpg,svg}`, filename =
+exact `TOOLS`/`AI_TOOLS` id) plus `icons/build.mjs`, a dependency-free Node
+script that scans the folder, normalizes raster images to ≤256px PNG via
+macOS `sips` (SVGs pass through as vector text), base64-encodes everything,
+and replaces a `CUSTOM_ICONS` object literal between
+`// CUSTOM_ICONS:START`/`:END` markers in `Nexus Creator.html`. Re-running it
+is idempotent — full replace, not append.
+
+On the render side: a new `toolIconHTML(id, fallbackKey, size)` helper
+(next to `fgridCardHTML`) checks `CUSTOM_ICONS[id]` first and renders an
+`<img>`, falling back to the existing `iconSVG(fallbackKey, size)` when
+there's no entry. Wired into both `fgridCardHTML` (the 32 real tools) and
+`fgridAICardHTML` (the 4 AI tools, which previously all shared one generic
+`'ai'` glyph with no per-tool distinction at all). Because it's a fallback
+rather than a hard requirement, uploads can be partial — the grid never
+looks broken or incomplete mid-rollout, tools without a custom icon yet
+just keep their current glyph.
+
+Verified with a synthetic test icon end-to-end: dropped a file at
+`icons/video/video-trim.png`, ran the build, confirmed via screenshot that
+the Trim card (and only the Trim card) picked up the custom image on both
+the category page and the home page's "Explore Every Tool" grid, then
+removed the test file and re-ran the build to confirm it correctly resets
+back to `CUSTOM_ICONS = {}` (0/36) rather than leaving a stale entry
+behind. Also checked `ai-removebg` the same way to confirm the AI grid's
+new per-tool fallback works, not just the regular tools grid.
+
+`icons/README.md` has the full filename checklist (all 36 ids across the
+four folders) so future uploads don't need this file re-explained.
+
 ## What NOT to do here
 
 - Don't hardcode a color — reach for `var(--…)`, including in inline
