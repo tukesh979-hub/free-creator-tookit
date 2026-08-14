@@ -139,6 +139,30 @@ jumping straight to the editor (`launchTool(id)` still exists, now unused,
 left in place rather than deleted in case a "skip straight to editor"
 fast-path is wanted later).
 
+## Feature grid — "Explore Every Tool" (home page)
+
+An illustrated overview of all 34 tools (30 real + 4 AI placeholders),
+requested explicitly by the user after finding the plain rail-list tool
+directory (5-per-category preview, text only) insufficient — they wanted
+something more visual, "images explaining what it does" per tool.
+
+No real photo/screenshot assets exist or can be generated for 34 tools, so
+this is built compositionally rather than as 34 bespoke illustrations:
+`renderFeatureGrid()` generates one `.fgrid-card` per `TOOLS`/`AI_TOOLS`
+entry, each composing a **category-styled frame** (photo = crop-handle
+corners, same motif as the editorial section; video = a scrub bar with
+playhead; audio = a waveform baseline; ai = plain plate + amber "Soon"
+badge) with the tool's **own real icon** from the existing `TOOL_ICONS` set
+(the same icons the rail lists already use) as the focal mark, plus name and
+`desc`. Generated straight from data — never hand-duplicated, consistent
+with how individual tool pages are built. Verified via screenshot at desktop
+(4-column) and mobile (1-column, `auto-fill minmax(216px,1fr)` handles the
+reflow with no CSS overrides needed) — all 34 cards, including the AI
+placeholders' "Soon" badges, render correctly.
+
+Sits between the AI Tools rail and Quick Adjust — after the compact
+directory (quick scan + jump to editor), before the interactive demo.
+
 ## Deliberately NOT built — flag before attempting
 
 - **A literal multi-track (V1 video / A1 audio / T1 text) timeline** — the

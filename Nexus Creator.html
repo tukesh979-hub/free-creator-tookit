@@ -415,6 +415,70 @@ nav{
 .feat-crop-h.br{bottom:-1px;right:-1px;transform:scale(-1)}
 .feat-photo-meta{position:absolute;bottom:10px;left:10px;font-family:var(--mono);font-size:12px;color:rgba(255,255,255,.55);letter-spacing:.5px}
 
+/* ═══════════ FEATURE GRID — every tool, illustrated ═══════════
+   Compositional, not 34 bespoke illustrations: a category-styled frame
+   (photo = crop-corner plate, video = scrub-bar frame, audio = waveform
+   baseline, ai = sparkle field) reused across every card of that category,
+   with the tool's own real icon (same TOOL_ICONS set the rail lists use)
+   as the specific focal mark. Generated from TOOLS/AI_TOOLS data — see
+   renderFeatureGrid(). */
+.fgrid-head{margin-bottom:28px}
+.fgrid-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(216px,1fr));gap:14px}
+.fgrid-card{
+  background:var(--bg2);border:1px solid var(--border);border-radius:var(--r-lg);
+  overflow:hidden;text-align:left;transition:border-color var(--transition-fast),transform var(--transition-fast);
+  display:flex;flex-direction:column;cursor:pointer
+}
+.fgrid-card:hover,.fgrid-card:focus-visible{border-color:var(--border2);transform:translateY(-2px)}
+.fgrid-visual{
+  position:relative;aspect-ratio:16/10;display:flex;align-items:center;justify-content:center;
+  overflow:hidden;background:var(--bg3)
+}
+.fgrid-visual.cat-photo{background:linear-gradient(160deg,var(--bg4),var(--bg3))}
+.fgrid-visual.cat-ai{background:linear-gradient(160deg,var(--bg3),var(--bg2))}
+
+/* Photo cards: crop-handle corners, same motif as the editorial section */
+.fgrid-crop-h{position:absolute;width:12px;height:12px}
+.fgrid-crop-h::before,.fgrid-crop-h::after{content:'';position:absolute;background:var(--border2)}
+.fgrid-crop-h::before{width:100%;height:2px;top:0;left:0}
+.fgrid-crop-h::after{width:2px;height:100%;top:0;left:0}
+.fgrid-crop-h.tl{top:10px;left:10px}
+.fgrid-crop-h.tr{top:10px;right:10px;transform:scaleX(-1)}
+.fgrid-crop-h.bl{bottom:10px;left:10px;transform:scaleY(-1)}
+.fgrid-crop-h.br{bottom:10px;right:10px;transform:scale(-1)}
+.fgrid-card:hover .fgrid-crop-h::before,.fgrid-card:hover .fgrid-crop-h::after{background:var(--red)}
+
+/* Video cards: scrub bar along the bottom edge */
+.fgrid-scrub{position:absolute;bottom:12px;left:14px;right:14px;height:2px;background:var(--border2);border-radius:var(--r-pill)}
+.fgrid-scrub::after{content:'';position:absolute;left:0;top:0;height:100%;width:34%;background:var(--red);border-radius:var(--r-pill)}
+.fgrid-scrub::before{content:'';position:absolute;left:34%;top:50%;width:6px;height:6px;border-radius:50%;background:var(--red);transform:translate(-50%,-50%)}
+
+/* Audio cards: faint waveform baseline */
+.fgrid-wave{position:absolute;bottom:0;left:0;right:0;height:26px;display:flex;align-items:flex-end;justify-content:center;gap:2px;padding:0 14px;opacity:.45}
+.fgrid-wave span{width:2px;background:var(--red);border-radius:1px}
+
+.fgrid-ico{
+  position:relative;z-index:1;width:48px;height:48px;border-radius:50%;
+  background:var(--bg2);border:1px solid var(--border2);color:var(--red);
+  display:flex;align-items:center;justify-content:center;
+  box-shadow:0 8px 20px -10px rgba(0,0,0,.5);transition:border-color var(--transition-fast)
+}
+.fgrid-card:hover .fgrid-ico{border-color:var(--red)}
+
+.fgrid-cat-tag{
+  position:absolute;top:10px;left:10px;font-family:var(--mono);font-size:9px;letter-spacing:1.5px;
+  text-transform:uppercase;color:var(--dim);z-index:1
+}
+.fgrid-visual.cat-photo .fgrid-cat-tag{display:none} /* corners already read as "photo" */
+.fgrid-soon-tag{
+  position:absolute;top:10px;right:10px;font-family:var(--mono);font-size:9px;font-weight:700;letter-spacing:.5px;
+  background:var(--amber);color:#000;padding:2px 6px;border-radius:var(--r-pill);z-index:1
+}
+
+.fgrid-body{padding:13px 15px 15px}
+.fgrid-name{font-size:14px;font-weight:700;margin-bottom:3px}
+.fgrid-desc{font-size:12px;color:var(--muted);line-height:1.4}
+
 /* ═══════════ AUDIO SECTION — full-width waveform, not a split ═══════════ */
 .audio-sec{border:1px solid var(--border);border-radius:var(--r-lg);padding:40px 32px;background:var(--bg2)}
 .audio-sec-head{display:flex;justify-content:space-between;align-items:flex-end;flex-wrap:wrap;gap:16px;margin-bottom:28px}
@@ -1364,6 +1428,15 @@ footer{background:var(--bg2);border-top:1px solid var(--border);padding:48px 20p
       <div class="ai-grid" id="home-ai"></div>
     </section>
 
+    <!-- Feature grid: every tool, illustrated -->
+    <section class="sec" aria-label="Explore every tool">
+      <div class="sec-head fgrid-head">
+        <div class="sec-title">Explore Every Tool</div>
+        <span class="sec-link" id="fgrid-count"></span>
+      </div>
+      <div class="fgrid-grid" id="fgrid-grid"></div>
+    </section>
+
     <!-- Quick Adjust -->
     <section class="sec" aria-label="Quick adjust photo">
       <div class="qa-box">
@@ -2205,6 +2278,63 @@ function renderHomeGrids() {
         <div class="ai-desc">${t.desc}</div>
       </div>
     </button>`).join('');
+}
+
+// Illustrated overview grid — every real tool plus the AI placeholders,
+// generated straight from TOOLS/AI_TOOLS (never hand-duplicated data).
+// Each card composes a category-styled frame (photo = crop corners, video =
+// scrub bar, audio = waveform baseline, ai = plain plate + Soon badge) with
+// the tool's own real icon from TOOL_ICONS — the same set the rail lists
+// use — rather than 34 one-off illustrations.
+function fgridWaveBars(seed) {
+  return Array.from({ length: 22 }, (_, i) => {
+    const h = 4 + Math.round(Math.abs(Math.sin(i * 0.7 + seed)) * 18);
+    return `<span style="height:${h}px"></span>`;
+  }).join('');
+}
+
+function fgridCardHTML(t) {
+  let visualExtra = '';
+  if (t.cat === 'photo') {
+    visualExtra = `<div class="fgrid-crop-h tl"></div><div class="fgrid-crop-h tr"></div><div class="fgrid-crop-h bl"></div><div class="fgrid-crop-h br"></div>`;
+  } else if (t.cat === 'video') {
+    visualExtra = `<span class="fgrid-cat-tag">Video</span><div class="fgrid-scrub"></div>`;
+  } else if (t.cat === 'audio') {
+    visualExtra = `<span class="fgrid-cat-tag">Audio</span><div class="fgrid-wave">${fgridWaveBars(t.id.length)}</div>`;
+  }
+  return `
+    <button class="fgrid-card" onclick="openToolPage('${t.id}')" aria-label="${t.label}: ${t.desc}">
+      <div class="fgrid-visual cat-${t.cat}">
+        ${visualExtra}
+        <div class="fgrid-ico" aria-hidden="true">${iconSVG(t.icon, 22)}</div>
+      </div>
+      <div class="fgrid-body">
+        <div class="fgrid-name">${t.label}</div>
+        <div class="fgrid-desc">${t.desc}</div>
+      </div>
+    </button>`;
+}
+
+function fgridAICardHTML(t) {
+  return `
+    <button class="fgrid-card" onclick="alert('${t.label} — Coming in Phase 2!\\n\\nThis will run entirely in your browser using Transformers.js — no server, no API keys.')" aria-label="${t.label} (coming soon)">
+      <div class="fgrid-visual cat-ai">
+        <span class="fgrid-soon-tag">Soon</span>
+        <div class="fgrid-ico" aria-hidden="true">${iconSVG('ai', 22)}</div>
+      </div>
+      <div class="fgrid-body">
+        <div class="fgrid-name">${t.label}</div>
+        <div class="fgrid-desc">${t.desc}</div>
+      </div>
+    </button>`;
+}
+
+function renderFeatureGrid() {
+  const el = $('fgrid-grid');
+  if (!el) return;
+  el.innerHTML = TOOLS.map(fgridCardHTML).join('') + AI_TOOLS.map(fgridAICardHTML).join('');
+  const countEl = $('fgrid-count');
+  if (countEl) countEl.textContent = (TOOLS.length + AI_TOOLS.length) + ' tools';
 }
 
 function renderToolPage(cat) {
@@ -6517,6 +6647,7 @@ function initAudioBanner() {
 document.addEventListener('DOMContentLoaded', () => {
   applyTheme(S.theme);
   renderHomeGrids();
+  renderFeatureGrid();
   renderToolPage('video');
   renderToolPage('photo');
   renderToolPage('audio');
