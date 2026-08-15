@@ -4393,11 +4393,16 @@ function updateVignette(amount, imgEl) {
 
   const v = document.createElement('div');
   v.id = 'preview-vignette';
-  // Position exactly over the image element
+  // Position exactly over the image element. offsetLeft/offsetTop are
+  // relative to the nearest positioned ancestor, which is .img-preview-wrap
+  // (not #ed-preview, where this gets appended) — use getBoundingClientRect
+  // diffs instead so it lines up regardless of intermediate wrappers.
+  const pRect = $('ed-preview').getBoundingClientRect();
+  const iRect = imgEl.getBoundingClientRect();
   v.style.cssText = `
     position:absolute;
-    left:${imgEl.offsetLeft}px;
-    top:${imgEl.offsetTop}px;
+    left:${iRect.left - pRect.left}px;
+    top:${iRect.top - pRect.top}px;
     width:${imgEl.offsetWidth}px;
     height:${imgEl.offsetHeight}px;
     pointer-events:none;z-index:6;border-radius:6px;
@@ -4804,11 +4809,16 @@ function initCropOverlay() {
   if (window._cropMoveHandler) { document.removeEventListener('mousemove', window._cropMoveHandler); }
   window._cropUpHandler = null; window._cropMoveHandler = null;
 
-  // Position using offsetLeft/offsetTop — layout-correct, scroll-safe
+  // Position via getBoundingClientRect diffs against `preview` (where the
+  // overlay is appended below) rather than offsetLeft/offsetTop — those are
+  // relative to the nearest positioned ancestor, which is .img-preview-wrap,
+  // not `preview` itself, and the two don't share an origin.
   preview.style.position = 'relative';
   preview.style.cursor = 'crosshair'; // prevent arrow-cursor flash when pointer drifts off canvas edge
-  const iL = img.offsetLeft;
-  const iT = img.offsetTop;
+  const pRect0 = preview.getBoundingClientRect();
+  const iRect0 = img.getBoundingClientRect();
+  const iL = iRect0.left - pRect0.left;
+  const iT = iRect0.top - pRect0.top;
   const iW = img.offsetWidth;
   const iH = img.offsetHeight;
   if (iW < 4 || iH < 4) {
