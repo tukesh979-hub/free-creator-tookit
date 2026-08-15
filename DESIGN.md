@@ -183,13 +183,13 @@ directory (quick scan + jump to editor), before the interactive demo.
 
 ## Deliberately NOT built — flag before attempting
 
-- ~~A literal multi-track (V1 video / A1 audio / T1 text) timeline~~ —
-  **built for real, see "Persistent scrub bar: real V1+A1 multi-track" below.**
-  This note originally argued against fabricating tracks with no underlying
-  function when nothing had asked for one; it doesn't apply once the user
-  explicitly requests a real one and it's backed by genuine per-row content
-  (actual filmstrip, actual decoded waveform) rather than decoration. No text
-  track yet — that's still pending the editing-panel work.
+- **A literal multi-track (V1 video / A1 audio / T1 text) timeline** — the
+  app's data model is one tool acting on one file, not a multi-track project.
+  Building the mockup's persistent 3-track timeline literally would mean
+  fabricating tracks with no underlying function. A single-track, fully real
+  persistent video scrubber (filmstrip + play/pause + seek, wired to the
+  actual `<video>` element) already exists from an earlier pass
+  (`initEdScrubber()`) and was left as-is — it's genuine, just not "3 tracks."
 - **Real zoom controls on the editor canvas** — the brief's example shows
   "ZOOM − 100% +" but no zoom/pan functionality exists in the app currently.
   Added as a purely illustrative detail in the home page's Editor Showcase
@@ -527,120 +527,15 @@ new per-tool fallback works, not just the regular tools grid.
 `icons/README.md` has the full filename checklist (all 36 ids across the
 four folders) so future uploads don't need this file re-explained.
 
-## Editor category tabs weren't locked to the loaded file
-
-Real bug, not cosmetic: `loadFile()` auto-switched the sidebar to the right
-category (`setCat(cat)`) when a file loaded, but `setCat()` itself had no
-guard — clicking Video/Photo/Audio afterward switched the tool list freely
-regardless of what was actually loaded. Load a photo, click "Video," pick
-Trim, and the tool panel would build itself around a video file that
-didn't exist.
-
-Fixed with a single source of truth, `catForFileType(type)` (image→photo,
-video/audio pass through), used in three places: `setCat()` now refuses
-the switch (and shows a status message explaining why) if a file is loaded
-and the target category doesn't match it; a new `updateCatLock()` dims the
-mismatched tabs (`.cat-btn.locked`, called from `loadFile()` and
-`resetEditor()`) so it's visible *before* the click, not just blocked
-after; and `onToolPageFile`/`onToolPageDrop` (dropping a file directly on
-a specific tool's page) now only jump to that tool if the dropped file's
-type actually matches it, otherwise falling through to `loadFile()`'s own
-correct auto-selection. AI Tools stays exempt from the lock — it's all
-"Coming Soon" placeholders, not real per-file processing, so there's
-nothing to protect there.
-
-Verified via CDP end-to-end, not just read the diff: loaded a photo,
-confirmed Video/Audio tabs got `.locked` + a click on Video left `S.cat`
-at `'photo'` + showed the explanatory status message; reset and confirmed
-all three unlocked again; loaded audio and confirmed the inverse (Photo/
-Video locked, Audio not, AI still clickable and unaffected); and opened
-the Video→Trim tool page and dropped a photo onto it, confirming it lands
-on Photo→Crop rather than leaving a photo loaded under a video tool.
-
-## Persistent scrub bar: real V1+A1 multi-track
-
-First piece of the "proper editing workspace" request — everything else
-(text/move tool, full properties panel, audio stem layers) is staged
-behind this since it's foundational. Scope for this pass: upgrade the
-existing single-row video scrubber (`initEdScrubber()`, filmstrip only)
-into a real two-row timeline — V1 (filmstrip, unchanged) + A1 (the
-video's own decoded audio waveform, new), one shared playhead spanning
-both, still wired to the actual `<video>` element.
-
-Markup: `.ed-scrub` is now a column (transport row on top: play + time;
-then a tracks row: a badges column [V1 red / A1 gray] + a track column
-holding two `.ed-scrub-row`s + one absolutely-positioned `.ed-scrub-head`
-sized to span both rows). The badges/track split into separate columns
-(rather than one row per `<div>` with an inline badge) is what lets a
-single playhead position correctly against *either* row via one `left:X%`
-— it's positioned relative to the track column specifically, which is
-exactly as wide as each row, unlike the outer bar which also includes the
-badge column.
-
-`drawEdScrubAudioTrack()` (new) mirrors the existing waveform-decode
-pattern from `buildAudioPlayer()`/`initTrimTimeline()` (Web Audio API
-`decodeAudioData`, mono-mixed, min/max-per-pixel bars) rather than
-refactoring those into a shared helper — intentional: three working,
-already-tested call sites, low value in consolidating under time
-pressure, real risk of breaking something that already works. Duplication
-here is the safer trade. Falls back to a flat placeholder line (not an
-error state) when decode fails, which is the normal case for a video
-with no audio track — confirmed silent, correct fallback on a
-purpose-generated silent-video test file.
-
-**Real bug found via testing, not new — a race this change exposed.**
-`drawVideoFilmstrip()` (the shared frame-thumbnail generator) used a
-single **global** `window._filmstripCleanup` regardless of which canvas
-called it. Both the new A1 sibling (V1 row) and the pre-existing Trim
-tool's own mini-timeline (`initTrimTimeline()` → `#trim-canvas`) call this
-same function. Adding a second near-simultaneous caller (mine) changed
-the relative timing enough that the Trim tool's call now consistently won
-the race and cancelled the scrub bar's still-in-flight filmstrip via that
-shared global before it drew a single frame — silently, no error, just a
-blank V1 row. Confirmed this was latent, not something the baseline
-avoided structurally, by running the identical test against the prior
-commit (worked, by luck of timing) vs. instrumenting `drawVideoFilmstrip`
-directly (caught two calls with different dimensions racing on the same
-global flag). Fixed by scoping cleanup to the canvas itself
-(`cv._filmstripCleanup`, was `window._filmstripCleanup`) so independent
-callers targeting different canvases can no longer cancel each other
-regardless of call order — not just papering over this one collision.
-Also had to fix `selectTool()`'s own filmstrip teardown (was blindly
-calling the same global on every tool switch, which — now that cleanup is
-per-canvas — would've stopped tearing down anything real; scoped it to
-`#trim-canvas` specifically, since that's the one whose DOM gets replaced
-on tool switch, and confirmed the persistent V1 row correctly survives
-switching Trim → Crop → Resize → Trim without re-blanking).
-
-Verified via CDP against a real generated test video (colorbars + 330Hz
-tone, ffmpeg) end to end, run twice independently for repeatability: V1
-and A1 both render fully on load; playhead position and the `M:SS / M:SS`
-label track real seeks correctly (3s of 6s → exactly 50%, "0:03 / 0:06");
-survive Trim → Crop → Resize → Trim tool switching without blanking
-either row or breaking Trim's own mini-timeline; loading a second,
-different file (silent, no audio track) without resetting first correctly
-replaces both rows' content — no stale waveform bleeding from the
-previous file, confirmed via a per-canvas decode-token guard; "New File"
-correctly hides the whole bar.
-
-Not yet touched: the standalone audio player's own waveform (used when an
-audio file, not video, is loaded) doesn't have the same V1/A1 track-row
-treatment — it's a separately-built widget (`buildAudioPlayer()`), not an
-extension of `.ed-scrub`. Left as-is this pass; revisit when addressing
-the audio side of the editing-workspace request specifically.
-
 ## What NOT to do here
 
 - Don't hardcode a color — reach for `var(--…)`, including in inline
   `style=` attributes on generated markup.
-- Tool listings are a real CSS grid (`fgridCardHTML`/`.tool-grid`) again as
-  of a later pass — the "rail list, everywhere, on purpose" note above is
-  stale; don't revert to a rail list based on it.
-- Don't add decorative interactive controls with no real function (zoom,
-  fake system stats) — see "Deliberately NOT built" above for the standard
-  this project holds to and why. The multi-track timeline entry in that
-  same section is now struck through — it was built for real once directly
-  requested; don't treat it as still off-limits.
+- Don't reintroduce a card grid for tool listings — it's a rail list now,
+  everywhere, on purpose.
+- Don't add decorative interactive controls with no real function (zoom, fake
+  system stats, fake multi-track) — see "Deliberately NOT built" above for
+  the standard this project holds to and why.
 - Don't test mobile/responsive behavior with a bare `--window-size` headless
   flag — it does not reliably match real `@media` viewport behavior. Use
   `Emulation.setDeviceMetricsOverride` with `mobile:true`.

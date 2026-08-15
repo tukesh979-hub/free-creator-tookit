@@ -624,10 +624,10 @@ footer{background:var(--bg2);border-top:1px solid var(--border);padding:48px 20p
 .cat-btn:hover{color:var(--muted)}
 .cat-btn.active{color:var(--red);border-right-color:var(--red);background:rgba(255,59,59,.04)}
 .cat-btn span{font-size:15px;font-weight:700;letter-spacing:.5px;text-transform:uppercase}
-/* A loaded file locks out the other categories — switching would leave the
-   tool list built for a file type that isn't actually loaded. */
-.cat-btn.locked{opacity:.35;cursor:not-allowed}
-.cat-btn.locked:hover{color:var(--dim)}
+/* A loaded file locks the sidebar to its own category — switching to
+   Video mid-way through editing a photo silently desyncs S.cat from
+   S.file.type. Disabled rather than hidden so it's clear why. */
+.cat-btn:disabled{opacity:.3;cursor:not-allowed;pointer-events:none}
 
 .ed-tools{
   width:224px;background:var(--bg2);border-right:1px solid var(--border);
@@ -973,30 +973,24 @@ footer{background:var(--bg2);border-top:1px solid var(--border);padding:48px 20p
 .proc-pct{font-family:var(--mono);font-size:15px;color:#aaa}
 
 /* Persistent video transport bar — replaces the native <video controls> skin
-   with one that matches the app: a real multi-track timeline (V1 filmstrip +
-   A1 waveform, like an actual NLE) with one playhead spanning both, real
-   play/pause + click-to-seek wired to the actual <video> element. */
-.ed-scrub{display:none;flex-direction:column;gap:6px;padding:8px 14px;border-top:1px solid var(--border);background:var(--bg2);flex-shrink:0}
+   with one that matches the app, real filmstrip via drawVideoFilmstrip(),
+   real play/pause + click-to-seek wired to the actual <video> element. */
+.ed-scrub{display:none;align-items:center;gap:10px;padding:8px 14px;border-top:1px solid var(--border);background:var(--bg2);flex-shrink:0}
 .ed-scrub.show{display:flex}
-.ed-scrub-transport{display:flex;align-items:center;gap:10px}
 .ed-scrub-play{
   width:26px;height:26px;border-radius:50%;background:var(--red);color:#fff;
   display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:background var(--transition)
 }
 .ed-scrub-play:hover{background:var(--red2)}
-.ed-scrub-time{font-family:var(--mono);font-size:16px;color:var(--muted);flex-shrink:0;min-width:82px;text-align:right}
-.ed-scrub-tracks{display:flex;align-items:stretch;gap:10px}
-.ed-scrub-badges{display:flex;flex-direction:column;gap:3px;flex-shrink:0}
 .ed-scrub-badge{
   font-family:var(--mono);font-size:15px;font-weight:800;letter-spacing:.5px;color:#fff;
-  width:22px;height:24px;display:flex;align-items:center;justify-content:center;
+  width:22px;height:18px;display:flex;align-items:center;justify-content:center;
   border-radius:4px;background:var(--red);flex-shrink:0
 }
-.ed-scrub-badge.a-badge{background:var(--bg4);color:var(--muted)}
-.ed-scrub-track{position:relative;flex:1;display:flex;flex-direction:column;gap:3px;cursor:pointer}
-.ed-scrub-row{position:relative;height:24px;border-radius:4px;overflow:hidden;background:var(--bg4)}
-.ed-scrub-row canvas{display:block;width:100%;height:100%;image-rendering:pixelated}
-.ed-scrub-head{position:absolute;top:0;bottom:0;width:2px;background:var(--red);box-shadow:0 0 6px rgba(255,59,59,.7);left:0%;pointer-events:none;z-index:2}
+.ed-scrub-track{position:relative;flex:1;height:32px;border-radius:4px;overflow:hidden;background:var(--bg4);cursor:pointer}
+.ed-scrub-track canvas{display:block;width:100%;height:100%;image-rendering:pixelated}
+.ed-scrub-head{position:absolute;top:0;bottom:0;width:2px;background:var(--red);box-shadow:0 0 6px rgba(255,59,59,.7);left:0%;pointer-events:none}
+.ed-scrub-time{font-family:var(--mono);font-size:16px;color:var(--muted);flex-shrink:0;min-width:82px;text-align:right}
 
 /* Status bar */
 .ed-status{padding:8px 12px;display:none;align-items:center;gap:7px;font-size:17px;font-weight:500;border-top:1px solid var(--border);min-height:34px;flex-shrink:0}
@@ -1816,23 +1810,15 @@ footer{background:var(--bg2);border-top:1px solid var(--border);padding:48px 20p
       </div>
     </div>
     <div class="ed-scrub" id="ed-scrub">
-      <div class="ed-scrub-transport">
-        <button class="ed-scrub-play" id="ed-scrub-play" aria-label="Play">
-          <svg id="ed-scrub-play-ico" width="9" height="9" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
-        </button>
-        <span class="ed-scrub-time" id="ed-scrub-time">0:00 / 0:00</span>
+      <button class="ed-scrub-play" id="ed-scrub-play" aria-label="Play">
+        <svg id="ed-scrub-play-ico" width="9" height="9" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+      </button>
+      <span class="ed-scrub-badge" id="ed-scrub-badge">V1</span>
+      <div class="ed-scrub-track" id="ed-scrub-track">
+        <canvas id="ed-scrub-canvas"></canvas>
+        <div class="ed-scrub-head" id="ed-scrub-head"></div>
       </div>
-      <div class="ed-scrub-tracks">
-        <div class="ed-scrub-badges">
-          <span class="ed-scrub-badge" id="ed-scrub-badge">V1</span>
-          <span class="ed-scrub-badge a-badge" id="ed-scrub-badge-a">A1</span>
-        </div>
-        <div class="ed-scrub-track" id="ed-scrub-track">
-          <div class="ed-scrub-row"><canvas id="ed-scrub-canvas"></canvas></div>
-          <div class="ed-scrub-row"><canvas id="ed-scrub-canvas-a"></canvas></div>
-          <div class="ed-scrub-head" id="ed-scrub-head"></div>
-        </div>
-      </div>
+      <span class="ed-scrub-time" id="ed-scrub-time">0:00 / 0:00</span>
     </div>
     <div class="ed-status" id="ed-status" role="status" aria-live="polite"></div>
   </div>
@@ -2256,11 +2242,7 @@ function onToolPageFile(e, toolId) {
   if (!f) return;
   const t = byId(toolId);
   loadFile(f);
-  // Only jump to this specific tool if the dropped file actually matches
-  // its category — a photo dropped on the Video-Trim page should land on
-  // Photo's first tool (loadFile already did that), not a video tool
-  // pointed at a file that isn't a video.
-  if (t && catForFileType(getType(f)) === t.cat) selectTool(t);
+  if (t) selectTool(t);
   goPage('editor');
 }
 
@@ -2272,7 +2254,7 @@ function onToolPageDrop(e, toolId) {
   if (!f) return;
   const t = byId(toolId);
   loadFile(f);
-  if (t && catForFileType(getType(f)) === t.cat) selectTool(t);
+  if (t) selectTool(t);
   goPage('editor');
 }
 
@@ -2384,44 +2366,46 @@ function launchTool(id) {
   const tool = byId(id);
   if (!tool) return;
   goPage('editor');
-  setCat(tool.cat);
-  selectTool(tool);
+  // setCat() refuses to switch away from a file already loaded in the
+  // editor — don't select a tool from a category it just declined to enter.
+  if (setCat(tool.cat)) selectTool(tool);
 }
 
 // ════════════════════════════════════════════════════════════════════════════
 // EDITOR — CATEGORY & TOOL
 // ════════════════════════════════════════════════════════════════════════════
-// image files live under the 'photo' category everywhere else in the tool
-// registry — this is the one place that mapping needs to be shared logic
-// rather than re-derived inline.
-const catForFileType = type => type === 'image' ? 'photo' : type;
+// The category a loaded file restricts the sidebar to — null once no
+// file is loaded (browsing freely before upload is fine).
+function lockedCat() {
+  if (!S.file) return null;
+  return S.file.type === 'image' ? 'photo' : S.file.type;
+}
 
+// Disables the sidebar tabs for every category the loaded file doesn't
+// belong to (AI stays enabled either way — its tools are inert "Coming
+// Soon" placeholders, not real actions that could run against the wrong
+// file type). Called whenever S.file changes.
+function updateCatLock() {
+  const lock = lockedCat();
+  document.querySelectorAll('.cat-btn').forEach(b => {
+    const cat = b.dataset.cat;
+    b.disabled = !!lock && cat !== 'ai' && cat !== lock;
+  });
+}
+
+// Returns false (and leaves S.cat untouched) if a loaded file restricts
+// the sidebar to a different category — switching away from it would
+// desync S.cat/S.tool from the file that's actually open.
 function setCat(cat) {
-  // A loaded file locks the sidebar to its own category — switching to
-  // Video tools with a photo loaded (or vice versa) left every tool in
-  // that list operating on a file of the wrong type.
-  if (S.file && cat !== 'ai' && cat !== catForFileType(S.file.type)) {
-    showStatus('error', `✕ This file is ${S.file.type === 'image' ? 'a photo' : 'an ' + S.file.type + ' file'} — start a new file to use ${cat[0].toUpperCase() + cat.slice(1)} tools.`);
-    return;
-  }
+  const lock = lockedCat();
+  if (lock && cat !== 'ai' && cat !== lock) return false;
   S.cat = cat;
   document.querySelectorAll('.cat-btn').forEach(b => {
     b.classList.toggle('active', b.dataset.cat === cat);
   });
+  updateCatLock();
   renderToolList();
-}
-
-// Dims out the category tabs a loaded file can't switch to. Called
-// whenever S.file changes (load and reset) — setCat()'s own guard above
-// is what actually blocks the switch; this just makes that visible before
-// the user clicks rather than after.
-function updateCatLock() {
-  const requiredCat = S.file ? catForFileType(S.file.type) : null;
-  document.querySelectorAll('.cat-btn').forEach(b => {
-    const locked = !!requiredCat && b.dataset.cat !== 'ai' && b.dataset.cat !== requiredCat;
-    b.classList.toggle('locked', locked);
-    b.setAttribute('aria-disabled', String(locked));
-  });
+  return true;
 }
 
 function renderToolList() {
@@ -2462,14 +2446,8 @@ function selectTool(tool) {
   clearVideoOverlay();
   // Tear down trim timeline playhead listener
   if (window._trimCleanup) { window._trimCleanup(); }
-  // Tear down any in-flight filmstrip generator (hidden clone <video>) for
-  // the Trim tool's own mini-timeline specifically — its canvas is about to
-  // be removed/replaced by renderSettings() below. Cleanup is scoped per
-  // canvas (see drawVideoFilmstrip()), so this does NOT touch the
-  // persistent scrub bar's V1 row, which survives tool switches and keeps
-  // drawing regardless of which tool is selected.
-  const _trimCv = $('trim-canvas');
-  if (_trimCv && _trimCv._filmstripCleanup) { _trimCv._filmstripCleanup(); _trimCv._filmstripCleanup = null; }
+  // Tear down any in-flight video filmstrip generator (hidden clone <video>)
+  if (window._filmstripCleanup) { window._filmstripCleanup(); window._filmstripCleanup = null; }
   // Cancel both overlay init timers before doing anything else
   clearTimeout(window._cropInitTimer);   window._cropInitTimer   = null;
   clearTimeout(window._resizeFrameTimer); window._resizeFrameTimer = null;
@@ -3538,13 +3516,7 @@ function drawFadeCurve() {
    and draws a cover-cropped snapshot of each into the timeline canvas. Pure
    Canvas + <video> — no server, no ffmpeg, no external library. */
 function drawVideoFilmstrip(cv, W, H, dur) {
-  // Cleanup is scoped to THIS canvas, not global — the persistent scrub bar's
-  // V1 row and the Trim tool's own mini-timeline both call this function
-  // with their own separate canvases, sometimes within milliseconds of each
-  // other. A single shared window._filmstripCleanup meant the second caller
-  // would cancel the first caller's still-in-flight clone before it ever
-  // drew a frame, leaving that canvas blank — order-dependent and silent.
-  if (cv._filmstripCleanup) { cv._filmstripCleanup(); cv._filmstripCleanup = null; }
+  if (window._filmstripCleanup) { window._filmstripCleanup(); window._filmstripCleanup = null; }
   const srcVid = document.getElementById('preview-vid');
   const src = srcVid ? (srcVid.currentSrc || srcVid.src) : (S.file?.url);
   if (!src || !dur || !W || !H) { cv._filmstripReady = Promise.resolve(); return; }
@@ -3561,7 +3533,7 @@ function drawVideoFilmstrip(cv, W, H, dur) {
 
   let cancelled = false, resolveReady;
   cv._filmstripReady = new Promise(res => { resolveReady = res; });
-  cv._filmstripCleanup = () => {
+  window._filmstripCleanup = () => {
     cancelled = true;
     try { clone.pause(); clone.removeAttribute('src'); clone.load(); clone.remove(); } catch(_) {}
   };
@@ -3585,69 +3557,22 @@ function drawVideoFilmstrip(cv, W, H, dur) {
   }
   function step() {
     if (cancelled) return;
-    if (i >= count) { resolveReady(); cv._filmstripCleanup(); cv._filmstripCleanup = null; return; }
+    if (i >= count) { resolveReady(); window._filmstripCleanup(); window._filmstripCleanup = null; return; }
     const t = Math.min(Math.max(0, dur - 0.05), (i / count) * dur + (dur / count) * 0.5);
     const onSeeked = () => { clone.removeEventListener('seeked', onSeeked); drawFrame(); };
     clone.addEventListener('seeked', onSeeked);
     try { clone.currentTime = t; } catch(_) { i++; step(); }
   }
   clone.addEventListener('loadedmetadata', () => step(), { once: true });
-  clone.addEventListener('error', () => { resolveReady(); if (cv._filmstripCleanup) cv._filmstripCleanup(); cv._filmstripCleanup = null; }, { once: true });
-}
-
-/* Draws the A1 waveform row of the persistent scrub bar — decodes the
-   loaded video's own audio track via Web Audio API. Silently keeps the
-   flat placeholder line if decode fails (e.g. the video has no audio
-   track at all, or the browser can't decode it) rather than erroring. */
-function drawEdScrubAudioTrack(cv, W, H) {
-  cv.width = W; cv.height = H;
-  const ctx = cv.getContext('2d');
-  const isDark = document.documentElement.getAttribute('data-theme') !== 'light';
-  ctx.clearRect(0, 0, W, H);
-  ctx.fillStyle = isDark ? 'rgba(255,59,59,0.25)' : 'rgba(224,40,31,0.2)';
-  ctx.fillRect(0, H / 2 - 1, W, 2);
-
-  const url = S.file?.url;
-  if (!url) return;
-  const token = (cv._waveToken = (cv._waveToken || 0) + 1); // stale-decode guard
-  const actx = new (window.AudioContext || window.webkitAudioContext)();
-  fetch(url)
-    .then(r => r.arrayBuffer())
-    .then(b => actx.decodeAudioData(b))
-    .then(decoded => {
-      if (cv._waveToken !== token) return; // file/track changed mid-decode
-      let samples;
-      if (decoded.numberOfChannels >= 2) {
-        const ch0 = decoded.getChannelData(0), ch1 = decoded.getChannelData(1);
-        samples = new Float32Array(ch0.length);
-        for (let i = 0; i < ch0.length; i++) samples[i] = (ch0[i] + ch1[i]) * 0.5;
-      } else {
-        samples = decoded.getChannelData(0);
-      }
-      const step = Math.ceil(samples.length / W);
-      const mid  = H / 2;
-      ctx.clearRect(0, 0, W, H);
-      ctx.fillStyle = isDark ? 'rgba(255,59,59,0.65)' : 'rgba(224,40,31,0.55)';
-      for (let x = 0; x < W; x++) {
-        let min = 1, max = -1;
-        for (let j = 0; j < step; j++) {
-          const v = samples[(x * step + j) % samples.length];
-          if (v < min) min = v;
-          if (v > max) max = v;
-        }
-        ctx.fillRect(x, mid + min * mid * 0.85, 1, Math.max(1, (max - min) * mid * 0.85));
-      }
-      actx.close();
-    })
-    .catch(() => { actx.close(); }); // keep the flat placeholder
+  clone.addEventListener('error', () => { resolveReady(); if (window._filmstripCleanup) window._filmstripCleanup(); window._filmstripCleanup = null; }, { once: true });
 }
 
 /* ── Persistent video transport bar ──────────────────────────
-   Replaces the native <video controls> skin. Real V1 filmstrip (reuses
-   drawVideoFilmstrip) + real A1 waveform, one playhead spanning both,
-   real play/pause, real click-to-seek — all against the actual
-   #preview-vid element, which persists across tool switches (selectTool()
-   doesn't recreate it), so this only needs to init once per file load. */
+   Replaces the native <video controls> skin. Real filmstrip (reuses
+   drawVideoFilmstrip), real play/pause, real click-to-seek — all against
+   the actual #preview-vid element, which persists across tool switches
+   (selectTool() doesn't recreate it), so this only needs to init once
+   per file load. */
 function initEdScrubber() {
   const vid = $('preview-vid');
   const bar = $('ed-scrub');
@@ -3656,29 +3581,21 @@ function initEdScrubber() {
 
   const track   = $('ed-scrub-track');
   const canvas  = $('ed-scrub-canvas');
-  const canvasA = $('ed-scrub-canvas-a');
   const head    = $('ed-scrub-head');
   const timeEl  = $('ed-scrub-time');
   const playBtn = $('ed-scrub-play');
   const playIco = $('ed-scrub-play-ico');
-  if (!track || !canvas || !canvasA) return;
-  const rowV = canvas.parentElement;   // V1 row — sized independently of A1
-  const rowA = canvasA.parentElement;  // A1 row
+  if (!track || !canvas) return;
 
   const PLAY_ICON  = '<path d="M8 5v14l11-7z"/>';
   const PAUSE_ICON = '<path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/>';
 
   const drawFilmstrip = () => {
-    const W = rowV.clientWidth || 360, H = rowV.clientHeight || 24;
+    const W = track.clientWidth || 360, H = track.clientHeight || 32;
     canvas.width = W; canvas.height = H;
     drawVideoFilmstrip(canvas, W, H, S.file?.duration || vid.duration || 1);
   };
-  const drawAudioRow = () => {
-    const W = rowA.clientWidth || 360, H = rowA.clientHeight || 24;
-    drawEdScrubAudioTrack(canvasA, W, H);
-  };
-  const drawTracks = () => { drawFilmstrip(); drawAudioRow(); };
-  requestAnimationFrame(() => requestAnimationFrame(drawTracks));
+  requestAnimationFrame(() => requestAnimationFrame(drawFilmstrip));
 
   const paint = () => {
     const dur = vid.duration || S.file?.duration || 0;
@@ -3691,7 +3608,7 @@ function initEdScrubber() {
   if (!vid._scrubBound) {
     vid._scrubBound = true;
     vid.addEventListener('timeupdate', paint);
-    vid.addEventListener('loadedmetadata', () => { paint(); drawTracks(); });
+    vid.addEventListener('loadedmetadata', () => { paint(); drawFilmstrip(); });
     vid.addEventListener('play',  () => { playIco.innerHTML = PAUSE_ICON; playBtn.setAttribute('aria-label', 'Pause'); });
     vid.addEventListener('pause', () => { playIco.innerHTML = PLAY_ICON;  playBtn.setAttribute('aria-label', 'Play');  });
     vid.addEventListener('ended', () => { playIco.innerHTML = PLAY_ICON;  playBtn.setAttribute('aria-label', 'Play');  });
@@ -3711,8 +3628,8 @@ function initEdScrubber() {
   track.onpointerup = track.onpointercancel = () => { seeking = false; };
 
   if (window._edScrubResizeHandler) window.removeEventListener('resize', window._edScrubResizeHandler);
-  window._edScrubResizeHandler = drawTracks;
-  window.addEventListener('resize', drawTracks);
+  window._edScrubResizeHandler = drawFilmstrip;
+  window.addEventListener('resize', drawFilmstrip);
 }
 
 function hideEdScrubber() {
@@ -5500,10 +5417,9 @@ async function loadFile(file) {
     const meta = await readFileMetadata(file, type);
     Object.assign(S.file, meta);
 
-    // Auto-switch sidebar category, then lock the other tabs to it
-    const cat = catForFileType(type);
+    // Auto-switch sidebar category
+    const cat = type === 'image' ? 'photo' : type;
     setCat(cat);
-    updateCatLock();
 
     // Auto-select first tool of that category
     const tools = byCat(cat);
@@ -7010,7 +6926,9 @@ const QA_CLAMP = { brightness: [-100, 100], contrast: [-100, 100], saturation: [
 
 function launchQA() {
   goPage('editor');
-  setCat('photo');
+  // Quick Adjust is photo-only — refuse rather than apply photo settings
+  // on top of an already-loaded video/audio file.
+  if (!setCat('photo')) return;
   const tool = byId('photo-effects');
   if (tool) {
     selectTool(tool);
