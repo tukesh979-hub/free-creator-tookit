@@ -634,6 +634,71 @@ work for the user in their normal browser, this is purely a test-harness
 limitation; if not, it's a separate pre-existing issue in `ensureFFmpeg()`
 predating this feature entirely.
 
+## Audio mixer — timeline toolbar + Mute/Solo/Lock/Split
+
+Follow-up pass driven by a detailed reference mockup (ASCII app-shell +
+timeline diagram): reorganized the mixer toolbar to `Zoom | Play/Stop |
+Snap | Split | Delete | +Track | Export Mix`, and replaced each track's
+single Mute icon with the DAW-standard `M`/`S`/🔒 trio, plus a clickable
+type icon (🎙 voice / 🎵 music / 💥 sfx / 🎧 ambience / 🔊 other, guessed
+from the filename via `guessTrackType()`, cycled by clicking it).
+
+**Solo** (`track.soloed`) uses standard DAW semantics, not "solo mutes
+everything else unconditionally" — `effectiveTrackMuted(t)` returns `t.muted`
+normally, but if *any* track in the mix is soloed, every non-soloed track
+is silenced regardless of its own mute state. This single function is now
+the one source of truth for "is this track actually audible" — used by
+`playAllTracks()` (sets `_el.muted`), `exportMixdown()`'s track filter, and
+the wave lane's dimmed-canvas styling — so solo can't drift out of sync
+between what you see, hear in preview, and get in the export. Toggling
+mute/solo mid-playback calls `syncLiveTrackMuting()` before the mixer
+rebuild, because rebuilding replaces the DOM but not the already-created
+`<audio>` elements the rebuild doesn't touch.
+
+**Lock** (`track.locked`) protects position/content, not the mix knobs —
+`initTrackDrag()` refuses to attach drag handlers at all for a locked
+track, `setMixerTrackField()` refuses `trimStart`/`trimEnd` writes (but
+still allows volume/pan/fade), and `removeTrack()`/`reorderTrack()` both
+refuse to act on a locked track. Volume/pan/fade stay editable — locking a
+track is "don't let me accidentally move this clip," not "freeze the mix."
+
+**Split** (`splitSelectedTrack()`) is the one piece that needed a real
+design decision: a track IS a single clip in this data model (one
+`trimStart`/`trimEnd` pair), there's no nested clips-per-track array. Built
+"split" as: duplicate the selected track into two, one clamped to
+`[trimStart, playhead]` and the other to `[playhead, trimEnd]`, both
+sharing the same underlying file/url/decoded waveform samples (no
+re-decode). This delivers genuine split functionality — the two halves are
+independently trimmable/mutable/mixable afterward — without needing a
+bigger clips-array rewrite. The one thing this shortcut requires elsewhere:
+`removeTrack()` now checks whether another track still shares the same
+blob `url` before revoking it, since two split halves do exactly that —
+revoking on the first delete would have silently broken the second half's
+playback and waveform.
+
+Added `S.mixerPlayheadTime` as the single persistent source of truth for
+"where the playhead is right now," independent of play state — needed
+because Split has to work whether or not something is currently playing
+(click the ruler to position the playhead, then Split, with nothing
+playing). Every seek path (`seekMixerTo`, `mixerPlaybackTick`,
+`stopMixerPlayback`) funnels through `updateMixerPlayheadUI()`, which is
+now the only place that writes it.
+
+**Snap** (`S.mixerSnap`, default on) snaps a dragged trim edge to the
+nearest "interesting" point — zero, the playhead, or any *other* track's
+own trim boundaries — within an 8px screen-space threshold converted to
+seconds via the current zoom. This is deliberately not generic grid-snap;
+snapping clip edges to each other and to the playhead is what's actually
+useful once there's more than one track to line up against.
+
+Verified all four via direct state assertions (not just visual screenshot
+inspection, learned that lesson earlier this session): soloing a track
+leaves it `effectiveTrackMuted:false` and every other track `true`; locking
+a track leaves both a delete attempt and a trim-field write no-ops;
+splitting at playhead=4 on a 0–10s track produces exactly `{0,4}` and
+`{4,10}`; snap pulls a value within threshold of the playhead to it exactly
+and leaves an out-of-threshold value and a snap-disabled value untouched.
+
 ## What NOT to do here
 
 - Don't hardcode a color — reach for `var(--…)`, including in inline
