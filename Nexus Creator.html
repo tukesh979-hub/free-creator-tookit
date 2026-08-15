@@ -634,6 +634,39 @@ footer{background:var(--bg2);border-top:1px solid var(--border);padding:48px 20p
   overflow-y:auto;flex-shrink:0
 }
 .ed-tools-lbl{padding:14px 18px 8px;font-family:var(--mono);font-size:15px;letter-spacing:2px;color:var(--dim);text-transform:uppercase}
+.ed-tools-tabs{display:flex;border-bottom:1px solid var(--border)}
+.ed-tools-tab{flex:1;padding:11px 0;font-family:var(--mono);font-size:13px;font-weight:700;letter-spacing:1px;
+  text-transform:uppercase;color:var(--dim);border-bottom:2px solid transparent;transition:all var(--transition)}
+.ed-tools-tab:hover{color:var(--text)}
+.ed-tools-tab.active{color:var(--red);border-bottom-color:var(--red)}
+.media-bin{display:flex;flex-direction:column;height:100%}
+.media-bin-toolbar{padding:10px 14px;display:flex;flex-direction:column;gap:8px;border-bottom:1px solid var(--border)}
+.media-bin-search{width:100%;background:var(--bg3);border:1px solid var(--border2);color:var(--text);
+  padding:7px 9px;font-size:14px;font-family:var(--mono);border-radius:6px}
+.media-bin-filters{display:flex;gap:4px}
+.media-bin-filter{flex:1;padding:5px 0;font-family:var(--mono);font-size:12px;font-weight:700;text-transform:uppercase;
+  background:var(--bg3);border:1px solid var(--border2);color:var(--dim);border-radius:5px;transition:all var(--transition)}
+.media-bin-filter.active{color:var(--red);border-color:var(--red);background:rgba(255,59,59,.08)}
+.media-bin-import{padding:7px 0;font-family:var(--mono);font-size:13px;font-weight:700;text-transform:uppercase;
+  background:var(--text);color:var(--bg);border-radius:6px;transition:opacity var(--transition)}
+.media-bin-import:hover{opacity:.85}
+.media-bin-list{flex:1;overflow-y:auto;padding:8px}
+.media-bin-item{display:flex;gap:9px;padding:8px;border-radius:6px;margin-bottom:6px;background:var(--bg3);
+  border:1px solid var(--border);transition:border-color var(--transition);cursor:pointer}
+.media-bin-item:hover{border-color:var(--border2)}
+.media-bin-thumb{width:56px;height:40px;flex-shrink:0;border-radius:4px;overflow:hidden;position:relative;background:var(--bg4)}
+.media-bin-thumb canvas,.media-bin-thumb img{width:100%;height:100%;object-fit:cover;display:block}
+.media-bin-thumb-badge{position:absolute;left:2px;bottom:2px;font-family:var(--mono);font-size:9px;font-weight:800;
+  color:#fff;background:var(--blue);padding:0 3px;border-radius:2px}
+.media-bin-thumb-badge.audio{background:var(--red)}
+.media-bin-info{flex:1;min-width:0;display:flex;flex-direction:column;justify-content:center;gap:2px}
+.media-bin-name{font-size:13px;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.media-bin-meta{font-family:var(--mono);font-size:11px;color:var(--dim)}
+.media-bin-actions{display:flex;flex-direction:column;gap:3px;flex-shrink:0}
+.media-bin-abtn{width:22px;height:22px;display:flex;align-items:center;justify-content:center;color:var(--dim);
+  border-radius:4px;transition:all var(--transition)}
+.media-bin-abtn:hover{color:var(--text);background:var(--bg4)}
+.media-bin-empty{padding:24px 16px;text-align:center;color:var(--dim);font-size:13px;line-height:1.6}
 .tool-btn{
   width:100%;text-align:left;padding:11px 18px;font-size:16px;font-weight:700;letter-spacing:1px;
   text-transform:uppercase;border-left:2px solid transparent;color:var(--muted);transition:all var(--transition);display:block
@@ -1959,10 +1992,15 @@ input[type=color].s-input{height:38px;padding:3px;cursor:pointer}
     </button>
   </div>
 
-  <!-- Tool list -->
+  <!-- Tool list / Media bin -->
   <div class="ed-tools" id="ed-tools">
+    <div class="ed-tools-tabs" id="ed-tools-tabs" style="display:none">
+      <button class="ed-tools-tab active" id="ed-tab-tools" onclick="nxSetLeftPanelTab('tools')">Tools</button>
+      <button class="ed-tools-tab" id="ed-tab-media" onclick="nxSetLeftPanelTab('media')">Media</button>
+    </div>
     <div class="ed-tools-lbl" id="ed-tools-lbl">Video Tools</div>
     <div id="ed-tool-list" role="list"></div>
+    <div id="ed-media-bin" style="display:none"></div>
   </div>
 
   <!-- Center main area -->
@@ -6728,6 +6766,9 @@ function mountNxTimeline() {
   nxEnsureTimeline();
   panel.classList.add('show');
   nxCleanupDrag();
+  const tabs = $('ed-tools-tabs');
+  if (tabs) tabs.style.display = S.timeline.tracks.length ? 'flex' : 'none';
+  if ($('ed-media-bin') && $('ed-media-bin').style.display !== 'none') nxRenderMediaBin();
   if (!S.timeline.tracks.length) { panel.innerHTML = nxEmptyStateHTML(); return; }
   panel.innerHTML = `
     <div class="nxt-toolbar">${nxToolbarHTML()}</div>
@@ -7124,6 +7165,23 @@ function nxToggleRipple() { S.timeline.ripple = !S.timeline.ripple; mountNxTimel
 function nxSyncLiveMuting() {
   S.timeline.tracks.forEach(t => { if (t._el) t._el.muted = nxEffectiveTrackMuted(t); });
 }
+// Imports a File as a new asset AND places one clip for it on the
+// timeline (append after whatever's already there) — shared by the
+// toolbar's bulk "Import Media" picker and the media bin's own import.
+function nxImportFile(file) {
+  return readFileMetadata(file, getType(file)).then(meta => {
+    const type = getType(file) === 'video' ? 'video' : 'audio';
+    const assetId = uid();
+    const url = URL.createObjectURL(file);
+    S.timeline.assets[assetId] = { id: assetId, type, name: file.name, url, duration: meta.duration || 0, _owned: true };
+    let track = S.timeline.tracks.find(t => t.type === type && !t.locked && t.clips.every(c => c.startTime + c.duration <= nxDuration()));
+    nxWithHistory(() => {
+      if (!track) { track = nxMakeTrack(type, (type === 'video' ? 'V' : 'A') + (S.timeline.tracks.filter(x => x.type === type).length + 1)); (type === 'video' ? S.timeline.tracks.unshift(track) : S.timeline.tracks.push(track)); }
+      track.clips.push(nxMakeClip(assetId, track.id, { startTime: nxDuration() === 0.1 ? 0 : nxDuration(), duration: meta.duration || 0, sourceEnd: meta.duration || 0, transform: type === 'video' ? nxDefaultTransform() : null }));
+    });
+    return assetId;
+  });
+}
 function nxImportMedia() {
   const input = document.createElement('input');
   input.type = 'file'; input.accept = 'video/*,audio/*'; input.multiple = true; input.style.display = 'none';
@@ -7133,22 +7191,108 @@ function nxImportMedia() {
     document.body.removeChild(input);
     if (!files.length) return;
     let chain = Promise.resolve();
-    files.forEach(file => {
-      chain = chain.then(() => readFileMetadata(file, getType(file)).then(meta => {
-        const type = getType(file) === 'video' ? 'video' : 'audio';
-        const assetId = uid();
-        const url = URL.createObjectURL(file);
-        S.timeline.assets[assetId] = { id: assetId, type, name: file.name, url, duration: meta.duration || 0, _owned: true };
-        let track = S.timeline.tracks.find(t => t.type === type && !t.locked && t.clips.every(c => c.startTime + c.duration <= nxDuration()));
-        nxWithHistory(() => {
-          if (!track) { track = nxMakeTrack(type, (type === 'video' ? 'V' : 'A') + (S.timeline.tracks.filter(x => x.type === type).length + 1)); (type === 'video' ? S.timeline.tracks.unshift(track) : S.timeline.tracks.push(track)); }
-          track.clips.push(nxMakeClip(assetId, track.id, { startTime: nxDuration() === 0.1 ? 0 : nxDuration(), duration: meta.duration || 0, sourceEnd: meta.duration || 0 }));
-        });
-      }));
-    });
-    chain.then(() => mountNxTimeline());
+    files.forEach(file => { chain = chain.then(() => nxImportFile(file)); });
+    chain.then(() => { mountNxTimeline(); nxRenderMediaBin(); });
   });
   input.click();
+}
+
+// ════════════════════════════════════════════════════════════════════════
+// MEDIA / FOOTAGE BIN (spec #08-09) — left panel, second tab
+// ════════════════════════════════════════════════════════════════════════
+// A flat, filterable asset browser rather than nested bins/folders: this
+// project's assets are almost always a handful of source files (not
+// hundreds), so a real folder tree would be UI weight without a matching
+// need — search + a Video/Audio filter covers the same "find my asset"
+// job with far less to build and maintain.
+let nxMediaBinFilter = 'all', nxMediaBinSearch = '';
+function nxSetLeftPanelTab(tab) {
+  const toolsTab = $('ed-tab-tools'), mediaTab = $('ed-tab-media');
+  const toolList = $('ed-tool-list'), mediaBin = $('ed-media-bin'), lbl = $('ed-tools-lbl');
+  if (!toolsTab || !mediaTab) return;
+  toolsTab.classList.toggle('active', tab === 'tools');
+  mediaTab.classList.toggle('active', tab === 'media');
+  toolList.style.display = tab === 'tools' ? '' : 'none';
+  if (lbl) lbl.style.display = tab === 'tools' ? '' : 'none';
+  mediaBin.style.display = tab === 'media' ? '' : 'none';
+  if (tab === 'media') nxRenderMediaBin();
+}
+function nxMediaBinThumbHTML(asset) {
+  if (asset.type === 'video') return `<canvas id="mb-thumb-${asset.id}"></canvas><span class="media-bin-thumb-badge">V</span>`;
+  return `<canvas id="mb-thumb-${asset.id}"></canvas><span class="media-bin-thumb-badge audio">A</span>`;
+}
+function nxRenderMediaBin() {
+  const host = $('ed-media-bin');
+  if (!host) return;
+  const assets = Object.values(S.timeline.assets)
+    .filter(a => nxMediaBinFilter === 'all' || a.type === nxMediaBinFilter)
+    .filter(a => !nxMediaBinSearch || a.name.toLowerCase().includes(nxMediaBinSearch.toLowerCase()));
+  host.innerHTML = `
+    <div class="media-bin">
+      <div class="media-bin-toolbar">
+        <input type="text" class="media-bin-search" placeholder="Search media…" value="${nxMediaBinSearch}"
+          oninput="nxMediaBinSearch=this.value;nxRenderMediaBin()" aria-label="Search media"/>
+        <div class="media-bin-filters">
+          <button class="media-bin-filter${nxMediaBinFilter === 'all' ? ' active' : ''}" onclick="nxMediaBinFilter='all';nxRenderMediaBin()">All</button>
+          <button class="media-bin-filter${nxMediaBinFilter === 'video' ? ' active' : ''}" onclick="nxMediaBinFilter='video';nxRenderMediaBin()">Video</button>
+          <button class="media-bin-filter${nxMediaBinFilter === 'audio' ? ' active' : ''}" onclick="nxMediaBinFilter='audio';nxRenderMediaBin()">Audio</button>
+        </div>
+        <button class="media-bin-import" onclick="nxImportMedia()">+ Import Media</button>
+      </div>
+      <div class="media-bin-list" id="media-bin-list">
+        ${assets.length ? assets.map(a => `
+          <div class="media-bin-item" data-asset="${a.id}" onclick="nxAddAssetToTimeline('${a.id}')" title="Click to add to timeline">
+            <div class="media-bin-thumb">${nxMediaBinThumbHTML(a)}</div>
+            <div class="media-bin-info">
+              <span class="media-bin-name" title="${a.name}">${a.name}</span>
+              <span class="media-bin-meta">${fmtTime(a.duration)}</span>
+            </div>
+            <div class="media-bin-actions">
+              <button class="media-bin-abtn" title="Add to timeline" aria-label="Add to timeline" onclick="event.stopPropagation();nxAddAssetToTimeline('${a.id}')">${NXT_ICON.import}</button>
+              <button class="media-bin-abtn" title="Remove from project" aria-label="Remove from project" onclick="event.stopPropagation();nxDeleteAsset('${a.id}')">${NXT_ICON.trash}</button>
+            </div>
+          </div>`).join('')
+          : `<div class="media-bin-empty">${Object.keys(S.timeline.assets).length ? 'No media matches your search.' : 'No media yet — click Import Media to add video or audio files to this project.'}</div>`}
+      </div>
+    </div>`;
+  assets.forEach(a => {
+    const canvas = document.getElementById('mb-thumb-' + a.id);
+    if (!canvas) return;
+    if (a.type === 'video') nxDrawClipFilmstrip(canvas, a.url, 56, 40, 0, Math.min(a.duration, 3));
+    else decodeTrackWaveform(a.url).then(samples => { const cv2 = document.getElementById('mb-thumb-' + a.id); if (cv2) nxDrawClipWaveform(samples, 0, a.duration, a.duration, 56, 40, cv2); }).catch(() => {});
+  });
+}
+// Appends a new clip using an EXISTING asset (no re-decoding/re-fetching)
+// to a compatible track with room, or a fresh track if none has space —
+// the bin-item equivalent of dragging a clip onto the timeline.
+function nxAddAssetToTimeline(assetId) {
+  const asset = nxAsset(assetId);
+  if (!asset) return;
+  nxWithHistory(() => {
+    let track = S.timeline.tracks.find(t => t.type === asset.type && !t.locked && t.clips.every(c => c.startTime + c.duration <= nxDuration()));
+    if (!track) { track = nxMakeTrack(asset.type, (asset.type === 'video' ? 'V' : 'A') + (S.timeline.tracks.filter(x => x.type === asset.type).length + 1)); (asset.type === 'video' ? S.timeline.tracks.unshift(track) : S.timeline.tracks.push(track)); }
+    const startTime = nxDuration() === 0.1 ? 0 : nxDuration();
+    const clip = nxMakeClip(assetId, track.id, { startTime, duration: asset.duration, sourceEnd: asset.duration, transform: asset.type === 'video' ? nxDefaultTransform() : null });
+    track.clips.push(clip);
+    S.timeline.selection = [clip.id];
+  });
+  mountNxTimeline();
+}
+// Removing an asset removes every clip built from it too — an asset-less
+// clip would have nothing to play or draw, so there's no valid "orphaned
+// but kept" state to preserve.
+function nxDeleteAsset(assetId) {
+  const asset = nxAsset(assetId);
+  if (!asset) return;
+  showModal('Remove Media?', `This deletes every clip using "${asset.name}" from the timeline.`, 'Remove', () => {
+    nxWithHistory(() => {
+      S.timeline.tracks.forEach(t => { t.clips = t.clips.filter(c => c.sourceAssetId !== assetId); });
+      if (asset._owned && asset.url) URL.revokeObjectURL(asset.url);
+      delete S.timeline.assets[assetId];
+    });
+    mountNxTimeline();
+    nxRenderMediaBin();
+  });
 }
 
 // ── Playback / seek ──────────────────────────────────────────────────────
@@ -8098,6 +8242,8 @@ function resetEditor() {
   Object.values(S.timeline.assets).forEach(a => { if (a._owned && a.url) URL.revokeObjectURL(a.url); });
   S.timeline = { assets: {}, tracks: [], zoom: 80, snap: true, ripple: false, playhead: 0, selection: [], markers: [], history: [], future: [], _seededFor: null, _playing: false };
   hideNxTimeline();
+  nxSetLeftPanelTab('tools');
+  if ($('ed-tools-tabs')) $('ed-tools-tabs').style.display = 'none';
   updateCatLock();
   $('ed-drop').style.display = 'block';
   const area = $('ed-preview');
