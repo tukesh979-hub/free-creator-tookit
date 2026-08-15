@@ -183,13 +183,19 @@ directory (quick scan + jump to editor), before the interactive demo.
 
 ## Deliberately NOT built — flag before attempting
 
-- **A literal multi-track (V1 video / A1 audio / T1 text) timeline** — the
-  app's data model is one tool acting on one file, not a multi-track project.
-  Building the mockup's persistent 3-track timeline literally would mean
-  fabricating tracks with no underlying function. A single-track, fully real
-  persistent video scrubber (filmstrip + play/pause + seek, wired to the
-  actual `<video>` element) already exists from an earlier pass
-  (`initEdScrubber()`) and was left as-is — it's genuine, just not "3 tracks."
+- ~~A literal multi-track (V1 video / A1 audio / T1 text) timeline~~ —
+  **superseded; a real one now exists for audio, see "Audio mixer" below.**
+  This note originally banned a *decorative* multi-track mockup with no
+  underlying function (the app's data model was one tool acting on one
+  file). The user later directly asked for a genuinely functional
+  multi-track audio mixer — real tracks, real per-track state, a real
+  FFmpeg mixdown export — which is a different thing from what this bullet
+  was warning against and is not covered by this rule. The rule still
+  stands for anything actually decorative: don't fabricate UI with no
+  function. Video still has no multi-track concept and this doesn't change
+  that — a single-track, fully real persistent video scrubber (filmstrip +
+  play/pause + seek, wired to the actual `<video>` element) already exists
+  from an earlier pass (`initEdScrubber()`) and was left as-is.
 - **Real zoom controls on the editor canvas** — the brief's example shows
   "ZOOM − 100% +" but no zoom/pan functionality exists in the app currently.
   Added as a purely illustrative detail in the home page's Editor Showcase
@@ -527,6 +533,107 @@ new per-tool fallback works, not just the regular tools grid.
 `icons/README.md` has the full filename checklist (all 36 ids across the
 four folders) so future uploads don't need this file re-explained.
 
+## Audio mixer — real multi-track timeline + mixdown export
+
+User asked for a persistent multi-track audio timeline (ruler, waveform per
+track, transport, "+ Track") to replace the small single-file audio player
+across all 10 audio tools, plus a real mixdown export combining multiple
+tracks into one file — explicitly chosen as the full scope (not a visual
+mockup) in a planning pass before implementation (plan file:
+`/Users/sami/.claude-account3/plans/refactored-tickling-lagoon.md`).
+
+**Architecture — additive, not a rewrite.** The app had zero multi-file
+support (`S.file` was always exactly one object). Rather than touch the
+proven 10-tool pipeline, added `S.tracks[]` as a parallel array alongside
+`S.file`/`S.settings`, and a new `buildAudioMixer()` that replaces the old
+`buildAudioPlayer()` call in `renderPreview()`'s audio branch. Every
+existing tool (Trim, Volume, Fade, Convert, Compress, Normalize, Speed,
+Reverse, Pitch, Mono) — same `PANELS` entries, same `processFFmpeg()`
+branches, same Process→Download flow — is completely untouched and still
+operates on `S.file`. The two side-panel Trim/Volume/Fade tools now
+coexist with the mixer's own per-track property bar; they write to
+different state (`S.settings.*` vs `S.tracks[i].*`) and do different
+things (single-file destructive export vs. live mix property) — a
+deliberate scope decision to avoid touching working code, not an oversight.
+
+Confirmed before building (this mattered a lot): `selectTool()` never
+touches `#ed-preview` for audio — it only rebuilds the right-hand settings
+panel. So once the mixer mounts, it survives every tool-tab switch with
+zero extra plumbing. Verified explicitly (not just assumed): loaded 2
+tracks, adjusted trim/volume/pan/mute, switched Trim→Volume→Fade→Speed,
+confirmed `S.tracks` and the mixer DOM were both untouched.
+
+**Track state**: `{id, name, file, url, duration, trimStart, trimEnd,
+volume, pan, fadeIn, fadeOut, muted, samples, _el}`. `makeTrack(f)` builds
+one from the currently-loaded `S.file`; loading a genuinely *different*
+file (drop/browse, not "+ Track") resets the whole mix rather than
+silently keeping a stale multi-track session — detected by comparing the
+new file's blob URL against `S.tracks[0].url`, since every other dropzone
+in the app replaces rather than appends and this should match that.
+
+**Rendering**: waveform decode/draw logic extracted from the old player's
+`decodeAndDraw()`/`drawWaveform()` into standalone `decodeTrackWaveform(url)`
+/ `drawTrackWaveform(samples, w, h, canvasEl)`, parameterized per track
+instead of closing over a singleton canvas. Trim handles are a full
+rewrite, not a refactor, of `initTrimTimeline()`'s drag pattern — that
+function is far more entangled than hardcoded IDs (assumes singleton
+`trim-canvas`/`trim-hl`/`trim-hr`, indexes sibling range inputs by
+position, owns a `window._trimCleanup` global) and stays completely
+untouched, still used verbatim by the existing Trim panel. The mixer's own
+drag listeners are closure-scoped per lane and registered into
+`window._mixerDragCleanups` for teardown — necessary because every
+structural change (zoom, add/remove/reorder track) does a full
+`buildAudioMixer()` DOM rebuild, and document-level `mousemove`/`mouseup`
+listeners don't get garbage-collected just because their target node did.
+
+**Playback**: one `<audio>` per track (`track._el`, created lazily via
+`ensureTrackAudioEl()`), routed through a shared `AudioContext` →
+`MediaElementAudioSourceNode` → `StereoPannerNode` so pan is genuinely
+audible in preview (native `<audio>` has no pan control) — wrapped in
+try/catch so if the WebAudio graph fails for any reason, play/pause/
+volume/mute still work via the element's own properties directly.
+`window._apAudioEl` is kept aliased to track 0's element specifically
+because the existing Trim panel's playhead sync and the Speed panel's live
+`.playbackRate` preview both read that global directly — confirmed both
+call sites already null-guard it, but aliasing it keeps them functionally
+working rather than silently going dead.
+
+**Mixdown export** (`exportMixdown()`): a genuinely new ffmpeg code path,
+deliberately NOT a `processFFmpeg()`/`toolId` branch since it's not keyed
+by the active tool — multiple `-i` inputs (one per unmuted track written
+to the virtual FS), a `-filter_complex` chain per track
+(`atrim`→`volume`→`afade` in/out→`aformat=channel_layouts=stereo`→`pan`),
+then `amix=inputs=N:normalize=0` (normalize=0 is required — `amix`
+silently attenuates by 1/N otherwise, making the export quieter than the
+on-screen per-track volumes implied) and a final `alimiter` to guard
+against clipping from the unnormalized sum. Pan uses a simplified
+universal approach — `aformat=channel_layouts=stereo` first, then
+`pan=stereo|c0=L*c0|c1=R*c0` — rather than branching on source channel
+count, so mono and stereo sources both work through one code path without
+ever risking a channel-reference error.
+
+**Verified**: state/UI thoroughly via headless Chrome + CDP (2 tracks
+added, trim/volume/pan/mute set per track, confirmed correct after
+switching through 4 different tool tabs, playhead/mute state confirmed via
+a genuine CDP-dispatched trusted click since `.play()` correctly rejects
+untrusted synthetic calls per browser autoplay policy). The mixdown
+export's `-filter_complex` string was verified by reconstructing it from
+live track state and checking the generated ffmpeg syntax and computed
+gain values by hand — actual `ff.exec()` execution could **not** be
+verified in this session's headless test environment: `ensureFFmpeg()`
+fails with `SecurityError: Failed to construct 'Worker'` because
+`@ffmpeg/ffmpeg@0.12.10`'s internal worker.js tries to load directly from
+the jsdelivr CDN origin, which browsers disallow for `new Worker()`
+regardless of CORS headers. **This is pre-existing and unrelated to the
+mixer** — confirmed identical failure on the completely untouched
+`audio-volume` single-tool Process flow in the same environment, with both
+legacy `--headless` and `--headless=new`. Whether this also affects real
+interactive browser sessions (not just this automated CDP setup) is
+unconfirmed and worth checking directly — if FFmpeg-based tools already
+work for the user in their normal browser, this is purely a test-harness
+limitation; if not, it's a separate pre-existing issue in `ensureFFmpeg()`
+predating this feature entirely.
+
 ## What NOT to do here
 
 - Don't hardcode a color — reach for `var(--…)`, including in inline
@@ -534,8 +641,10 @@ four folders) so future uploads don't need this file re-explained.
 - Don't reintroduce a card grid for tool listings — it's a rail list now,
   everywhere, on purpose.
 - Don't add decorative interactive controls with no real function (zoom, fake
-  system stats, fake multi-track) — see "Deliberately NOT built" above for
-  the standard this project holds to and why.
+  system stats, decorative timelines with nothing behind them) — see
+  "Deliberately NOT built" above for the standard this project holds to and
+  why. This does NOT ban the real audio mixer (see "Audio mixer" below) —
+  that's a functional feature, not decoration.
 - Don't test mobile/responsive behavior with a bare `--window-size` headless
   flag — it does not reliably match real `@media` viewport behavior. Use
   `Emulation.setDeviceMetricsOverride` with `mobile:true`.

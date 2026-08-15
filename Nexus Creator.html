@@ -712,77 +712,6 @@ footer{background:var(--bg2);border-top:1px solid var(--border);padding:48px 20p
 .audio-name{font-size:17px;font-weight:600;margin-bottom:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:240px}
 .audio-size{font-family:var(--mono);font-size:15px;color:var(--dim)}
 
-/* ═══════════ AUDIO PLAYER ═══════════ */
-.audio-player{
-  width:100%;max-width:480px;background:var(--bg3);border:1px solid var(--border);
-  border-radius:4px;overflow:hidden;display:flex;flex-direction:column;user-select:none
-}
-/* waveform canvas area */
-.audio-wave-wrap{
-  position:relative;width:100%;height:72px;background:var(--bg4);cursor:pointer;overflow:hidden
-}
-.audio-wave-wrap canvas{
-  display:block;width:100%;height:100%;image-rendering:pixelated
-}
-#ap-canvas{transition:opacity .3s}
-#ap-canvas.dimmed{opacity:.2}
-/* Live frequency visualizer — crossfades in over the static waveform on playback */
-.audio-visualizer{position:absolute;inset:0;width:100%;height:100%;opacity:0;transition:opacity .3s;pointer-events:none}
-.audio-visualizer.show{opacity:1}
-.audio-wave-progress{
-  position:absolute;top:0;left:0;height:100%;background:rgba(255,59,59,.12);
-  pointer-events:none;transition:width .05s linear
-}
-.audio-wave-cursor{
-  position:absolute;top:0;width:2px;height:100%;background:var(--red);
-  pointer-events:none;transform:translateX(-50%);transition:left .05s linear
-}
-.audio-wave-loading{
-  position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
-  font-family:var(--mono);font-size:16px;letter-spacing:2px;color:var(--muted);
-  background:var(--bg4)
-}
-/* controls bar */
-.audio-controls{
-  display:flex;align-items:center;gap:10px;padding:8px 12px;border-top:1px solid var(--border)
-}
-.audio-play-btn{
-  width:30px;height:30px;background:var(--red);border-radius:50%;display:flex;align-items:center;
-  justify-content:center;flex-shrink:0;color:#fff;transition:background var(--transition)
-}
-.audio-play-btn:hover{background:var(--red2)}
-.audio-play-btn svg{width:12px;height:12px;fill:currentColor}
-.audio-seek{
-  flex:1;height:3px;appearance:none;-webkit-appearance:none;background:var(--border2);
-  border-radius:6px;cursor:pointer;accent-color:var(--red)
-}
-.audio-seek::-webkit-slider-thumb{
-  -webkit-appearance:none;width:12px;height:12px;background:var(--red);
-  border-radius:50%;cursor:pointer;margin-top:-4.5px
-}
-.audio-seek::-moz-range-thumb{
-  width:12px;height:12px;background:var(--red);border-radius:50%;cursor:pointer;border:none
-}
-.audio-time{
-  font-family:var(--mono);font-size:16px;color:var(--muted);white-space:nowrap;flex-shrink:0
-}
-/* meta row */
-.audio-meta-row{
-  display:flex;align-items:center;gap:0;padding:0 12px 8px;flex-wrap:wrap;gap:10px
-}
-.audio-fname{
-  font-size:17px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
-  max-width:200px;flex:1
-}
-.audio-fmeta{
-  font-family:var(--mono);font-size:15px;color:var(--dim);white-space:nowrap
-}
-.audio-fmt-badge{
-  font-family:var(--mono);font-size:15px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;
-  padding:2px 6px;background:var(--bg4);border:1px solid var(--border2);color:var(--muted);
-  border-radius:6px;flex-shrink:0
-}
-
 /* ═══════════ TRIM TIMELINE ═══════════ */
 .trim-timeline-wrap{
   position:relative;width:100%;height:52px;background:var(--bg4);border:1px solid var(--border);
@@ -935,6 +864,101 @@ footer{background:var(--bg2);border-top:1px solid var(--border);padding:48px 20p
   border:5px solid transparent;border-top-color:var(--border2)
 }
 .trim-hover-time{font-family:var(--mono);font-size:15px;color:var(--muted);letter-spacing:.5px}
+
+/* ═══════════ AUDIO MIXER — multi-track timeline ═══════════
+   Replaces .audio-player as the preview-area component for every audio
+   tool (see buildAudioMixer()/renderPreview()). Track HEADERS are a fixed
+   left column; the ruler + waveform lanes share one horizontally
+   scrolling region on the right so they always stay aligned. */
+.mixer-root{width:100%;max-width:1100px;background:var(--bg3);border:1px solid var(--border);border-radius:8px;overflow:hidden}
+
+.mixer-toolbar{
+  display:flex;align-items:center;gap:10px;padding:10px 14px;
+  background:var(--bg2);border-bottom:1px solid var(--border);flex-wrap:wrap
+}
+.mixer-zoom{display:flex;align-items:center;gap:6px;font-family:var(--mono);font-size:14px;color:var(--dim)}
+.mixer-icon-btn{
+  width:30px;height:30px;display:flex;align-items:center;justify-content:center;
+  background:var(--bg4);border:1px solid var(--border2);border-radius:6px;color:var(--muted);
+  transition:all var(--transition)
+}
+.mixer-icon-btn:hover{color:var(--text);border-color:var(--red)}
+.mixer-icon-btn.active{color:var(--red);border-color:var(--red);background:rgba(255,59,59,.08)}
+.mixer-transport{display:flex;align-items:center;gap:6px}
+.mixer-play-btn{
+  width:34px;height:34px;border-radius:50%;background:var(--red);color:#fff;
+  display:flex;align-items:center;justify-content:center;transition:all var(--transition)
+}
+.mixer-play-btn:hover{background:var(--red2)}
+.mixer-spacer{flex:1}
+.mixer-addtrack-btn{
+  display:flex;align-items:center;gap:6px;padding:8px 14px;font-size:15px;font-weight:700;
+  letter-spacing:.4px;text-transform:uppercase;background:var(--text);color:var(--bg);
+  border-radius:6px;transition:opacity var(--transition)
+}
+.mixer-addtrack-btn:hover{opacity:.85}
+
+/* Selected-track property bar */
+.mixer-propbar{
+  display:flex;align-items:center;gap:18px;padding:10px 14px;flex-wrap:wrap;
+  background:var(--bg3);border-bottom:1px solid var(--border);
+  font-family:var(--mono);font-size:14px;color:var(--dim)
+}
+.mixer-propbar-name{font-family:var(--font);font-size:16px;font-weight:700;color:var(--text);margin-right:6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:200px}
+.mixer-propbar-field{display:flex;align-items:center;gap:6px}
+.mixer-propbar-field label{text-transform:uppercase;letter-spacing:.5px;color:var(--dim)}
+.mixer-propbar-field input[type=number]{
+  width:64px;background:var(--bg4);border:1px solid var(--border2);border-radius:4px;
+  color:var(--text);font-family:var(--mono);font-size:14px;padding:4px 6px
+}
+.mixer-propbar-field input[type=range]{width:90px}
+.mixer-propbar-empty{padding:4px 0;color:var(--dim);font-style:italic}
+
+/* Body: fixed header column + scrolling ruler/lanes */
+.mixer-body{display:flex;max-height:340px}
+.mixer-headers{width:180px;flex-shrink:0;border-right:1px solid var(--border);overflow-y:auto;background:var(--bg3)}
+.mixer-scroll{flex:1;overflow-x:auto;overflow-y:auto}
+
+.mixer-ruler{
+  position:relative;height:26px;border-bottom:1px solid var(--border);background:var(--bg4);
+  font-family:var(--mono);font-size:13px;color:var(--dim)
+}
+.mixer-ruler-tick{position:absolute;top:0;bottom:0;border-left:1px solid var(--border2)}
+.mixer-ruler-tick span{position:absolute;top:3px;left:4px;white-space:nowrap}
+.mixer-playhead{position:absolute;top:0;bottom:0;width:2px;background:var(--red);z-index:5;pointer-events:none}
+.mixer-playhead::before{content:'';position:absolute;top:-4px;left:50%;transform:translateX(-50%);width:8px;height:8px;border-radius:50%;background:var(--red)}
+
+/* One row per track — header (left, fixed) + wave (right, scrolls) */
+.track-lane-hdr{
+  display:flex;flex-direction:column;gap:6px;padding:10px 12px;
+  border-bottom:1px solid var(--border);min-height:88px;justify-content:center
+}
+.track-lane-hdr.selected{background:rgba(255,59,59,.06);box-shadow:inset 2px 0 0 var(--red)}
+.track-lane-title{display:flex;align-items:center;gap:8px;cursor:pointer;min-width:0}
+.track-lane-title span{font-size:15px;font-weight:700;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.track-color-dot{width:9px;height:9px;border-radius:50%;flex-shrink:0;background:var(--blue)}
+.track-lane-meta{font-family:var(--mono);font-size:13px;color:var(--dim)}
+.track-controls{display:flex;align-items:center;gap:5px}
+.track-ctrl-btn{
+  width:24px;height:24px;display:flex;align-items:center;justify-content:center;
+  color:var(--dim);border-radius:4px;transition:all var(--transition)
+}
+.track-ctrl-btn:hover{color:var(--text);background:var(--bg4)}
+.track-ctrl-btn.active{color:var(--red)}
+.track-ctrl-btn:disabled{opacity:.25;pointer-events:none}
+.track-vol-mini{width:64px}
+
+.track-lane-wave{position:relative;height:88px;border-bottom:1px solid var(--border);background:var(--bg4)}
+.track-lane-wave canvas{position:absolute;inset:0;width:100%;height:100%}
+.track-lane-wave.muted canvas{opacity:.25}
+.tl-region{position:absolute;top:0;bottom:0;border:1px solid var(--red);background:rgba(255,59,59,.08);cursor:move}
+.tl-handle{position:absolute;top:0;bottom:0;width:10px;cursor:ew-resize;z-index:4}
+.tl-handle::after{
+  content:'';position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);
+  width:4px;height:28px;border-radius:2px;background:var(--red)
+}
+.tl-handle.l{left:-5px}
+.tl-handle.r{right:-5px}
 
 /* ═══════════ LUFS GRID ═══════════ */
 .lufs-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:6px;margin-bottom:10px}
@@ -2006,6 +2030,13 @@ const S = {
   uwTab:      'image',
   theme:      localStorage.getItem('nx-theme') || 'dark',
   pendingFile: null,
+  // Audio mixer — a loaded audio file becomes tracks[0]; "+ Track" appends
+  // more. Deliberately separate from `settings` (which selectTool() wipes
+  // on every tool-tab switch) so the mix survives moving between Trim,
+  // Volume, Fade, etc.
+  tracks:      [],
+  mixerSelectedTrack: null,
+  mixerZoom:   80, // px/second
 };
 
 // File size limits (bytes)
@@ -5450,238 +5481,525 @@ async function loadFile(file) {
   }
 }
 
-/* ─── Audio Player ──────────────────────────────────────────── */
-function buildAudioPlayer(container, f) {
-  // Format badge from extension
-  const ext = (f.name.split('.').pop() || 'audio').toUpperCase();
-  const dur  = f.duration || 0;
+// ════════════════════════════════════════════════════════════════════════════
+// AUDIO MIXER — multi-track timeline
+// ════════════════════════════════════════════════════════════════════════════
+function uid() { return Math.random().toString(36).slice(2, 9); }
 
-  // Build HTML structure
-  container.innerHTML = `
-    <div class="audio-player" id="ap-root">
-      <div class="audio-wave-wrap" id="ap-wave-wrap" title="Click to seek">
-        <canvas id="ap-canvas"></canvas>
-        <canvas id="ap-visualizer" class="audio-visualizer" aria-hidden="true"></canvas>
-        <div class="audio-wave-progress" id="ap-progress"></div>
-        <div class="audio-wave-cursor"   id="ap-cursor" style="left:0%"></div>
-        <div class="audio-wave-loading"  id="ap-loading">LOADING WAVEFORM…</div>
+function makeTrack(f) {
+  return {
+    id: uid(),
+    name: f.name,
+    file: f.file,
+    url: f.url,
+    duration: f.duration || 0,
+    color: 'blue', // matches .trim-track-badge.a1 (audio) convention
+    trimStart: 0,
+    trimEnd: f.duration || 0,
+    volume: 100,
+    pan: 0,
+    fadeIn: 0,
+    fadeOut: 0,
+    muted: false,
+    samples: null, // decoded Float32Array, filled in lazily
+    _el: null,      // <audio> element, created on first play
+  };
+}
+
+// Decodes an audio URL to a mono-mixed Float32Array. Same approach as the
+// old single-player's decodeAndDraw() (AudioContext.decodeAudioData, mix
+// stereo down to one channel for the min/max waveform) extracted so every
+// track can decode independently. Sequential by design — decoding several
+// large files in parallel via Promise.all risks a real memory spike.
+async function decodeTrackWaveform(url) {
+  const ctx = new (window.AudioContext || window.webkitAudioContext)();
+  try {
+    const buf = await (await fetch(url)).arrayBuffer();
+    const decoded = await ctx.decodeAudioData(buf);
+    let samples;
+    if (decoded.numberOfChannels >= 2) {
+      const ch0 = decoded.getChannelData(0);
+      const ch1 = decoded.getChannelData(1);
+      samples = new Float32Array(ch0.length);
+      for (let i = 0; i < ch0.length; i++) samples[i] = (ch0[i] + ch1[i]) * 0.5;
+    } else {
+      samples = decoded.getChannelData(0);
+    }
+    return samples;
+  } finally {
+    ctx.close();
+  }
+}
+
+// Same min/max-per-column + dimmer reflection algorithm as the old
+// player's drawWaveform(), parameterized with an explicit canvas instead
+// of closing over a singleton — lets every track lane draw independently.
+function drawTrackWaveform(samples, width, height, canvasEl) {
+  canvasEl.width  = width;
+  canvasEl.height = height;
+  const cx = canvasEl.getContext('2d');
+  const step   = Math.max(1, Math.ceil(samples.length / width));
+  const mid    = height / 2;
+  const isDark = document.documentElement.getAttribute('data-theme') !== 'light';
+  const barClr = isDark ? 'rgba(255,59,59,0.65)' : 'rgba(224,40,31,0.55)';
+  const bgClr  = isDark ? 'rgba(255,59,59,0.18)' : 'rgba(224,40,31,0.12)';
+
+  cx.clearRect(0, 0, width, height);
+  if (!samples || !samples.length) {
+    cx.strokeStyle = barClr; cx.lineWidth = 1;
+    cx.beginPath(); cx.moveTo(0, mid); cx.lineTo(width, mid); cx.stroke();
+    return;
+  }
+  for (let x = 0; x < width; x++) {
+    let min = 1, max = -1;
+    for (let j = 0; j < step; j++) {
+      const v = samples[(x * step + j) % samples.length];
+      if (v < min) min = v;
+      if (v > max) max = v;
+    }
+    cx.fillStyle = bgClr;
+    cx.fillRect(x, mid + min * mid * 0.4, 1, Math.max(1, (max - min) * mid * 0.4));
+    cx.fillStyle = barClr;
+    cx.fillRect(x, mid + min * mid, 1, Math.max(1, (max - min) * mid));
+  }
+}
+
+function mixerMaxDuration() {
+  return S.tracks.reduce((m, t) => Math.max(m, t.duration || 0), 0.1);
+}
+
+function mixerSelectedTrackObj() {
+  return S.tracks.find(t => t.id === S.mixerSelectedTrack) || null;
+}
+
+function mixerPropBarHTML() {
+  const t = mixerSelectedTrackObj();
+  if (!t) return `<div class="mixer-propbar"><span class="mixer-propbar-empty">No track selected</span></div>`;
+  const len = Math.max(0, t.trimEnd - t.trimStart);
+  return `
+    <div class="mixer-propbar">
+      <span class="mixer-propbar-name" title="${t.name}">${t.name}</span>
+      <div class="mixer-propbar-field"><label>Trim Start</label>
+        <input type="number" min="0" max="${t.duration.toFixed(2)}" step="0.1" value="${t.trimStart.toFixed(2)}"
+          onchange="setMixerTrackField('${t.id}','trimStart',+this.value)"/>
       </div>
-      <div class="audio-controls">
-        <button class="audio-play-btn" id="ap-play" aria-label="Play / Pause">
-          <svg id="ap-play-icon" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+      <div class="mixer-propbar-field"><label>End</label>
+        <input type="number" min="0" max="${t.duration.toFixed(2)}" step="0.1" value="${t.trimEnd.toFixed(2)}"
+          onchange="setMixerTrackField('${t.id}','trimEnd',+this.value)"/>
+      </div>
+      <div class="mixer-propbar-field"><label>Length</label><span>${len.toFixed(2)}s</span></div>
+      <div class="mixer-propbar-field"><label>Volume</label>
+        <input type="range" min="0" max="150" step="1" value="${t.volume}"
+          oninput="setMixerTrackField('${t.id}','volume',+this.value)"/>
+        <span>${t.volume}%</span>
+      </div>
+      <div class="mixer-propbar-field"><label>Pan</label>
+        <input type="range" min="-100" max="100" step="1" value="${t.pan}"
+          oninput="setMixerTrackField('${t.id}','pan',+this.value)"/>
+        <span>${t.pan === 0 ? 'C' : (t.pan < 0 ? 'L' + Math.abs(t.pan) : 'R' + t.pan)}</span>
+      </div>
+      <div class="mixer-propbar-field"><label>Fade In</label>
+        <input type="number" min="0" max="${len.toFixed(2)}" step="0.1" value="${t.fadeIn.toFixed(2)}"
+          onchange="setMixerTrackField('${t.id}','fadeIn',+this.value)"/>
+      </div>
+      <div class="mixer-propbar-field"><label>Out</label>
+        <input type="number" min="0" max="${len.toFixed(2)}" step="0.1" value="${t.fadeOut.toFixed(2)}"
+          onchange="setMixerTrackField('${t.id}','fadeOut',+this.value)"/>
+      </div>
+    </div>`;
+}
+
+function mixerRulerHTML() {
+  const maxDur = mixerMaxDuration();
+  const zoom = S.mixerZoom;
+  const width = Math.max(1, Math.ceil(maxDur * zoom)) + 40;
+  // One tick per 1s at high zoom, thinning out as zoom shrinks so labels don't collide
+  const stepSec = zoom >= 60 ? 1 : zoom >= 25 ? 2 : zoom >= 12 ? 5 : 10;
+  let ticks = '';
+  for (let s = 0; s <= maxDur; s += stepSec) {
+    ticks += `<div class="mixer-ruler-tick" style="left:${(s * zoom).toFixed(1)}px"><span>${fmtTime(s)}</span></div>`;
+  }
+  return `<div class="mixer-ruler" id="mixer-ruler" style="width:${width}px" onmousedown="mixerSeekFromRuler(event)">${ticks}<div class="mixer-playhead" id="mixer-playhead" style="left:0px;display:none"></div></div>`;
+}
+
+function trackLaneHeaderHTML(t, i, total) {
+  const selected = t.id === S.mixerSelectedTrack;
+  return `
+    <div class="track-lane-hdr${selected ? ' selected' : ''}" id="tlhdr-${t.id}" data-track="${t.id}">
+      <div class="track-lane-title" onclick="selectMixerTrack('${t.id}')">
+        <span class="track-color-dot"></span>
+        <span title="${t.name}">${t.name}</span>
+      </div>
+      <div class="track-lane-meta">${fmtTime(t.duration)} · ${t.volume}%</div>
+      <div class="track-controls">
+        <button class="track-ctrl-btn${t.muted ? ' active' : ''}" onclick="toggleTrackMute('${t.id}')" aria-label="Mute track">
+          ${t.muted
+            ? '<svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M11 5L6 9H2v6h4l5 4V5z"/><line x1="23" y1="9" x2="17" y2="15"/><line x1="17" y1="9" x2="23" y2="15"/></svg>'
+            : '<svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M11 5L6 9H2v6h4l5 4V5z"/><path d="M15.5 8.5a5 5 0 010 7"/></svg>'}
         </button>
-        <input type="range" class="audio-seek" id="ap-seek" min="0" max="1000" value="0" step="1" aria-label="Seek"/>
-        <span class="audio-time" id="ap-time">0:00 / ${fmtTime(dur)}</span>
+        <button class="track-ctrl-btn" onclick="reorderTrack('${t.id}',-1)" aria-label="Move up" ${i === 0 ? 'disabled' : ''}>
+          <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="18 15 12 9 6 15"/></svg>
+        </button>
+        <button class="track-ctrl-btn" onclick="reorderTrack('${t.id}',1)" aria-label="Move down" ${i === total - 1 ? 'disabled' : ''}>
+          <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg>
+        </button>
+        <button class="track-ctrl-btn" onclick="removeTrack('${t.id}')" aria-label="Delete track" ${total <= 1 ? 'disabled' : ''}>
+          <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg>
+        </button>
       </div>
-      <div class="audio-meta-row">
-        <span class="audio-fname" title="${f.name}">${f.name}</span>
-        <span class="audio-fmeta">${fmtBytes(f.size)}${dur ? ' · ' + fmtTime(dur) : ''}</span>
-        <span class="audio-fmt-badge">${ext}</span>
+    </div>`;
+}
+
+function trackLaneWaveHTML(t) {
+  const maxDur = mixerMaxDuration();
+  const zoom = S.mixerZoom;
+  const laneWidth = Math.max(1, Math.ceil(maxDur * zoom)) + 40;
+  const trackWidth = Math.max(1, Math.ceil((t.duration || 0) * zoom));
+  const regionL = (t.trimStart * zoom).toFixed(1);
+  const regionW = Math.max(2, ((t.trimEnd - t.trimStart) * zoom)).toFixed(1);
+  return `
+    <div class="track-lane-wave${t.muted ? ' muted' : ''}" id="tlwave-${t.id}" data-track="${t.id}" style="width:${laneWidth}px">
+      <canvas id="tlcanvas-${t.id}" style="width:${trackWidth}px;height:100%;left:0"></canvas>
+      <div class="tl-region" id="tlregion-${t.id}" style="left:${regionL}px;width:${regionW}px">
+        <div class="tl-handle l" data-side="start"></div>
+        <div class="tl-handle r" data-side="end"></div>
+      </div>
+    </div>`;
+}
+
+function redrawTrackLane(t) {
+  const canvas = document.getElementById('tlcanvas-' + t.id);
+  if (!canvas || !t.samples) return;
+  const zoom = S.mixerZoom;
+  const w = Math.max(1, Math.ceil((t.duration || 0) * zoom));
+  drawTrackWaveform(t.samples, w, 88, canvas);
+}
+
+function decodeAndDrawTrack(t) {
+  if (t.samples) { redrawTrackLane(t); return; }
+  decodeTrackWaveform(t.url).then(samples => {
+    t.samples = samples;
+    redrawTrackLane(t);
+  }).catch(() => { /* leave the flat-line fallback drawn by drawTrackWaveform */ redrawTrackLane(t); });
+}
+
+function buildAudioMixer(container, tracks) {
+  // Rebuilding replaces every track lane's DOM — drop the drag listeners
+  // that were bound to the old nodes first (document-level, so they
+  // don't get garbage-collected just because their target node did).
+  if (window._mixerDragCleanups) { window._mixerDragCleanups.forEach(fn => fn()); }
+  window._mixerDragCleanups = [];
+
+  if (!S.mixerSelectedTrack || !tracks.some(t => t.id === S.mixerSelectedTrack)) {
+    S.mixerSelectedTrack = tracks[0] ? tracks[0].id : null;
+  }
+  container.innerHTML = `
+    <div class="mixer-root" id="mixer-root">
+      <div class="mixer-toolbar">
+        <div class="mixer-zoom">
+          <button class="mixer-icon-btn" onclick="mixerZoomBy(-20)" aria-label="Zoom out">
+            <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          </button>
+          <span id="mixer-zoom-label">${S.mixerZoom}px/s</span>
+          <button class="mixer-icon-btn" onclick="mixerZoomBy(20)" aria-label="Zoom in">
+            <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          </button>
+        </div>
+        <div class="mixer-transport">
+          <button class="mixer-play-btn" id="mixer-play-btn" onclick="toggleMixerPlayback()" aria-label="Play or pause">
+            <svg id="mixer-play-icon" width="14" height="14" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+          </button>
+          <button class="mixer-icon-btn" onclick="stopMixerPlayback()" aria-label="Stop">
+            <svg width="12" height="12" viewBox="0 0 24 24"><rect x="5" y="5" width="14" height="14"/></svg>
+          </button>
+          <span class="mixer-propbar-field"><span id="mixer-time">0:00</span> / <span id="mixer-total-time">${fmtTime(mixerMaxDuration())}</span></span>
+        </div>
+        <div class="mixer-spacer"></div>
+        <button class="mixer-addtrack-btn" onclick="addTrack()" aria-label="Add track">
+          <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          Track
+        </button>
+        <button class="mixer-addtrack-btn" id="mixer-export-btn" onclick="exportMixdown()" aria-label="Export mix" style="background:var(--red);color:#fff">
+          Export Mix
+        </button>
+      </div>
+      ${mixerPropBarHTML()}
+      <div class="mixer-body">
+        <div class="mixer-headers" id="mixer-headers">
+          ${tracks.map((t, i) => trackLaneHeaderHTML(t, i, tracks.length)).join('')}
+        </div>
+        <div class="mixer-scroll" id="mixer-scroll">
+          ${mixerRulerHTML()}
+          <div id="mixer-lanes">
+            ${tracks.map(t => trackLaneWaveHTML(t)).join('')}
+          </div>
+        </div>
       </div>
     </div>`;
 
-  // Hidden <audio> element (not in DOM display, just for playback)
-  const audio = new Audio(f.url);
-  audio.preload = 'auto';
-  window._apAudioEl = audio; // expose for live preview (speed, trim playhead)
+  tracks.forEach(t => decodeAndDrawTrack(t));
+  tracks.forEach(t => initTrackDrag(t));
+}
 
-  const playIcon  = `<path d="M8 5v14l11-7z"/>`;
-  const pauseIcon = `<path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/>`;
-
-  const apPlay     = document.getElementById('ap-play');
-  const apPlayIcon = document.getElementById('ap-play-icon');
-  const apSeek     = document.getElementById('ap-seek');
-  const apTime     = document.getElementById('ap-time');
-  const apProgress = document.getElementById('ap-progress');
-  const apCursor   = document.getElementById('ap-cursor');
-  const apLoading  = document.getElementById('ap-loading');
-  const apWave     = document.getElementById('ap-wave-wrap');
-  const apCanvas   = document.getElementById('ap-canvas');
-  const apViz      = document.getElementById('ap-visualizer');
-
-  // ── Live frequency visualizer ──────────────────────────────────────────
-  // Routes playback through a WebAudio AnalyserNode so we can draw a real,
-  // reactive equalizer while the track plays — crossfades over the static
-  // waveform, then fades back when paused. Falls back silently (playback
-  // still works fine) if WebAudio routing is unavailable.
-  let analyser = null, freqData = null, vizRAF = null;
-  const vizCtx = apViz.getContext('2d');
-  function sizeViz() {
-    apViz.width  = apWave.clientWidth  || 480;
-    apViz.height = apWave.clientHeight || 72;
+// Updates one track's trim-region box + handles in place (drag-time,
+// every mousemove) without touching the rest of the mixer DOM.
+function updateTrackRegionDOM(t) {
+  const region = document.getElementById('tlregion-' + t.id);
+  if (region) {
+    region.style.left  = (t.trimStart * S.mixerZoom).toFixed(1) + 'px';
+    region.style.width = Math.max(2, (t.trimEnd - t.trimStart) * S.mixerZoom).toFixed(1) + 'px';
   }
-  sizeViz();
-  window.addEventListener('resize', sizeViz);
+  const meta = document.querySelector('#tlhdr-' + t.id + ' .track-lane-meta');
+  if (meta) meta.textContent = `${fmtTime(t.duration)} · ${t.volume}%`;
+  if (t.id === S.mixerSelectedTrack) {
+    const bar = document.querySelector('.mixer-propbar');
+    if (bar) bar.outerHTML = mixerPropBarHTML();
+  }
+}
 
+// Closure-scoped drag state per lane — mirrors the mousedown/mousemove/
+// mouseup pattern used by initTrimTimeline()/initVideoCropOverlay()
+// elsewhere in the file, but parameterized per track instead of a
+// singleton, and registered into window._mixerDragCleanups for teardown.
+function initTrackDrag(track) {
+  const regionEl = document.getElementById('tlregion-' + track.id);
+  if (!regionEl) return;
+  const handleL = regionEl.querySelector('.tl-handle.l');
+  const handleR = regionEl.querySelector('.tl-handle.r');
+
+  let dragType = null; // 'start' | 'end' | 'move'
+  let dragStartX = 0, dragStartTrimStart = 0, dragStartTrimEnd = 0;
+
+  function beginDrag(type) {
+    return (e) => {
+      dragType = type;
+      dragStartX = e.clientX;
+      dragStartTrimStart = track.trimStart;
+      dragStartTrimEnd = track.trimEnd;
+      e.preventDefault();
+      e.stopPropagation();
+    };
+  }
+  function onMove(e) {
+    if (!dragType) return;
+    const dt  = (e.clientX - dragStartX) / S.mixerZoom;
+    const dur = track.duration || 0;
+    if (dragType === 'start') {
+      track.trimStart = Math.max(0, Math.min(dragStartTrimStart + dt, track.trimEnd - 0.05));
+    } else if (dragType === 'end') {
+      track.trimEnd = Math.min(dur, Math.max(dragStartTrimEnd + dt, track.trimStart + 0.05));
+    } else if (dragType === 'move') {
+      const len = dragStartTrimEnd - dragStartTrimStart;
+      const ns  = Math.max(0, Math.min(dragStartTrimStart + dt, dur - len));
+      track.trimStart = ns;
+      track.trimEnd   = ns + len;
+    }
+    updateTrackRegionDOM(track);
+  }
+  function onUp() { dragType = null; }
+
+  handleL.addEventListener('mousedown', beginDrag('start'));
+  handleR.addEventListener('mousedown', beginDrag('end'));
+  regionEl.addEventListener('mousedown', (e) => {
+    if (e.target === handleL || e.target === handleR) return;
+    beginDrag('move')(e);
+  });
+  document.addEventListener('mousemove', onMove);
+  document.addEventListener('mouseup', onUp);
+
+  window._mixerDragCleanups.push(() => {
+    document.removeEventListener('mousemove', onMove);
+    document.removeEventListener('mouseup', onUp);
+  });
+}
+
+function selectMixerTrack(id) {
+  if (S.mixerSelectedTrack === id) return;
+  S.mixerSelectedTrack = id;
+  document.querySelectorAll('.track-lane-hdr').forEach(el => {
+    el.classList.toggle('selected', el.dataset.track === id);
+  });
+  const bar = document.querySelector('.mixer-propbar');
+  if (bar) bar.outerHTML = mixerPropBarHTML();
+}
+
+function mixerZoomBy(delta) {
+  S.mixerZoom = Math.max(20, Math.min(300, S.mixerZoom + delta));
+  buildAudioMixer($('ed-preview'), S.tracks);
+}
+
+// Shared setter for every property-bar field (Trim/Volume/Pan/Fade) —
+// updates the track object, then either does a cheap in-place DOM patch
+// (trim/volume/pan, which don't change any element's *size*) or a full
+// rebuild (nothing currently needs one, kept for parity with other setS-
+// style helpers in the codebase which re-render after writing state).
+function setMixerTrackField(id, field, value) {
+  const t = S.tracks.find(tr => tr.id === id);
+  if (!t) return;
+  if (field === 'trimStart') value = Math.max(0, Math.min(value, t.trimEnd - 0.05));
+  if (field === 'trimEnd')   value = Math.min(t.duration, Math.max(value, t.trimStart + 0.05));
+  if (field === 'volume')    value = Math.max(0, Math.min(150, value));
+  if (field === 'pan')       value = Math.max(-100, Math.min(100, value));
+  if (field === 'fadeIn')    value = Math.max(0, Math.min(t.trimEnd - t.trimStart, value));
+  if (field === 'fadeOut')   value = Math.max(0, Math.min(t.trimEnd - t.trimStart, value));
+  t[field] = value;
+  if (t._el && field === 'volume') t._el.volume = Math.min(1, value / 100);
+  if (t._el && field === 'pan' && t._pan) t._pan.pan.value = value / 100;
+  updateTrackRegionDOM(t);
+}
+
+function mixerSeekFromRuler(e) {
+  const ruler = $('mixer-ruler');
+  if (!ruler) return;
+  const r = ruler.getBoundingClientRect();
+  const t = Math.max(0, (e.clientX - r.left) / S.mixerZoom);
+  seekMixerTo(t);
+}
+
+// ── Track list: add / remove / reorder / mute ──────────────────────────────
+function addTrackFromFile(file) {
+  return readFileMetadata(file, 'audio').then(meta => {
+    S.tracks.push(makeTrack({
+      file, name: file.name, url: URL.createObjectURL(file), duration: meta.duration || 0,
+    }));
+  });
+}
+
+function addTrack() {
+  const input = document.createElement('input');
+  input.type = 'file';
+  input.accept = 'audio/*';
+  input.multiple = true;
+  input.style.display = 'none';
+  document.body.appendChild(input);
+  input.addEventListener('change', () => {
+    const files = [...input.files];
+    document.body.removeChild(input);
+    if (!files.length) return;
+    let chain = Promise.resolve();
+    files.forEach(file => { chain = chain.then(() => addTrackFromFile(file)); });
+    chain.then(() => buildAudioMixer($('ed-preview'), S.tracks));
+  });
+  input.click();
+}
+
+function removeTrack(id) {
+  if (S.tracks.length <= 1) return; // always keep at least one track
+  const t = S.tracks.find(tr => tr.id === id);
+  if (!t) return;
+  if (t._el) { t._el.pause(); t._el.src = ''; }
+  if (t.url) URL.revokeObjectURL(t.url);
+  S.tracks = S.tracks.filter(tr => tr.id !== id);
+  if (S.mixerSelectedTrack === id) S.mixerSelectedTrack = null;
+  buildAudioMixer($('ed-preview'), S.tracks);
+}
+
+function reorderTrack(id, dir) {
+  const i = S.tracks.findIndex(tr => tr.id === id);
+  const j = i + dir;
+  if (i < 0 || j < 0 || j >= S.tracks.length) return;
+  [S.tracks[i], S.tracks[j]] = [S.tracks[j], S.tracks[i]];
+  buildAudioMixer($('ed-preview'), S.tracks);
+}
+
+function toggleTrackMute(id) {
+  const t = S.tracks.find(tr => tr.id === id);
+  if (!t) return;
+  t.muted = !t.muted;
+  if (t._el) t._el.muted = t.muted;
+  const laneWave = document.getElementById('tlwave-' + id);
+  if (laneWave) laneWave.classList.toggle('muted', t.muted);
+  const btn = document.querySelector('#tlhdr-' + id + ' .track-ctrl-btn');
+  if (btn) btn.classList.toggle('active', t.muted);
+}
+
+// ── Synchronized multi-track playback ───────────────────────────────────────
+const PLAY_ICON  = '<svg id="mixer-play-icon" width="14" height="14" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>';
+const PAUSE_ICON = '<svg id="mixer-play-icon" width="14" height="14" viewBox="0 0 24 24"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>';
+
+// One <audio> per track, routed through a shared WebAudio graph so pan is
+// genuinely audible in preview (native <audio> has no pan control) —
+// volume/mute still use the element's own properties directly, so if the
+// WebAudio graph fails for any reason play/pause/volume/mute keep working.
+function ensureTrackAudioEl(t) {
+  if (t._el) return t._el;
+  t._el = new Audio(t.url);
+  t._el.preload = 'auto';
+  t._el.volume = Math.min(1, t.volume / 100);
+  t._el.muted = t.muted;
   try {
-    if (!window._apAudioCtx) window._apAudioCtx = new (window.AudioContext || window.webkitAudioContext)();
-    const actx = window._apAudioCtx;
-    const srcNode = actx.createMediaElementSource(audio);
-    analyser = actx.createAnalyser();
-    analyser.fftSize = 64;                 // 32 frequency bins — chunky, punchy bars
-    analyser.smoothingTimeConstant = 0.78; // smooth motion, no jitter
-    srcNode.connect(analyser);
-    analyser.connect(actx.destination);    // keep audio audible — routing through the graph replaces direct output
-    freqData = new Uint8Array(analyser.frequencyBinCount);
-  } catch (_) {
-    analyser = null; // Visualizer unavailable — static waveform stays the whole time, playback unaffected
-  }
+    const actx = window._mixerAudioCtx || (window._mixerAudioCtx = new (window.AudioContext || window.webkitAudioContext)());
+    const src  = actx.createMediaElementSource(t._el);
+    const pan  = actx.createStereoPanner();
+    pan.pan.value = t.pan / 100;
+    src.connect(pan).connect(actx.destination);
+    t._pan = pan;
+  } catch (e) { /* pan preview unavailable — playback itself is unaffected */ }
+  return t._el;
+}
 
-  function drawViz() {
-    if (!analyser) return;
-    vizRAF = requestAnimationFrame(drawViz);
-    analyser.getByteFrequencyData(freqData);
-    const w = apViz.width, h = apViz.height;
-    vizCtx.clearRect(0, 0, w, h);
-    const bars = freqData.length;
-    const gap = 2;
-    const barW = Math.max(1, (w / bars) - gap);
-    const isDark = document.documentElement.getAttribute('data-theme') !== 'light';
-    vizCtx.fillStyle = isDark ? 'rgba(255,79,82,0.92)' : 'rgba(224,40,31,0.85)';
-    for (let i = 0; i < bars; i++) {
-      const v = freqData[i] / 255;
-      const barH = Math.max(2, v * h);
-      vizCtx.fillRect(i * (barW + gap), h - barH, barW, barH);
-    }
-  }
-  function startViz() {
-    if (!analyser) return;
-    if (window._apAudioCtx.state === 'suspended') window._apAudioCtx.resume();
-    apViz.classList.add('show');
-    apCanvas.classList.add('dimmed');
-    cancelAnimationFrame(vizRAF);
-    drawViz();
-  }
-  function stopViz() {
-    cancelAnimationFrame(vizRAF); vizRAF = null;
-    apViz.classList.remove('show');
-    apCanvas.classList.remove('dimmed');
-  }
-
-  // Play / Pause
-  function togglePlay() {
-    if (audio.paused) { audio.play(); } else { audio.pause(); }
-  }
-  apPlay.addEventListener('click', togglePlay);
-
-  // Keyboard: Space to play/pause when editor is focused
-  function onKey(e) {
-    if (e.code === 'Space' && document.activeElement.tagName !== 'INPUT') {
-      e.preventDefault(); togglePlay();
-    }
-  }
-  document.addEventListener('keydown', onKey);
-
-  // Track cleanup so we don't leak event listeners when a new file loads
-  if (window._apCleanup) window._apCleanup();
-  window._apCleanup = () => {
-    audio.pause();
-    document.removeEventListener('keydown', onKey);
-    window.removeEventListener('resize', sizeViz);
-    cancelAnimationFrame(vizRAF);
-    window._apCleanup = null;
-  };
-
-  // Audio → UI sync
-  audio.addEventListener('play',  () => { apPlayIcon.innerHTML = pauseIcon; startViz(); });
-  audio.addEventListener('pause', () => { apPlayIcon.innerHTML = playIcon;  stopViz();  });
-  audio.addEventListener('ended', () => { apPlayIcon.innerHTML = playIcon;  stopViz();  });
-
-  audio.addEventListener('timeupdate', () => {
-    if (!audio.duration) return;
-    const pct = audio.currentTime / audio.duration;
-    apSeek.value     = Math.round(pct * 1000);
-    apProgress.style.width  = (pct * 100) + '%';
-    apCursor.style.left     = (pct * 100) + '%';
-    apTime.textContent = fmtTime(audio.currentTime) + ' / ' + fmtTime(audio.duration);
+function playAllTracks() {
+  if (window._mixerAudioCtx && window._mixerAudioCtx.state === 'suspended') window._mixerAudioCtx.resume();
+  S.tracks.forEach(t => {
+    ensureTrackAudioEl(t);
+    t._el.currentTime = t.trimStart;
+    t._el.volume = Math.min(1, t.volume / 100);
+    t._el.muted  = t.muted;
+    t._el.play().catch(() => {});
   });
+  window._apAudioEl = S.tracks[0] ? S.tracks[0]._el : null; // keep audio-trim/audio-speed panels working
+  const icon = $('mixer-play-icon');
+  if (icon) icon.outerHTML = PAUSE_ICON;
+  window._mixerPlaying = true;
+  mixerPlaybackTick();
+}
 
-  // Seek slider
-  apSeek.addEventListener('input', () => {
-    if (audio.duration) audio.currentTime = (apSeek.value / 1000) * audio.duration;
-  });
+function pauseAllTracks() {
+  S.tracks.forEach(t => { if (t._el) t._el.pause(); });
+  const icon = $('mixer-play-icon');
+  if (icon) icon.outerHTML = PLAY_ICON;
+  window._mixerPlaying = false;
+  cancelAnimationFrame(window._mixerPlaybackRaf);
+}
 
-  // Click on waveform to seek
-  apWave.addEventListener('click', (e) => {
-    const rect = apWave.getBoundingClientRect();
-    const pct  = (e.clientX - rect.left) / rect.width;
-    if (audio.duration) {
-      audio.currentTime = pct * audio.duration;
-      apSeek.value = Math.round(pct * 1000);
-    }
-  });
+function toggleMixerPlayback() {
+  if (window._mixerPlaying) pauseAllTracks(); else playAllTracks();
+}
 
-  // ── Waveform drawing ─────────────────────────────────────────
-  function drawWaveform(samples, width, height) {
-    apCanvas.width  = width;
-    apCanvas.height = height;
-    const cx = apCanvas.getContext('2d');
-    const step    = Math.ceil(samples.length / width);
-    const mid     = height / 2;
-    const isDark  = document.documentElement.getAttribute('data-theme') !== 'light';
-    const barClr  = isDark ? 'rgba(255,59,59,0.65)' : 'rgba(224,40,31,0.55)';
-    const bgClr   = isDark ? 'rgba(255,59,59,0.18)' : 'rgba(224,40,31,0.12)';
+function stopMixerPlayback() {
+  pauseAllTracks();
+  S.tracks.forEach(t => { if (t._el) t._el.currentTime = t.trimStart; });
+  updateMixerPlayheadUI(0);
+}
 
-    cx.clearRect(0, 0, width, height);
-    for (let x = 0; x < width; x++) {
-      let min = 1, max = -1;
-      for (let j = 0; j < step; j++) {
-        const v = samples[(x * step + j) % samples.length];
-        if (v < min) min = v;
-        if (v > max) max = v;
-      }
-      // Background reflection (lower half mirror)
-      cx.fillStyle = bgClr;
-      cx.fillRect(x, mid + min * mid * 0.4, 1, Math.max(1, (max - min) * mid * 0.4));
-      // Main bars
-      cx.fillStyle = barClr;
-      cx.fillRect(x, mid + min * mid, 1, Math.max(1, (max - min) * mid));
-    }
-  }
+function seekMixerTo(time) {
+  S.tracks.forEach(t => { if (t._el) t._el.currentTime = Math.max(0, time); });
+  updateMixerPlayheadUI(time);
+}
 
-  function decodeAndDraw() {
-    const ctx = new (window.AudioContext || window.webkitAudioContext)();
-    fetch(f.url)
-      .then(r => r.arrayBuffer())
-      .then(buf => ctx.decodeAudioData(buf))
-      .then(decoded => {
-        // Use first channel; mix to mono if stereo
-        let samples;
-        if (decoded.numberOfChannels >= 2) {
-          const ch0 = decoded.getChannelData(0);
-          const ch1 = decoded.getChannelData(1);
-          samples = new Float32Array(ch0.length);
-          for (let i = 0; i < ch0.length; i++) samples[i] = (ch0[i] + ch1[i]) * 0.5;
-        } else {
-          samples = decoded.getChannelData(0);
-        }
-        const W = apWave.clientWidth  || 480;
-        const H = apWave.clientHeight || 72;
-        drawWaveform(samples, W, H);
-        apLoading.style.display = 'none';
-        ctx.close();
-      })
-      .catch(() => {
-        // Graceful fallback: hide loader, show flat line
-        apLoading.style.display = 'none';
-        const W = apWave.clientWidth  || 480;
-        const H = apWave.clientHeight || 72;
-        apCanvas.width = W; apCanvas.height = H;
-        const cx = apCanvas.getContext('2d');
-        cx.strokeStyle = 'rgba(255,59,59,0.4)';
-        cx.lineWidth = 1;
-        cx.beginPath(); cx.moveTo(0, H/2); cx.lineTo(W, H/2); cx.stroke();
-        ctx.close();
-      });
-  }
+function updateMixerPlayheadUI(time) {
+  const ph = $('mixer-playhead');
+  if (ph) { ph.style.display = 'block'; ph.style.left = (time * S.mixerZoom).toFixed(1) + 'px'; }
+  const timeEl = $('mixer-time');
+  if (timeEl) timeEl.textContent = fmtTime(time);
+}
 
-  // Small delay to ensure container is laid out before measuring width
-  setTimeout(decodeAndDraw, 80);
+function mixerPlaybackTick() {
+  if (!window._mixerPlaying) return;
+  const lead = S.tracks[0] && S.tracks[0]._el;
+  const time = lead ? lead.currentTime : 0;
+  updateMixerPlayheadUI(time);
+  if (time >= mixerMaxDuration()) { stopMixerPlayback(); return; }
+  window._mixerPlaybackRaf = requestAnimationFrame(mixerPlaybackTick);
 }
 
 function renderPreview() {
   const f = S.file;
   if (!f) return;
+  // Tear down any mixer track-drag document listeners from a previous
+  // render before this one replaces #ed-preview's DOM out from under them.
+  if (window._mixerDragCleanups) { window._mixerDragCleanups.forEach(fn => fn()); }
+  window._mixerDragCleanups = [];
   $('ed-drop').style.display = 'none';
   const area = $('ed-preview');
   area.classList.add('show');
@@ -5708,7 +6026,19 @@ function renderPreview() {
     requestAnimationFrame(() => requestAnimationFrame(initEdScrubber));
   } else if (f.type === 'audio') {
     area.innerHTML = '';
-    buildAudioPlayer(area, f);
+    // A freshly loaded file becomes track 0. selectTool() never touches
+    // #ed-preview, so once mounted this persists across every audio tool
+    // tab untouched. Dropping/browsing a genuinely different file (not
+    // "+ Track") should replace the whole mix, same as every other
+    // dropzone in the app replaces rather than appends — detect that by
+    // comparing against the current track 0's url, not just "any tracks
+    // exist", so a stale multi-track session doesn't survive a new drop.
+    if (!S.tracks.length || S.tracks[0].url !== f.url) {
+      S.tracks.slice(1).forEach(t => t.url && URL.revokeObjectURL(t.url));
+      S.tracks = [makeTrack(f)];
+      S.mixerSelectedTrack = null;
+    }
+    buildAudioMixer(area, S.tracks);
     hideEdScrubber();
   } else {
     hideEdScrubber();
@@ -5741,6 +6071,15 @@ function resetEditor() {
   if (S.file && S.file.url) URL.revokeObjectURL(S.file.url);
   S.file = null;
   S.outputBlob = null;
+  // Tear down any mixer track <audio> elements + revoke their blob URLs —
+  // track 0 shares S.file.url (already revoked above), skip double-revoke.
+  S.tracks.forEach((t, i) => {
+    if (t._el) { t._el.pause(); t._el.src = ''; }
+    if (i > 0 && t.url) URL.revokeObjectURL(t.url);
+  });
+  S.tracks = [];
+  S.mixerSelectedTrack = null;
+  window._apAudioEl = null;
   updateCatLock();
   $('ed-drop').style.display = 'block';
   const area = $('ed-preview');
@@ -6292,6 +6631,108 @@ async function processFFmpeg(file, toolId, s) {
     try { await ff.deleteFile(inFile); } catch {}
     if (outFile) { try { await ff.deleteFile(outFile); } catch {} }
     throw err;
+  }
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+// AUDIO MIXER — mixdown export
+// ════════════════════════════════════════════════════════════════════════════
+// Deliberately NOT a processFFmpeg()/toolId branch — this isn't keyed by
+// the active tool, it's a distinct action on the whole track list, bound
+// to the mixer's own "Export Mix" button. Reuses ensureFFmpeg() as-is,
+// including its existing SharedArrayBuffer/COOP-COEP gate.
+async function exportMixdown() {
+  if (S.processing) return;
+  const active = S.tracks.filter(t => !t.muted && t.file);
+  if (!active.length) {
+    showStatus('error', '✕ All tracks are muted — unmute at least one to export.');
+    return;
+  }
+
+  S.processing = true;
+  S.outputBlob = null;
+  updateProcessBtn();
+  showOverlay();
+  hideStatus();
+  $('btn-dl').classList.remove('show');
+
+  const inFiles = [];
+  try {
+    const ff = await ensureFFmpeg();
+
+    setProgress(15, 'Writing tracks…');
+    for (let i = 0; i < active.length; i++) {
+      const ext = (active[i].name.split('.').pop() || 'mp3').toLowerCase();
+      const inFile = `mixin${i}.${ext}`;
+      await ff.writeFile(inFile, await UtilModule.fetchFile(active[i].file));
+      inFiles.push(inFile);
+    }
+
+    setProgress(35, 'Building mix…');
+    const args = [];
+    inFiles.forEach(f => args.push('-i', f));
+
+    // Per track: trim → volume → fade → normalize to stereo → pan.
+    // aformat=channel_layouts=stereo runs BEFORE pan so mono sources are
+    // safely duplicated to two channels first — pan's c0/c1 references
+    // are then always valid regardless of the source's channel count.
+    const chains = [], mixLabels = [];
+    active.forEach((t, i) => {
+      const start = Math.max(0, t.trimStart);
+      const end   = Math.max(start + 0.05, t.trimEnd || t.duration || start + 0.05);
+      const len   = end - start;
+      const vol   = Math.max(0, t.volume) / 100;
+      const fadeIn  = Math.max(0, Math.min(t.fadeIn, len));
+      const fadeOut = Math.max(0, Math.min(t.fadeOut, len - fadeIn));
+      const pan = Math.max(-1, Math.min(1, t.pan / 100));
+      const gL = Math.min(1, 1 - pan).toFixed(3);
+      const gR = Math.min(1, 1 + pan).toFixed(3);
+      const label = `m${i}`;
+      let chain = `[${i}:a]atrim=start=${start.toFixed(3)}:end=${end.toFixed(3)},asetpts=PTS-STARTPTS,volume=${vol.toFixed(3)}`;
+      if (fadeIn  > 0) chain += `,afade=t=in:st=0:d=${fadeIn.toFixed(3)}`;
+      if (fadeOut > 0) chain += `,afade=t=out:st=${(len - fadeOut).toFixed(3)}:d=${fadeOut.toFixed(3)}`;
+      chain += `,aformat=channel_layouts=stereo,pan=stereo|c0=${gL}*c0|c1=${gR}*c1[${label}]`;
+      chains.push(chain);
+      mixLabels.push(`[${label}]`);
+    });
+    // normalize=0 — amix silently attenuates by 1/N otherwise, which would
+    // make the export quieter than the on-screen per-track volumes imply.
+    // alimiter guards against clipping since summed unnormalized tracks
+    // can exceed 0dBFS.
+    chains.push(`${mixLabels.join('')}amix=inputs=${active.length}:duration=longest:dropout_transition=0:normalize=0[mixed]`);
+    chains.push(`[mixed]alimiter=limit=0.95[out]`);
+    args.push('-filter_complex', chains.join(';'), '-map', '[out]', 'mixdown.wav');
+
+    setProgress(55, 'Mixing…');
+    await ff.exec(args);
+
+    setProgress(95, 'Reading output…');
+    const data = await ff.readFile('mixdown.wav');
+    const blob = new Blob([data], { type: 'audio/wav' });
+
+    S.outputBlob = blob;
+    S.outputName = `mixdown_${active.length}tracks.wav`;
+
+    setProgress(100, 'Done!');
+    setTimeout(() => {
+      hideOverlay();
+      showStatus('done', `✓ ${S.outputName} ready`);
+      $('btn-dl').classList.add('show');
+      doDownload();
+    }, 300);
+
+  } catch (err) {
+    console.error(err);
+    hideOverlay();
+    showStatus('error', '✕ ' + (err.message || 'Mixdown failed'));
+  } finally {
+    try {
+      const ff = await ensureFFmpeg();
+      for (const f of inFiles) { try { await ff.deleteFile(f); } catch {} }
+      try { await ff.deleteFile('mixdown.wav'); } catch {}
+    } catch {}
+    S.processing = false;
+    updateProcessBtn();
   }
 }
 
