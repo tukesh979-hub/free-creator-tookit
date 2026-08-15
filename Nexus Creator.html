@@ -988,7 +988,7 @@ footer{background:var(--bg2);border-top:1px solid var(--border);padding:48px 20p
    transport as the editor's single timeline for both video and audio
    editing. Three zones: toolbar, sticky time ruler, track headers (fixed
    left column) + scrolling lanes holding N clips per track. */
-.nx-timeline{display:none;flex-direction:column;height:38vh;min-height:230px;max-height:440px;
+.nx-timeline{display:none;flex-direction:column;height:43vh;min-height:280px;max-height:600px;
   border-top:1px solid var(--border);background:var(--bg2);flex-shrink:0;overflow:hidden}
 .nx-timeline.show{display:flex}
 
@@ -1009,40 +1009,49 @@ footer{background:var(--bg2);border-top:1px solid var(--border);padding:48px 20p
 .nxt-zoom input[type=range]{width:80px}
 
 .nxt-body{flex:1;display:flex;overflow:hidden;min-height:0}
-.nxt-headers{width:168px;flex-shrink:0;border-right:1px solid var(--border);
+.nxt-headers{width:208px;flex-shrink:0;border-right:1px solid var(--border);
   background:var(--bg3);overflow-y:auto;overflow-x:hidden;display:flex;flex-direction:column}
 .nxt-headers::-webkit-scrollbar{display:none}
-.nxt-headers-spacer{height:26px;flex-shrink:0;border-bottom:1px solid var(--border);
-  display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-size:11px;color:var(--dim);
-  background:var(--bg2);text-transform:uppercase;letter-spacing:.5px}
+.nxt-headers-spacer{height:34px;flex-shrink:0;border-bottom:1px solid var(--border);
+  display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-size:12px;color:var(--dim);
+  background:var(--bg2);text-transform:uppercase;letter-spacing:.6px;font-weight:700}
 .nxt-scroll{flex:1;overflow:auto;position:relative}
 
-.nxt-ruler{position:sticky;top:0;z-index:6;height:26px;border-bottom:1px solid var(--border);
-  background:var(--bg2);font-family:var(--mono);font-size:11px;color:var(--dim);cursor:pointer}
+.nxt-ruler{position:sticky;top:0;z-index:6;height:34px;border-bottom:1px solid var(--border);
+  background:var(--bg2);font-family:var(--mono);font-size:13px;color:var(--muted);cursor:pointer}
 .nxt-ruler-tick{position:absolute;top:0;bottom:0;border-left:1px solid var(--border2)}
-.nxt-ruler-tick span{position:absolute;top:2px;left:4px;white-space:nowrap}
-.nxt-playhead{position:absolute;top:0;bottom:0;width:1px;background:var(--red);z-index:8;pointer-events:none}
+.nxt-ruler-tick span{position:absolute;top:6px;left:5px;white-space:nowrap;font-weight:600}
+.nxt-playhead{position:absolute;top:0;bottom:0;width:2px;background:var(--red);z-index:8;pointer-events:none}
 .nxt-playhead::before{content:'';position:absolute;top:0;left:50%;transform:translateX(-50%);
-  width:0;height:0;border-left:6px solid transparent;border-right:6px solid transparent;border-top:8px solid var(--red)}
+  width:0;height:0;border-left:7px solid transparent;border-right:7px solid transparent;border-top:10px solid var(--red)}
 .nxt-marker{position:absolute;top:0;width:0;height:0;border-left:5px solid transparent;
   border-right:5px solid transparent;border-top:7px solid var(--amber);cursor:pointer;z-index:7}
 
 .nxt-tracks{position:relative}
 .nxt-track-row{display:flex}
-.nxt-track-hdr{width:168px;flex-shrink:0;padding:6px 10px;border-bottom:1px solid var(--border);
-  display:flex;flex-direction:column;gap:5px;justify-content:center}
+/* Playhead line spanning every track lane at once — the ruler's own
+   playhead (above) only covers the 34px ruler strip, so precise vertical
+   alignment while trimming/splitting needs a second line across the
+   full track stack, kept in sync with it by nxUpdatePlayheadUI(). */
+.nxt-playhead-full{position:absolute;top:0;bottom:0;width:2px;background:var(--red);
+  z-index:8;pointer-events:none;box-shadow:0 0 5px rgba(255,59,59,.55)}
+
+.nxt-track-hdr{width:208px;flex-shrink:0;padding:8px 12px;border-bottom:4px solid var(--bg2);
+  border-left:3px solid transparent;display:flex;flex-direction:column;gap:7px;justify-content:center;overflow:hidden}
+.nxt-track-hdr.video{height:72px;border-left-color:var(--blue)}
+.nxt-track-hdr.audio{height:88px;border-left-color:var(--red)}
 .nxt-track-hdr.disabled{opacity:.45}
-.nxt-track-hdr-top{display:flex;align-items:center;gap:6px;min-width:0}
-.nxt-track-badge{font-family:var(--mono);font-size:11px;font-weight:800;color:#fff;
-  padding:0 5px;height:16px;flex-shrink:0;display:flex;align-items:center;justify-content:center;
+.nxt-track-hdr-top{display:flex;align-items:center;gap:7px;min-width:0}
+.nxt-track-badge{font-family:var(--mono);font-size:12px;font-weight:800;color:#fff;
+  padding:0 6px;height:19px;flex-shrink:0;display:flex;align-items:center;justify-content:center;
   border-radius:3px;background:var(--blue)}
 .nxt-track-badge.audio{background:var(--red)}
-.nxt-track-name{font-size:14px;font-weight:600;color:var(--text);white-space:nowrap;
+.nxt-track-name{font-size:15px;font-weight:700;color:var(--text);white-space:nowrap;
   overflow:hidden;text-overflow:ellipsis;flex:1;min-width:0;cursor:text}
-.nxt-track-hdr-controls{display:flex;align-items:center;gap:4px;flex-wrap:wrap}
-.nxt-tbtn{width:19px;height:19px;display:flex;align-items:center;justify-content:center;
-  font-family:var(--mono);font-size:10px;font-weight:700;color:var(--dim);
-  background:var(--bg4);border:1px solid var(--border2);border-radius:3px;transition:all var(--transition)}
+.nxt-track-hdr-controls{display:flex;align-items:center;gap:5px;flex-wrap:wrap}
+.nxt-tbtn{width:23px;height:23px;display:flex;align-items:center;justify-content:center;
+  font-family:var(--mono);font-size:12px;font-weight:700;color:var(--dim);
+  background:var(--bg4);border:1px solid var(--border2);border-radius:4px;transition:all var(--transition)}
 .nxt-tbtn:hover{color:var(--text)}
 .nxt-tbtn:disabled{opacity:.25;pointer-events:none}
 .nxt-tbtn.m.active{color:#fff;background:var(--red);border-color:var(--red)}
@@ -1050,26 +1059,31 @@ footer{background:var(--bg2);border-top:1px solid var(--border);padding:48px 20p
 .nxt-tbtn.lock.active{color:var(--text);background:var(--bg2);border-color:var(--text)}
 .nxt-tbtn.eye.off{color:var(--dim);opacity:.45}
 
-.nxt-lane{position:relative;height:64px;border-bottom:1px solid var(--border);background:var(--bg4)}
-.nxt-lane.video{height:56px}
+/* Track-type color coding: a colored left rail (matches the header's)
+   plus a faint per-type background tint, so video vs. audio rows are
+   obvious even before reading a label — clips themselves stay the
+   brighter, higher-contrast color so they still read as the foreground. */
+.nxt-lane{position:relative;height:88px;border-bottom:4px solid var(--bg2);
+  border-left:3px solid var(--red);background:#1c1414}
+.nxt-lane.video{height:72px;border-left-color:var(--blue);background:#111a22}
 .nxt-lane.disabled{opacity:.4}
 
-.nxt-clip{position:absolute;top:3px;bottom:3px;border-radius:4px;overflow:hidden;
+.nxt-clip{position:absolute;top:5px;bottom:5px;border-radius:4px;overflow:hidden;
   border:1px solid var(--border2);background:var(--bg3);cursor:grab}
 .nxt-clip:active{cursor:grabbing}
-.nxt-clip.video{background:#1c2b3a}
-.nxt-clip.audio{background:#2a1c1c}
-.nxt-clip.selected{border-color:var(--red);box-shadow:0 0 0 1px var(--red)}
+.nxt-clip.video{background:#213347;border-color:#3a5878}
+.nxt-clip.audio{background:#332020;border-color:#6b3a3a}
+.nxt-clip.selected{border-color:var(--red);box-shadow:0 0 0 1.5px var(--red)}
 .nxt-clip.locked{cursor:not-allowed}
-.nxt-clip-label{position:absolute;left:5px;top:2px;font-size:11px;font-weight:600;color:#fff;
-  text-shadow:0 1px 2px rgba(0,0,0,.8);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
-  max-width:calc(100% - 10px);pointer-events:none;z-index:2}
+.nxt-clip-label{position:absolute;left:6px;top:3px;font-size:12px;font-weight:700;color:#fff;
+  text-shadow:0 1px 3px rgba(0,0,0,.9);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+  max-width:calc(100% - 12px);pointer-events:none;z-index:2}
 .nxt-clip canvas{position:absolute;inset:0;width:100%;height:100%}
-.nxt-clip-handle{position:absolute;top:0;bottom:0;width:7px;cursor:ew-resize;z-index:3}
+.nxt-clip-handle{position:absolute;top:0;bottom:0;width:9px;cursor:ew-resize;z-index:3}
 .nxt-clip-handle.l{left:0}
 .nxt-clip-handle.r{right:0}
 .nxt-clip-handle::after{content:'';position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);
-  width:3px;height:60%;border-radius:2px;background:rgba(255,255,255,.5)}
+  width:3px;height:65%;border-radius:2px;background:rgba(255,255,255,.55)}
 .nxt-clip.selected .nxt-clip-handle::after{background:var(--red)}
 
 .nxt-empty{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;
@@ -6437,7 +6451,7 @@ function nxDecodeAndDrawClip(t, c) {
   const asset = nxAsset(c.sourceAssetId);
   if (!asset) return;
   const w = Math.max(6, Math.round(c.duration * S.timeline.zoom));
-  const h = t.type === 'video' ? 56 : 64;
+  const h = t.type === 'video' ? 72 : 88;
   if (t.type === 'video') {
     nxDrawClipFilmstrip(canvas, asset.url, w, h, c.sourceStart, c.sourceEnd);
   } else if (c.samples) {
@@ -6499,7 +6513,7 @@ function nxToolbarHTML() {
 function nxTrackHeaderHTML(t, i) {
   const total = S.timeline.tracks.length;
   return `
-    <div class="nxt-track-hdr${t.enabled ? '' : ' disabled'}" data-track="${t.id}">
+    <div class="nxt-track-hdr ${t.type}${t.enabled ? '' : ' disabled'}" data-track="${t.id}">
       <div class="nxt-track-hdr-top">
         <span class="nxt-track-badge${t.type === 'audio' ? ' audio' : ''}">${t.name}</span>
         <span class="nxt-track-name" title="Double-click to rename" ondblclick="nxRenameTrack('${t.id}')">${t.type === 'video' ? 'Video' : 'Audio'}</span>
@@ -6572,6 +6586,7 @@ function mountNxTimeline() {
         ${nxRulerHTML()}
         <div class="nxt-tracks" id="nxt-tracks" style="width:${nxContentWidth()}px">
           ${S.timeline.tracks.map(t => nxLaneHTML(t)).join('')}
+          <div class="nxt-playhead-full" id="nxt-playhead-full" style="left:${(S.timeline.playhead * S.timeline.zoom).toFixed(1)}px"></div>
         </div>
       </div>
     </div>`;
@@ -6668,7 +6683,7 @@ function nxUpdateClipDOM(t, c) {
   const asset = nxAsset(c.sourceAssetId);
   if (canvas && asset) {
     const w = Math.max(6, Math.round(c.duration * S.timeline.zoom));
-    const h = t.type === 'video' ? 56 : 64;
+    const h = t.type === 'video' ? 72 : 88;
     if (t.type === 'video') nxDrawClipFilmstrip(canvas, asset.url, w, h, c.sourceStart, c.sourceEnd);
     else if (c.samples) nxDrawClipWaveform(c.samples, c.sourceStart, c.sourceEnd, asset.duration, w, h, canvas);
   }
@@ -6976,8 +6991,11 @@ function nxSeekFromRuler(e) {
   nxSeekTo((e.clientX - r.left) / S.timeline.zoom);
 }
 function nxUpdatePlayheadUI() {
+  const left = (S.timeline.playhead * S.timeline.zoom).toFixed(1) + 'px';
   const ph = $('nxt-playhead');
-  if (ph) ph.style.left = (S.timeline.playhead * S.timeline.zoom).toFixed(1) + 'px';
+  if (ph) ph.style.left = left;
+  const phFull = $('nxt-playhead-full');
+  if (phFull) phFull.style.left = left;
   const timeEl = $('nxt-time');
   if (timeEl) timeEl.textContent = `${fmtTime(S.timeline.playhead)} / ${fmtTime(nxDuration())}`;
 }
