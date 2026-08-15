@@ -769,6 +769,20 @@ footer{background:var(--bg2);border-top:1px solid var(--border);padding:48px 20p
   object-fit:contain;background:#000;border-radius:6px;
   transition:filter .1s,transform .1s
 }
+.vid-preview-wrap{transition:transform .05s linear,opacity .1s linear}
+
+/* ═══════════ COMPOSITOR — extra video/text layers ═══════════
+   #preview-vid stays the primary (topmost enabled) video track so every
+   existing crop/rotate/watermark tool binding keeps working untouched.
+   This host only carries additional video tracks (picture-in-picture,
+   overlays) and text clips, stacked by track order via inline z-index. */
+.nxt-compositor-host{position:absolute;inset:0;pointer-events:none;overflow:hidden;border-radius:6px}
+.nxt-video-layer{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;transform-origin:center center}
+.nxt-text-layer{position:absolute;left:0;right:0;padding:0 5%;box-sizing:border-box;
+  white-space:pre-wrap;word-break:break-word;pointer-events:none;transform-origin:center center}
+.nxt-text-layer.pos-top{top:6%}
+.nxt-text-layer.pos-center{top:50%;transform:translateY(-50%)}
+.nxt-text-layer.pos-bottom{bottom:6%}
 .img-preview-wrap img{
   max-width:100%;max-height:78vh;width:auto;height:auto;display:block;
   object-fit:contain;background:transparent;border-radius:6px;
@@ -1002,7 +1016,12 @@ footer{background:var(--bg2);border-top:1px solid var(--border);padding:48px 20p
 .nxt-btn:hover{color:var(--text);background:var(--bg4);border-color:var(--border2)}
 .nxt-btn.active{color:var(--red);background:rgba(255,59,59,.1);border-color:var(--red)}
 .nxt-btn:disabled{opacity:.3;pointer-events:none}
-.nxt-btn-wide{width:auto;padding:0 8px;gap:5px;font-size:13px;font-weight:700;font-family:var(--mono)}
+.nxt-btn-wide{width:auto;height:26px;padding:0 8px;gap:5px;font-size:13px;font-weight:700;font-family:var(--mono);
+  display:flex;align-items:center;justify-content:center;background:transparent;border:1px solid transparent;
+  border-radius:5px;color:var(--dim);transition:all var(--transition)}
+.nxt-btn-wide:hover{color:var(--text);background:var(--bg4);border-color:var(--border2)}
+.nxt-export-btn{background:var(--red);color:#fff;border-color:var(--red);margin-left:8px;padding:0 12px}
+.nxt-export-btn:hover{background:var(--red2);color:#fff}
 .nxt-time{font-family:var(--mono);font-size:14px;color:var(--text);padding:0 8px;min-width:98px;text-align:center;letter-spacing:.3px}
 .nxt-spacer{flex:1}
 .nxt-zoom{display:flex;align-items:center;gap:6px;font-family:var(--mono);font-size:12px;color:var(--dim);padding:0 6px}
@@ -1035,6 +1054,8 @@ footer{background:var(--bg2);border-top:1px solid var(--border);padding:48px 20p
    full track stack, kept in sync with it by nxUpdatePlayheadUI(). */
 .nxt-playhead-full{position:absolute;top:0;bottom:0;width:2px;background:var(--red);
   z-index:8;pointer-events:none;box-shadow:0 0 5px rgba(255,59,59,.55)}
+.nxt-selbox{position:absolute;border:1px solid var(--red);background:rgba(255,59,59,.12);
+  z-index:9;pointer-events:none}
 
 .nxt-track-hdr{width:208px;flex-shrink:0;padding:8px 12px;border-bottom:4px solid var(--bg2);
   border-left:3px solid transparent;display:flex;flex-direction:column;gap:7px;justify-content:center;overflow:hidden}
@@ -1073,8 +1094,13 @@ footer{background:var(--bg2);border-top:1px solid var(--border);padding:48px 20p
 .nxt-clip:active{cursor:grabbing}
 .nxt-clip.video{background:#213347;border-color:#3a5878}
 .nxt-clip.audio{background:#332020;border-color:#6b3a3a}
+.nxt-clip.text{background:#2a2333;border-color:#5b4a78}
 .nxt-clip.selected{border-color:var(--red);box-shadow:0 0 0 1.5px var(--red)}
 .nxt-clip.locked{cursor:not-allowed}
+.nxt-clip-link{position:absolute;right:3px;top:3px;z-index:4;width:16px;height:16px;
+  display:flex;align-items:center;justify-content:center;font-size:10px;line-height:1;
+  background:rgba(0,0,0,.55);border:1px solid rgba(255,255,255,.25);border-radius:3px;color:#fff;cursor:pointer}
+.nxt-clip-link:hover{background:var(--red);border-color:var(--red)}
 .nxt-clip-label{position:absolute;left:6px;top:3px;font-size:12px;font-weight:700;color:#fff;
   text-shadow:0 1px 3px rgba(0,0,0,.9);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
   max-width:calc(100% - 12px);pointer-events:none;z-index:2}
@@ -1205,6 +1231,20 @@ footer{background:var(--bg2);border-top:1px solid var(--border);padding:48px 20p
 .s-preset.active{color:var(--red);border-color:var(--red)}
 .s-checkbox{display:flex;align-items:center;gap:6px;font-family:var(--mono);font-size:16px;color:var(--muted);cursor:pointer}
 .s-checkbox input{accent-color:var(--red);cursor:pointer}
+
+/* Inspector (timeline clip properties) — reuses the .s-row/.s-lbl/.s-input
+   language above so it feels like the same app, not a bolted-on panel. */
+.s-group-title{font-family:var(--mono);font-size:13px;font-weight:700;letter-spacing:1.5px;
+  text-transform:uppercase;color:var(--red);margin:18px 0 10px;padding-bottom:6px;border-bottom:1px solid var(--border)}
+.s-group-title:first-child{margin-top:0}
+.s-range-val-wrap{display:flex;align-items:center;gap:6px}
+.nxi-reset{width:20px;height:20px;display:flex;align-items:center;justify-content:center;
+  color:var(--dim);border-radius:4px;font-size:13px;flex-shrink:0;transition:all var(--transition)}
+.nxi-reset:hover{color:var(--text);background:var(--bg4)}
+.nxi-link-btn{font-family:var(--mono);font-size:13px;font-weight:700;text-decoration:underline;color:var(--blue);flex-shrink:0}
+.nxi-link-btn:hover{color:var(--text)}
+textarea.s-input{resize:vertical;min-height:64px;font-family:var(--font);line-height:1.4}
+input[type=color].s-input{height:38px;padding:3px;cursor:pointer}
 
 /* Process buttons */
 .btn-process{
@@ -1983,7 +2023,7 @@ footer{background:var(--bg2);border-top:1px solid var(--border);padding:48px 20p
   <div class="ed-right" id="ed-right">
     <div class="er-head">
       <div class="er-tool" id="er-tool-name">No Tool</div>
-      <div class="er-sub">Tool Settings</div>
+      <div class="er-sub" id="er-sub">Tool Settings</div>
     </div>
     <div class="er-body" id="er-body">
       <p class="s-hint">Select a tool from the left to begin.</p>
@@ -6300,6 +6340,8 @@ const NXT_ICON = {
   toStart:  '<svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M6 5h2v14H6zM20 6v12L9 12z"/></svg>',
   toEnd:    '<svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M16 5h2v14h-2zM4 6v12l11-6z"/></svg>',
   fit:      '<svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M8 3H5a2 2 0 00-2 2v3m18 0V5a2 2 0 00-2-2h-3M3 16v3a2 2 0 002 2h3m11-5v3a2 2 0 01-2 2h-3"/></svg>',
+  marker:   '<svg width="14" height="14" fill="currentColor" viewBox="0 0 24 24"><path d="M5 3v18l7-5 7 5V3z"/></svg>',
+  link:     '<svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M10 13a5 5 0 007.07 0l2.83-2.83a5 5 0 00-7.07-7.07L11.5 4.5"/><path d="M14 11a5 5 0 00-7.07 0L4.1 13.83a5 5 0 007.07 7.07l1.36-1.36"/></svg>',
 };
 
 // ── Model helpers ────────────────────────────────────────────────────────
@@ -6316,15 +6358,52 @@ function nxMakeClip(sourceAssetId, trackId, opts) {
     sourceStart: opts.sourceStart || 0,
     sourceEnd:   opts.sourceEnd != null ? opts.sourceEnd : (opts.duration || 0),
     volume:      opts.volume != null ? opts.volume : 100,
+    pan:         opts.pan || 0, // -100..100, added to the track's pan
     speed:       opts.speed || 1,
     effects:     [],
-    transform:   null,
+    transform:   opts.transform || null, // {x,y,scale,rotation,opacity,crop} — see nxDefaultTransform()
+    keyframes:   {}, // propertyPath -> [{time, value}] — see nxSampleKeyframed(); no editor UI yet, sampler is live
+    text:        opts.text || null, // set for text-kind clips — see nxMakeTextClip()
     fadeIn:      opts.fadeIn || 0,
     fadeOut:     opts.fadeOut || 0,
     linkedClipId: opts.linkedClipId || null,
     selected:    false,
     samples:     null, // decoded waveform cache (audio only), not persisted
   };
+}
+function nxDefaultTransform() {
+  return { x: 0, y: 0, scale: 100, rotation: 0, opacity: 100, cropL: 0, cropR: 0, cropT: 0, cropB: 0 };
+}
+// Keyframe architecture (spec #39): a property is either a plain static
+// value on the clip (e.g. clip.transform.scale === 100) or, once the user
+// adds a keyframe, clip.keyframes[propertyPath] holds a sorted
+// [{time, value}] array (time is clip-local, 0..clip.duration). There is
+// intentionally no keyframe editor UI yet — this sampler is the only
+// consumer today, called from the same two places (compositor + audio
+// graph) whether or not a property is actually keyframed, so turning on
+// a keyframe UI later requires no changes to playback/render code.
+function nxSampleKeyframed(clip, propertyPath, staticValue, timeIntoClip) {
+  const kf = clip.keyframes && clip.keyframes[propertyPath];
+  if (!kf || !kf.length) return staticValue;
+  if (kf.length === 1) return kf[0].value;
+  if (timeIntoClip <= kf[0].time) return kf[0].value;
+  if (timeIntoClip >= kf[kf.length - 1].time) return kf[kf.length - 1].value;
+  for (let i = 0; i < kf.length - 1; i++) {
+    const a = kf[i], b = kf[i + 1];
+    if (timeIntoClip >= a.time && timeIntoClip <= b.time) {
+      const span = b.time - a.time;
+      const t = span > 0 ? (timeIntoClip - a.time) / span : 0;
+      return a.value + (b.value - a.value) * t;
+    }
+  }
+  return staticValue;
+}
+function nxAddKeyframe(clip, propertyPath, timeIntoClip, value) {
+  if (!clip.keyframes[propertyPath]) clip.keyframes[propertyPath] = [];
+  const arr = clip.keyframes[propertyPath];
+  const existing = arr.find(k => Math.abs(k.time - timeIntoClip) < 0.01);
+  if (existing) existing.value = value; else arr.push({ time: timeIntoClip, value });
+  arr.sort((a, b) => a.time - b.time);
 }
 function nxAsset(id) { return S.timeline.assets[id]; }
 function nxTrack(id) { return S.timeline.tracks.find(t => t.id === id); }
@@ -6362,9 +6441,76 @@ function nxEnsureTimeline() {
   const assetId = uid();
   S.timeline.assets[assetId] = { id: assetId, type, name: S.file.name, url: S.file.url, duration: S.file.duration || 0, _owned: false };
   const track = nxMakeTrack(type, type === 'video' ? 'V1' : 'A1');
-  track.clips.push(nxMakeClip(assetId, track.id, { startTime: 0, duration: S.file.duration || 0, sourceEnd: S.file.duration || 0 }));
+  track.clips.push(nxMakeClip(assetId, track.id, {
+    startTime: 0, duration: S.file.duration || 0, sourceEnd: S.file.duration || 0,
+    transform: type === 'video' ? nxDefaultTransform() : null,
+  }));
   S.timeline.tracks.push(track);
   S.timeline._seededFor = S.file.url;
+  if (type === 'video') nxExtractLinkedAudio(track.clips[0]);
+}
+
+// ── Linked video+audio (spec #33) ────────────────────────────────────────
+// A <video> element's own embedded audio can't be moved/trimmed
+// independently of its picture on a browser timeline — there's no API to
+// split them apart in-place. The correct, honest way to give a video real
+// independent (but initially linked) audio is to demux it into its own
+// asset up front, same as the existing "Extract Audio" tool already does
+// with FFmpeg — then the video element is muted and the extracted track
+// carries the sound, fully editable like any other audio clip.
+//
+// This runs in the background after the video is already playable, and
+// fails gracefully: if FFmpeg/SharedArrayBuffer isn't available (common
+// on a plain static host without COOP/COEP headers) or the source has no
+// audio stream, the video simply keeps playing its own embedded audio —
+// never silent, never broken, just not independently editable.
+async function nxExtractLinkedAudio(videoClip) {
+  if (!S.file || !S.file.file) return;
+  const asset = nxAsset(videoClip.sourceAssetId);
+  if (!asset) return;
+  let ff, inFile = 'link_in.' + ((S.file.name.split('.').pop() || 'mp4').toLowerCase());
+  try {
+    ff = await ensureFFmpeg();
+    await ff.writeFile(inFile, await UtilModule.fetchFile(S.file.file));
+    await ff.exec(['-i', inFile, '-vn', '-acodec', 'libmp3lame', '-q:a', '2', 'link_out.mp3']);
+    const data = await ff.readFile('link_out.mp3');
+    try { await ff.deleteFile(inFile); } catch (_) {}
+    try { await ff.deleteFile('link_out.mp3'); } catch (_) {}
+    if (!data || data.byteLength < 512) return; // no real audio stream — nothing to link
+    // The video track may have been rebuilt/reset while extraction ran
+    // (user loaded a different file) — bail rather than attach audio to
+    // a clip that no longer belongs to the current project.
+    if (!nxClip(videoClip.id)) return;
+    const url = URL.createObjectURL(new Blob([data], { type: 'audio/mpeg' }));
+    const audioAssetId = uid();
+    S.timeline.assets[audioAssetId] = { id: audioAssetId, type: 'audio', name: asset.name + ' (audio)', url, duration: asset.duration, _owned: true };
+    const audioTrack = nxMakeTrack('audio', 'A1');
+    const audioClip = nxMakeClip(audioAssetId, audioTrack.id, {
+      startTime: videoClip.startTime, duration: videoClip.duration,
+      sourceStart: videoClip.sourceStart, sourceEnd: videoClip.sourceEnd,
+      linkedClipId: videoClip.id,
+    });
+    audioTrack.clips.push(audioClip);
+    videoClip.linkedClipId = audioClip.id;
+    S.timeline.tracks.push(audioTrack);
+    const vid = document.getElementById('preview-vid');
+    if (vid) vid.muted = true;
+    mountNxTimeline();
+    showStatus('ok', '🔗 Linked audio track extracted — video and audio move together until unlinked.');
+  } catch (err) {
+    console.info('Linked audio extraction skipped:', err && err.message);
+  }
+}
+function nxUnlinkClip(clipId) {
+  const c = nxClip(clipId);
+  if (!c || !c.linkedClipId) return;
+  const partner = nxClip(c.linkedClipId);
+  if (partner) partner.linkedClipId = null;
+  c.linkedClipId = null;
+  // The video element's own audio was muted when the link was created —
+  // once unlinked there is no other authority telling it to stay muted,
+  // and the (now-independent) extracted track keeps playing the sound.
+  mountNxTimeline();
 }
 
 // ── Waveform / filmstrip rendering ──────────────────────────────────────
@@ -6480,7 +6626,11 @@ function nxToolbarHTML() {
     <div class="nxt-group">
       <button class="nxt-btn nxt-btn-wide" onclick="nxAddTrack('video')" title="Add Video Track" aria-label="Add video track">+V</button>
       <button class="nxt-btn nxt-btn-wide" onclick="nxAddTrack('audio')" title="Add Audio Track" aria-label="Add audio track">+A</button>
+      <button class="nxt-btn nxt-btn-wide" onclick="nxAddTextClip()" title="Add Text at Playhead" aria-label="Add text clip">+T</button>
       <button class="nxt-btn" onclick="nxImportMedia()" title="Import Media" aria-label="Import media">${NXT_ICON.import}</button>
+    </div>
+    <div class="nxt-group">
+      <button class="nxt-btn" onclick="nxAddMarker()" title="Add Marker (M)" aria-label="Add marker at playhead">${NXT_ICON.marker}</button>
     </div>
     <div class="nxt-group">
       <button class="nxt-btn" onclick="nxUndo()" title="Undo" aria-label="Undo" ${T.history.length ? '' : 'disabled'}>${NXT_ICON.undo}</button>
@@ -6507,7 +6657,9 @@ function nxToolbarHTML() {
       <input type="range" min="20" max="300" step="5" value="${T.zoom}" oninput="nxSetZoom(+this.value)" aria-label="Timeline zoom"/>
       <button class="nxt-btn" onclick="nxZoomBy(20)" aria-label="Zoom in">+</button>
       <button class="nxt-btn" onclick="nxFitZoom()" title="Fit Timeline" aria-label="Fit timeline">${NXT_ICON.fit}</button>
-    </div>`;
+    </div>
+    ${nxPrimaryVideoTrack() ? `<button class="nxt-btn-wide nxt-export-btn" onclick="nxExportVideo()" title="Export Video (.webm, real-time capture)">⬇ Export Video</button>`
+      : (S.timeline.tracks.some(t => t.type === 'audio') ? `<button class="nxt-btn-wide nxt-export-btn" onclick="nxExportAudioMixdown()" title="Export Mixdown (.wav)">⬇ Export Mix</button>` : '')}`;
 }
 
 function nxTrackHeaderHTML(t, i) {
@@ -6537,7 +6689,7 @@ function nxRulerHTML() {
   for (let s = 0; s <= dur + stepSec; s += stepSec) {
     ticks += `<div class="nxt-ruler-tick" style="left:${(s * zoom).toFixed(1)}px"><span>${fmtTime(s)}</span></div>`;
   }
-  const markers = S.timeline.markers.map(m => `<div class="nxt-marker" style="left:${(m.time * zoom - 5).toFixed(1)}px" title="${m.label || fmtTime(m.time)}" onclick="event.stopPropagation();nxSeekTo(${m.time})"></div>`).join('');
+  const markers = S.timeline.markers.map(m => `<div class="nxt-marker" style="left:${(m.time * zoom - 5).toFixed(1)}px" title="${m.label || fmtTime(m.time)} — double-click to remove" onclick="event.stopPropagation();nxSeekTo(${m.time})" ondblclick="event.stopPropagation();nxDeleteMarker('${m.id}')"></div>`).join('');
   return `<div class="nxt-ruler" id="nxt-ruler" style="width:${width}px" onmousedown="nxSeekFromRuler(event)">${ticks}${markers}<div class="nxt-playhead" id="nxt-playhead" style="left:${(S.timeline.playhead * zoom).toFixed(1)}px"></div></div>`;
 }
 
@@ -6547,11 +6699,13 @@ function nxClipHTML(t, c) {
   const width = Math.max(6, c.duration * zoom).toFixed(1);
   const selected = S.timeline.selection.includes(c.id);
   const asset = nxAsset(c.sourceAssetId);
-  const label = asset ? asset.name : '';
-  return `<div class="nxt-clip ${t.type}${selected ? ' selected' : ''}${t.locked ? ' locked' : ''}" id="nxc-${c.id}"
+  const label = c.text ? (c.text.content || 'Text').slice(0, 40) : (asset ? asset.name : '');
+  const kind = c.text ? ' text' : '';
+  return `<div class="nxt-clip ${t.type}${kind}${selected ? ' selected' : ''}${t.locked ? ' locked' : ''}" id="nxc-${c.id}"
       data-clip="${c.id}" data-track="${t.id}" style="left:${left}px;width:${width}px">
     <canvas id="nxcv-${c.id}"></canvas>
     <div class="nxt-clip-label">${label}</div>
+    ${c.linkedClipId ? `<button class="nxt-clip-link" title="Linked — click to unlink" aria-label="Unlink from paired clip">🔗</button>` : ''}
     ${!t.locked ? `<div class="nxt-clip-handle l" data-side="start"></div><div class="nxt-clip-handle r" data-side="end"></div>` : ''}
   </div>`;
 }
@@ -6592,6 +6746,7 @@ function mountNxTimeline() {
     </div>`;
   S.timeline.tracks.forEach(t => t.clips.forEach(c => nxDecodeAndDrawClip(t, c)));
   S.timeline.tracks.forEach(t => t.clips.forEach(c => nxInitClipDrag(t, c)));
+  nxInitSelectionBox();
   nxUpdatePlayheadUI();
   const headers = $('nxt-headers'), scroll = $('nxt-scroll');
   if (headers && scroll) {
@@ -6602,6 +6757,58 @@ function mountNxTimeline() {
     window._nxDragCleanups.push(() => scroll.removeEventListener('wheel', nxOnWheelZoom));
   }
   nxBindVideoElement();
+  nxRenderInspector();
+}
+
+// Rubber-band multi-select: mousedown on empty lane space (not a clip)
+// drags a selection rectangle; every clip whose DOM rect intersects it
+// gets selected. Uses viewport rects so it works regardless of scroll
+// position inside #nxt-scroll.
+function nxInitSelectionBox() {
+  const tracksEl = $('nxt-tracks');
+  if (!tracksEl) return;
+  const onDown = e => {
+    if (e.target.closest('.nxt-clip') || e.button !== 0) return;
+    const additive = e.shiftKey;
+    if (!additive) { S.timeline.selection = []; document.querySelectorAll('.nxt-clip.selected').forEach(el => el.classList.remove('selected')); }
+    const startX = e.clientX, startY = e.clientY;
+    const box = document.createElement('div');
+    box.className = 'nxt-selbox';
+    tracksEl.appendChild(box);
+    let moved = false;
+    const setBoxRect = (x1, y1, x2, y2) => {
+      const tr = tracksEl.getBoundingClientRect();
+      box.style.left = (Math.min(x1, x2) - tr.left) + 'px';
+      box.style.top = (Math.min(y1, y2) - tr.top) + 'px';
+      box.style.width = Math.abs(x2 - x1) + 'px';
+      box.style.height = Math.abs(y2 - y1) + 'px';
+    };
+    setBoxRect(startX, startY, startX, startY);
+    function onMove(ev) {
+      moved = true;
+      setBoxRect(startX, startY, ev.clientX, ev.clientY);
+      const bx1 = Math.min(startX, ev.clientX), bx2 = Math.max(startX, ev.clientX);
+      const by1 = Math.min(startY, ev.clientY), by2 = Math.max(startY, ev.clientY);
+      document.querySelectorAll('.nxt-clip').forEach(el => {
+        const r = el.getBoundingClientRect();
+        const hit = !(r.right < bx1 || r.left > bx2 || r.bottom < by1 || r.top > by2);
+        const id = el.dataset.clip;
+        if (hit && !S.timeline.selection.includes(id)) S.timeline.selection.push(id);
+        if (!hit && !additive && S.timeline.selection.includes(id)) S.timeline.selection = S.timeline.selection.filter(x => x !== id);
+        el.classList.toggle('selected', S.timeline.selection.includes(id));
+      });
+    }
+    function onUp() {
+      document.removeEventListener('mousemove', onMove);
+      document.removeEventListener('mouseup', onUp);
+      box.remove();
+      nxRenderInspector();
+    }
+    document.addEventListener('mousemove', onMove);
+    document.addEventListener('mouseup', onUp);
+  };
+  tracksEl.addEventListener('mousedown', onDown);
+  window._nxDragCleanups.push(() => tracksEl.removeEventListener('mousedown', onDown));
 }
 
 function nxOnWheelZoom(e) {
@@ -6659,6 +6866,7 @@ function nxSelectClip(id, additive) {
   document.querySelectorAll('.nxt-clip').forEach(el => {
     el.classList.toggle('selected', S.timeline.selection.includes(el.dataset.clip));
   });
+  nxRenderInspector();
 }
 
 // ── Snap ─────────────────────────────────────────────────────────────────
@@ -6696,9 +6904,12 @@ function nxInitClipDrag(t, c) {
   if (!el) return;
   const handleL = el.querySelector('.nxt-clip-handle.l');
   const handleR = el.querySelector('.nxt-clip-handle.r');
+  const linkBtn = el.querySelector('.nxt-clip-link');
+  if (linkBtn) linkBtn.addEventListener('mousedown', e => { e.stopPropagation(); nxUnlinkClip(c.id); });
 
   let dragType = null, startX = 0, startTime0 = 0, startDur0 = 0, startSrcStart0 = 0, startSrcEnd0 = 0;
   let didDrag = false, beforeSnapshot = null;
+  let partner = null, pStartTime0 = 0, pStartDur0 = 0, pStartSrcStart0 = 0, pStartSrcEnd0 = 0, pTrack = null;
 
   function begin(type) {
     return e => {
@@ -6706,6 +6917,9 @@ function nxInitClipDrag(t, c) {
       dragType = type; startX = e.clientX; didDrag = false;
       startTime0 = c.startTime; startDur0 = c.duration;
       startSrcStart0 = c.sourceStart; startSrcEnd0 = c.sourceEnd;
+      partner = c.linkedClipId ? nxClip(c.linkedClipId) : null;
+      pTrack = partner ? nxClipTrack(partner.id) : null;
+      if (partner) { pStartTime0 = partner.startTime; pStartDur0 = partner.duration; pStartSrcStart0 = partner.sourceStart; pStartSrcEnd0 = partner.sourceEnd; }
       beforeSnapshot = nxSnapshot();
       e.preventDefault(); e.stopPropagation();
     };
@@ -6714,27 +6928,38 @@ function nxInitClipDrag(t, c) {
     if (!dragType) return;
     const dt = (e.clientX - startX) / S.timeline.zoom;
     if (Math.abs(e.clientX - startX) > 2) didDrag = true;
+    const linked = partner && pTrack && !pTrack.locked;
     if (dragType === 'move') {
       const raw = Math.max(0, startTime0 + dt);
-      c.startTime = nxSnapTime(raw, c.id);
+      const snapped = nxSnapTime(raw, c.id);
+      c.startTime = snapped;
+      if (linked) partner.startTime = Math.max(0, pStartTime0 + (snapped - startTime0));
     } else if (dragType === 'start') {
       const maxTrim = startDur0 - 0.05;
       let d = Math.max(-startSrcStart0, Math.min(dt, maxTrim));
       d = nxSnapTime(startTime0 + d, c.id) - startTime0;
+      if (linked) d = Math.max(-pStartSrcStart0, Math.min(d, pStartDur0 - 0.05));
       c.startTime   = startTime0 + d;
       c.duration    = startDur0 - d;
       c.sourceStart = startSrcStart0 + d;
+      if (linked) { partner.startTime = pStartTime0 + d; partner.duration = pStartDur0 - d; partner.sourceStart = pStartSrcStart0 + d; }
     } else if (dragType === 'end') {
+      // Text clips have no underlying source file — nothing bounds how
+      // long they can run, unlike a media clip which can't extend past
+      // the end of its source asset.
       const asset = nxAsset(c.sourceAssetId);
-      const assetDur = asset ? asset.duration : startSrcEnd0;
-      const maxEnd = assetDur - startSrcEnd0;
+      let maxEnd = asset ? (asset.duration - startSrcEnd0) : Infinity;
+      if (linked) { const pAsset = nxAsset(partner.sourceAssetId); maxEnd = Math.min(maxEnd, pAsset ? (pAsset.duration - pStartSrcEnd0) : Infinity); }
       let d = Math.max(-(startDur0 - 0.05), Math.min(dt, maxEnd));
+      if (linked) d = Math.max(-(pStartDur0 - 0.05), d);
       const snapped = nxSnapTime(startTime0 + startDur0 + d, c.id);
       d = snapped - (startTime0 + startDur0);
       c.duration  = startDur0 + d;
       c.sourceEnd = startSrcEnd0 + d;
+      if (linked) { partner.duration = pStartDur0 + d; partner.sourceEnd = pStartSrcEnd0 + d; }
     }
     nxUpdateClipDOM(t, c);
+    if (linked) nxUpdateClipDOM(pTrack, partner);
   }
   function onUp() {
     if (dragType && didDrag) {
@@ -6745,7 +6970,7 @@ function nxInitClipDrag(t, c) {
     dragType = null;
   }
   el.addEventListener('mousedown', e => {
-    if (e.target === handleL || e.target === handleR) return;
+    if (e.target === handleL || e.target === handleR || e.target === linkBtn) return;
     nxSelectClip(c.id, e.shiftKey);
     begin('move')(e);
   });
@@ -6763,9 +6988,15 @@ function nxInitClipDrag(t, c) {
 function nxSplitAtPlayhead() {
   const at = S.timeline.playhead;
   const selected = S.timeline.selection.map(nxClip).filter(Boolean);
-  const list = selected.length ? selected : S.timeline.tracks.flatMap(t => t.clips).filter(c => at > c.startTime + 0.02 && at < c.startTime + c.duration - 0.02);
+  let list = selected.length ? selected : S.timeline.tracks.flatMap(t => t.clips).filter(c => at > c.startTime + 0.02 && at < c.startTime + c.duration - 0.02);
+  // Pull in linked partners so splitting one half of an A/V pair keeps
+  // both halves cut at the same point, not just the one that was clicked.
+  const extra = [];
+  list.forEach(c => { if (c.linkedClipId) { const p = nxClip(c.linkedClipId); if (p && !list.includes(p) && !extra.includes(p)) extra.push(p); } });
+  list = list.concat(extra);
   if (!list.length) { showStatus('error', '✕ Move the playhead inside a clip first.'); return; }
   nxWithHistory(() => {
+    const rightOf = {}; // original clip id -> its new right-half, so linked pairs' right halves re-link to each other
     list.forEach(c => {
       const t = nxClipTrack(c.id);
       if (!t || t.locked) return;
@@ -6774,11 +7005,18 @@ function nxSplitAtPlayhead() {
       const right = nxMakeClip(c.sourceAssetId, t.id, {
         startTime: at, duration: c.duration - splitOffset,
         sourceStart: c.sourceStart + splitOffset, sourceEnd: c.sourceEnd,
-        volume: c.volume, speed: c.speed,
+        volume: c.volume, pan: c.pan, speed: c.speed,
+        transform: c.transform ? { ...c.transform } : null,
       });
       c.duration = splitOffset;
       c.sourceEnd = c.sourceStart + splitOffset;
       t.clips.splice(t.clips.indexOf(c) + 1, 0, right);
+      rightOf[c.id] = right;
+    });
+    Object.keys(rightOf).forEach(origId => {
+      const origClip = nxClip(origId);
+      if (!origClip || !origClip.linkedClipId || !rightOf[origClip.linkedClipId]) return;
+      rightOf[origId].linkedClipId = rightOf[origClip.linkedClipId].id;
     });
   });
   mountNxTimeline();
@@ -6786,8 +7024,12 @@ function nxSplitAtPlayhead() {
 
 function nxDeleteSelection() {
   if (!S.timeline.selection.length) return;
+  // Deleting one half of a linked A/V pair alone would leave an orphaned
+  // clip playing disconnected content — remove both halves together.
+  let ids = [...S.timeline.selection];
+  ids.forEach(id => { const c = nxClip(id); if (c && c.linkedClipId && !ids.includes(c.linkedClipId)) ids.push(c.linkedClipId); });
   nxWithHistory(() => {
-    S.timeline.selection.forEach(id => {
+    ids.forEach(id => {
       const t = nxClipTrack(id);
       if (!t || t.locked) return;
       const idx = t.clips.findIndex(c => c.id === id);
@@ -6829,6 +7071,29 @@ function nxAddTrack(type) {
     const n = S.timeline.tracks.filter(x => x.type === type).length + 1;
     const t = nxMakeTrack(type, (type === 'video' ? 'V' : 'A') + n);
     if (type === 'video') S.timeline.tracks.unshift(t); else S.timeline.tracks.push(t);
+  });
+  mountNxTimeline();
+}
+// Text is a clip kind on a video-type track (spec #40), not its own track
+// type — it composites through the same layer stack as video (see
+// nxRenderTextLayer), reusing all of the track's mute/solo-equivalent
+// (enable/lock) controls for free.
+function nxDefaultTextProps() {
+  return { content: 'Your text here', font: 'Inter', size: 40, weight: 700, color: '#ffffff', align: 'center', tracking: 0, lineHeight: 1.2, shadow: true, bg: 'transparent', position: 'bottom' };
+}
+function nxAddTextClip() {
+  if (!S.file) { showStatus('error', '✕ Load a video first — text overlays composite on top of it.'); return; }
+  nxWithHistory(() => {
+    let track = S.timeline.tracks.find(t => t.type === 'video' && t.name.startsWith('Text'));
+    if (!track) {
+      track = nxMakeTrack('video', 'Text' + (S.timeline.tracks.filter(x => x.type === 'video' && x.name.startsWith('Text')).length + 1));
+      S.timeline.tracks.unshift(track);
+    }
+    const clip = nxMakeClip(null, track.id, { startTime: S.timeline.playhead, duration: Math.min(4, nxDuration() - S.timeline.playhead) || 4 });
+    clip.text = nxDefaultTextProps();
+    clip.transform = { ...nxDefaultTransform() };
+    track.clips.push(clip);
+    S.timeline.selection = [clip.id];
   });
   mountNxTimeline();
 }
@@ -6887,6 +7152,11 @@ function nxImportMedia() {
 }
 
 // ── Playback / seek ──────────────────────────────────────────────────────
+// Per-track graph: <audio> -> gain (clip volume + fade envelope, scheduled
+// with WebAudio ramps for click-free fades) -> pan (track pan + clip pan)
+// -> destination. el.volume is also kept in sync as a fallback for browsers
+// where createMediaElementSource is unavailable (playback still works,
+// just without WebAudio-precision fades/pan).
 function nxEnsureTrackAudioEl(t) {
   if (t._el) return t._el;
   t._el = new Audio();
@@ -6894,26 +7164,63 @@ function nxEnsureTrackAudioEl(t) {
   try {
     const actx = window._mixerAudioCtx || (window._mixerAudioCtx = new (window.AudioContext || window.webkitAudioContext)());
     const src = actx.createMediaElementSource(t._el);
+    const gain = actx.createGain();
     const pan = actx.createStereoPanner();
-    pan.pan.value = t.pan / 100;
-    src.connect(pan).connect(actx.destination);
+    src.connect(gain).connect(pan).connect(actx.destination);
     t._pan = pan;
+    t._gain = gain;
+    t._actx = actx;
   } catch (_) {}
   return t._el;
 }
 function nxActiveClipAt(t, time) {
   return t.clips.find(c => time >= c.startTime && time < c.startTime + c.duration) || null;
 }
+// Schedules the clip's fade envelope from `timeIntoClip` forward using
+// WebAudio's sample-accurate ramps (setValueAtTime/linearRampToValueAtTime)
+// rather than polling gain.value on a timer, so fades stay click-free
+// regardless of rAF jitter. Falls back to el.volume (no fade curve, but
+// still audible and correctly leveled) when the WebAudio graph is
+// unavailable.
+function nxApplyClipAudioParams(t, c, timeIntoClip) {
+  const baseVol = Math.max(0, Math.min(1, (t.volume / 100) * (c.volume / 100)));
+  if (t._el) t._el.volume = baseVol;
+  if (t._pan) t._pan.pan.value = Math.max(-1, Math.min(1, (t.pan + (c.pan || 0)) / 100));
+  if (!t._gain || !t._actx) return;
+  const actx = t._actx, now = actx.currentTime;
+  const fadeIn = c.fadeIn || 0, fadeOut = c.fadeOut || 0, dur = c.duration;
+  let mult = 1;
+  if (fadeIn > 0 && timeIntoClip < fadeIn) mult = Math.max(0, timeIntoClip / fadeIn);
+  if (fadeOut > 0 && timeIntoClip > dur - fadeOut) mult = Math.min(mult, Math.max(0, (dur - timeIntoClip) / fadeOut));
+  t._gain.gain.cancelScheduledValues(now);
+  t._gain.gain.setValueAtTime(Math.max(0.0001, baseVol * mult), now);
+  if (fadeIn > 0 && timeIntoClip < fadeIn) {
+    t._gain.gain.linearRampToValueAtTime(baseVol, now + (fadeIn - timeIntoClip));
+  }
+  if (fadeOut > 0) {
+    const fadeOutStart = dur - fadeOut;
+    if (timeIntoClip < fadeOutStart) t._gain.gain.setValueAtTime(baseVol, now + (fadeOutStart - timeIntoClip));
+    t._gain.gain.linearRampToValueAtTime(0.0001, now + Math.max(0, dur - timeIntoClip));
+  }
+}
 function nxSyncTrackPlaybackToPlayhead(t, time) {
   const clip = nxActiveClipAt(t, time);
+  const changed = t._activeClip !== clip;
   t._activeClip = clip;
   if (!clip) { if (t._el) t._el.pause(); return; }
   const asset = nxAsset(clip.sourceAssetId);
   if (!asset) return;
   nxEnsureTrackAudioEl(t);
   if (t._el.src !== asset.url) t._el.src = asset.url;
-  t._el.currentTime = clip.sourceStart + Math.max(0, time - clip.startTime);
+  const speed = clip.speed || 1;
+  if (t._el.playbackRate !== speed) t._el.playbackRate = speed;
+  const timeIntoClip = Math.max(0, time - clip.startTime);
+  const sourceTime = clip.sourceStart + timeIntoClip * speed;
+  if (changed || Math.abs(t._el.currentTime - sourceTime) > 0.15) {
+    t._el.currentTime = sourceTime;
+  }
   t._el.muted = nxEffectiveTrackMuted(t);
+  nxApplyClipAudioParams(t, clip, timeIntoClip);
 }
 function nxBindVideoElement() {
   const vid = document.getElementById('preview-vid');
@@ -6976,6 +7283,19 @@ function nxTogglePlay() {
   if (vid) { if (vid.paused) vid.play(); else vid.pause(); return; }
   if (S.timeline._playing) nxPauseAudioOnly(); else nxPlayAudioOnly();
 }
+// Dispatches to whichever playback path is active (video-driven vs.
+// audio-only) — used by code that just needs "start/stop everything"
+// without caring which clock is authoritative.
+function nxPlayAll() {
+  const vid = document.getElementById('preview-vid');
+  if (vid) { if (vid.paused) vid.play(); return; }
+  if (!S.timeline._playing) nxPlayAudioOnly();
+}
+function nxPauseAll() {
+  const vid = document.getElementById('preview-vid');
+  if (vid) { if (!vid.paused) vid.pause(); return; }
+  if (S.timeline._playing) nxPauseAudioOnly();
+}
 function nxSeekTo(t) {
   t = Math.max(0, Math.min(nxDuration(), t));
   S.timeline.playhead = t;
@@ -6998,7 +7318,663 @@ function nxUpdatePlayheadUI() {
   if (phFull) phFull.style.left = left;
   const timeEl = $('nxt-time');
   if (timeEl) timeEl.textContent = `${fmtTime(S.timeline.playhead)} / ${fmtTime(nxDuration())}`;
+  nxCompositorSync();
 }
+
+// ════════════════════════════════════════════════════════════════════════
+// COMPOSITOR — multi-track live preview (spec #10-13, #29, #40)
+// ════════════════════════════════════════════════════════════════════════
+// #preview-vid (the existing single <video>) is heavily depended on by
+// the older per-tool destructive panels (crop overlay, rotate, watermark,
+// applyLivePreview's filter chain) — none of that can be touched. So the
+// compositor treats #preview-vid as the PRIMARY layer (the topmost
+// enabled video track) and only adds NEW elements for every other video
+// track and any text clips. To avoid colliding with the rotate tool
+// (which writes vid.style.transform directly), the primary layer's
+// timeline transform is applied to its WRAPPER (#vid-preview-wrap), not
+// the <video> itself — the two transforms compose independently.
+function nxPrimaryVideoTrack() {
+  const videoTracks = S.timeline.tracks.filter(t => t.type === 'video');
+  return videoTracks.find(t => t.enabled) || videoTracks[0] || null;
+}
+function nxApplyTransformToEl(el, clip, timeIntoClip) {
+  const tr = clip.transform || nxDefaultTransform();
+  const x = nxSampleKeyframed(clip, 'transform.x', tr.x, timeIntoClip);
+  const y = nxSampleKeyframed(clip, 'transform.y', tr.y, timeIntoClip);
+  const scale = nxSampleKeyframed(clip, 'transform.scale', tr.scale, timeIntoClip);
+  const rotation = nxSampleKeyframed(clip, 'transform.rotation', tr.rotation, timeIntoClip);
+  const opacity = nxSampleKeyframed(clip, 'transform.opacity', tr.opacity, timeIntoClip);
+  el.style.transform = `translate(${x}px,${y}px) scale(${Math.max(0, scale) / 100}) rotate(${rotation}deg)`;
+  el.style.opacity = String(Math.max(0, Math.min(100, opacity)) / 100);
+  const cl = tr.cropL || 0, cr = tr.cropR || 0, ct = tr.cropT || 0, cb = tr.cropB || 0;
+  el.style.clipPath = (cl || cr || ct || cb) ? `inset(${ct}% ${cr}% ${cb}% ${cl}%)` : '';
+}
+function nxRenderTextLayer(host, key, clip, zIndex) {
+  let el = document.getElementById('nxt-text-' + key);
+  if (!el) {
+    el = document.createElement('div');
+    el.id = 'nxt-text-' + key;
+    el.className = 'nxt-text-layer';
+    host.appendChild(el);
+  }
+  const tx = clip.text || {};
+  el.style.zIndex = String(zIndex);
+  el.style.display = '';
+  el.textContent = tx.content || '';
+  el.style.fontFamily = tx.font || 'Inter, sans-serif';
+  el.style.fontSize = (tx.size || 32) + 'px';
+  el.style.fontWeight = tx.weight || 700;
+  el.style.color = tx.color || '#ffffff';
+  el.style.textAlign = tx.align || 'center';
+  el.style.letterSpacing = (tx.tracking || 0) + 'px';
+  el.style.lineHeight = tx.lineHeight || 1.2;
+  el.style.textShadow = tx.shadow ? '0 2px 8px rgba(0,0,0,.8)' : 'none';
+  el.style.background = tx.bg || 'transparent';
+  const pos = tx.position || 'bottom';
+  el.className = 'nxt-text-layer pos-' + pos;
+  const timeIntoClip = Math.max(0, S.timeline.playhead - clip.startTime);
+  const opacity = nxSampleKeyframed(clip, 'transform.opacity', (clip.transform && clip.transform.opacity != null) ? clip.transform.opacity : 100, timeIntoClip);
+  el.style.opacity = String(Math.max(0, Math.min(100, opacity)) / 100);
+}
+function nxCompositorSync() {
+  const wrap = document.getElementById('vid-preview-wrap');
+  const vid = document.getElementById('preview-vid');
+  const host = ensureNxCompositorHost(wrap);
+  if (!wrap || !vid || !host) { nxCompositorTeardown(); return; }
+
+  const videoTracks = S.timeline.tracks.filter(t => t.type === 'video');
+  const primary = nxPrimaryVideoTrack();
+  const seenLayers = new Set();
+
+  videoTracks.forEach((t, i) => {
+    const clip = t.enabled ? nxActiveClipAt(t, S.timeline.playhead) : null;
+    t._activeClip = clip;
+    const zIndex = 500 - S.timeline.tracks.indexOf(t);
+    const isPrimary = t === primary;
+
+    if (isPrimary) {
+      if (!clip) { wrap.style.opacity = '0'; return; }
+      wrap.style.opacity = '';
+      if (clip.text) {
+        vid.style.opacity = '0';
+        seenLayers.add('t_' + t.id);
+        nxRenderTextLayer(host, 't_' + t.id, clip, zIndex);
+      } else {
+        vid.style.opacity = '';
+        const asset = nxAsset(clip.sourceAssetId);
+        if (asset && vid.dataset.nxAsset !== asset.id) { vid.dataset.nxAsset = asset.id; vid.src = asset.url; }
+        const speed = clip.speed || 1;
+        if (vid.playbackRate !== speed) vid.playbackRate = speed;
+        const t0 = clip.sourceStart + Math.max(0, S.timeline.playhead - clip.startTime) * speed;
+        if (!isNaN(vid.duration) && Math.abs(vid.currentTime - t0) > 0.2) vid.currentTime = t0;
+      }
+      nxApplyTransformToEl(wrap, clip, Math.max(0, S.timeline.playhead - clip.startTime));
+      return;
+    }
+
+    if (!clip) return; // gap on this track — nothing to layer in
+    const timeIntoClip = Math.max(0, S.timeline.playhead - clip.startTime);
+    if (clip.text) {
+      const key = 't_' + t.id;
+      seenLayers.add(key);
+      nxRenderTextLayer(host, key, clip, zIndex);
+    } else {
+      const key = 'v_' + t.id;
+      seenLayers.add(key);
+      let layer = document.getElementById('nxt-layer-' + key);
+      if (!layer) {
+        layer = document.createElement('video');
+        layer.id = 'nxt-layer-' + key;
+        layer.className = 'nxt-video-layer';
+        layer.muted = true; layer.playsInline = true; layer.preload = 'auto';
+        host.appendChild(layer);
+      }
+      layer.style.display = '';
+      layer.style.zIndex = String(zIndex);
+      const asset = nxAsset(clip.sourceAssetId);
+      if (asset && layer.dataset.nxAsset !== asset.id) { layer.dataset.nxAsset = asset.id; layer.src = asset.url; }
+      const speed = clip.speed || 1;
+      if (layer.playbackRate !== speed) layer.playbackRate = speed;
+      const t0 = clip.sourceStart + timeIntoClip * speed;
+      if (!isNaN(layer.duration) && Math.abs(layer.currentTime - t0) > 0.2) layer.currentTime = t0;
+      nxApplyTransformToEl(layer, clip, timeIntoClip);
+      if (S.timeline._playing && layer.paused) layer.play().catch(() => {});
+      if (!S.timeline._playing && !layer.paused) layer.pause();
+    }
+  });
+
+  // Remove layers for clips/tracks no longer active this frame.
+  host.querySelectorAll('[id^="nxt-layer-"], [id^="nxt-text-"]').forEach(el => {
+    const key = el.id.replace(/^nxt-(layer|text)-/, '');
+    if (!seenLayers.has(key)) el.remove();
+  });
+}
+function ensureNxCompositorHost(wrap) {
+  if (!wrap) return null;
+  let host = document.getElementById('nxt-compositor-extra');
+  if (!host) {
+    host = document.createElement('div');
+    host.id = 'nxt-compositor-extra';
+    host.className = 'nxt-compositor-host';
+    wrap.appendChild(host);
+  }
+  return host;
+}
+function nxCompositorTeardown() {
+  const host = document.getElementById('nxt-compositor-extra');
+  if (host) host.remove();
+}
+
+// ── Markers ──────────────────────────────────────────────────────────────
+function nxAddMarker() {
+  if (!S.timeline.tracks.length) return;
+  const time = S.timeline.playhead;
+  if (S.timeline.markers.some(m => Math.abs(m.time - time) < 0.05)) { showStatus('info', 'A marker already exists here.'); return; }
+  const label = prompt('Marker label', fmtTime(time));
+  if (label === null) return; // user cancelled
+  S.timeline.markers.push({ id: uid(), time, label: label || fmtTime(time) });
+  S.timeline.markers.sort((a, b) => a.time - b.time);
+  mountNxTimeline();
+}
+function nxDeleteMarker(id) {
+  S.timeline.markers = S.timeline.markers.filter(m => m.id !== id);
+  mountNxTimeline();
+}
+
+// ════════════════════════════════════════════════════════════════════════
+// INSPECTOR — right panel, live non-destructive clip properties (spec #38)
+// ════════════════════════════════════════════════════════════════════════
+// Takes over #er-tool-name/#er-sub/#er-body whenever a timeline clip is
+// selected. Clicking a left-sidebar tool (selectTool()) overwrites the
+// same three elements for the classic one-shot destructive panels — the
+// two systems share the panel by simply being "whichever the user
+// touched last," same as any tabbed UI, with no separate mode toggle.
+function nxRenderInspector() {
+  const nameEl = $('er-tool-name'), subEl = $('er-sub'), body = $('er-body');
+  if (!nameEl || !subEl || !body) return;
+  const sel = S.timeline.selection;
+  if (!sel.length) {
+    nameEl.textContent = 'Inspector';
+    subEl.textContent = 'Nothing selected';
+    body.innerHTML = `<p class="s-hint">Select a clip on the timeline to edit its properties.</p>`;
+    return;
+  }
+  if (sel.length > 1) {
+    nameEl.textContent = 'Inspector';
+    subEl.textContent = `${sel.length} clips selected`;
+    body.innerHTML = `<p class="s-hint">${sel.length} clips selected. Use the timeline toolbar for Duplicate, Delete, or toggle Ripple Delete before removing clips from the middle of a sequence.</p>`;
+    return;
+  }
+  const clip = nxClip(sel[0]);
+  const track = nxClipTrack(sel[0]);
+  if (!clip || !track) {
+    nameEl.textContent = 'Inspector'; subEl.textContent = 'Nothing selected';
+    body.innerHTML = `<p class="s-hint">Select a clip on the timeline to edit its properties.</p>`;
+    return;
+  }
+  if (clip.text) {
+    nameEl.textContent = 'Text Clip'; subEl.textContent = track.name;
+    body.innerHTML = nxInspectorTextHTML(clip);
+  } else if (track.type === 'video') {
+    nameEl.textContent = 'Video Clip'; subEl.textContent = (nxAsset(clip.sourceAssetId) || {}).name || track.name;
+    body.innerHTML = nxInspectorVideoHTML(clip);
+  } else {
+    nameEl.textContent = 'Audio Clip'; subEl.textContent = (nxAsset(clip.sourceAssetId) || {}).name || track.name;
+    body.innerHTML = nxInspectorAudioHTML(clip);
+  }
+}
+
+// Coalesces every input-event of a drag/typing session into ONE undo
+// step (captured lazily on the first change, committed on 'change') —
+// otherwise dragging a slider would push 50+ history entries per drag.
+function nxSetClipProp(clipId, groupKey, field, value) {
+  if (!window._nxInspectorDirty) { window._nxInspectorSnapshot = nxSnapshot(); window._nxInspectorDirty = true; }
+  const clip = nxClip(clipId);
+  if (!clip) return;
+  if (!clip[groupKey]) clip[groupKey] = groupKey === 'transform' ? nxDefaultTransform() : {};
+  clip[groupKey][field] = value;
+  nxCompositorSync();
+}
+function nxSetClipField(clipId, field, value) {
+  if (!window._nxInspectorDirty) { window._nxInspectorSnapshot = nxSnapshot(); window._nxInspectorDirty = true; }
+  const clip = nxClip(clipId);
+  if (!clip) return;
+  clip[field] = value;
+  const track = nxClipTrack(clipId);
+  if (track && track.type === 'audio') nxSyncTrackPlaybackToPlayhead(track, S.timeline.playhead);
+  nxUpdateClipDOM(track, clip);
+}
+function nxSetTextField(clipId, field, value) {
+  const clip = nxClip(clipId);
+  if (!clip || !clip.text) return;
+  if (!window._nxInspectorDirty) { window._nxInspectorSnapshot = nxSnapshot(); window._nxInspectorDirty = true; }
+  clip.text[field] = value;
+  nxCompositorSync();
+}
+function nxCommitInspectorEdit() {
+  if (!window._nxInspectorDirty) return;
+  S.timeline.history.push(window._nxInspectorSnapshot);
+  if (S.timeline.history.length > 50) S.timeline.history.shift();
+  S.timeline.future = [];
+  window._nxInspectorDirty = false;
+}
+function nxFmtPan(v) { v = Math.round(v); return v === 0 ? 'C' : (v < 0 ? 'L' + Math.abs(v) : 'R' + v); }
+
+function nxSlider(clip, groupKey, field, label, min, max, step, unit, defVal) {
+  const sid = 'nxi_' + clip.id + '_' + groupKey + '_' + field;
+  const group = clip[groupKey] || (groupKey === 'transform' ? nxDefaultTransform() : {});
+  const val = group[field] != null ? group[field] : defVal;
+  return `<div class="s-row">
+    <div class="s-range-hdr">
+      <label class="s-lbl">${label}</label>
+      <span class="s-range-val-wrap"><span class="s-range-val" id="${sid}v">${val}${unit}</span>
+        <button type="button" class="nxi-reset" title="Reset ${label}" aria-label="Reset ${label}"
+          onclick="nxSetClipProp('${clip.id}','${groupKey}','${field}',${defVal});nxCommitInspectorEdit();nxRenderInspector();nxCompositorSync()">⟲</button></span>
+    </div>
+    <input type="range" id="${sid}" min="${min}" max="${max}" step="${step}" value="${val}"
+      oninput="nxSetClipProp('${clip.id}','${groupKey}','${field}',+this.value);document.getElementById('${sid}v').textContent=this.value+'${unit}'"
+      onchange="nxCommitInspectorEdit()" aria-label="${label}"/>
+  </div>`;
+}
+function nxClipFieldSlider(clip, field, label, min, max, step, unit, defVal) {
+  const sid = 'nxi_' + clip.id + '_' + field;
+  const val = clip[field] != null ? clip[field] : defVal;
+  const decimals = unit === 's' ? 1 : 0;
+  return `<div class="s-row">
+    <div class="s-range-hdr">
+      <label class="s-lbl">${label}</label>
+      <span class="s-range-val-wrap"><span class="s-range-val" id="${sid}v">${(+val).toFixed(decimals)}${unit}</span>
+        <button type="button" class="nxi-reset" title="Reset ${label}" aria-label="Reset ${label}"
+          onclick="nxSetClipField('${clip.id}','${field}',${defVal});nxCommitInspectorEdit();nxRenderInspector()">⟲</button></span>
+    </div>
+    <input type="range" id="${sid}" min="${min}" max="${max}" step="${step}" value="${val}"
+      oninput="nxSetClipField('${clip.id}','${field}',+this.value);document.getElementById('${sid}v').textContent=(+this.value).toFixed(${decimals})+'${unit}'"
+      onchange="nxCommitInspectorEdit()" aria-label="${label}"/>
+  </div>`;
+}
+function nxPanRow(clip) {
+  const sid = 'nxi_' + clip.id + '_pan';
+  const val = clip.pan || 0;
+  return `<div class="s-row">
+    <div class="s-range-hdr">
+      <label class="s-lbl">Pan</label>
+      <span class="s-range-val-wrap"><span class="s-range-val" id="${sid}v">${nxFmtPan(val)}</span>
+        <button type="button" class="nxi-reset" title="Reset Pan" aria-label="Reset pan"
+          onclick="nxSetClipField('${clip.id}','pan',0);nxCommitInspectorEdit();nxRenderInspector()">⟲</button></span>
+    </div>
+    <input type="range" id="${sid}" min="-100" max="100" step="1" value="${val}"
+      oninput="nxSetClipField('${clip.id}','pan',+this.value);document.getElementById('${sid}v').textContent=nxFmtPan(+this.value)"
+      onchange="nxCommitInspectorEdit()" aria-label="Pan"/>
+  </div>`;
+}
+function nxClipTextSlider(clip, field, label, min, max, step, unit) {
+  const sid = 'nxi_' + clip.id + '_text_' + field;
+  const val = clip.text[field];
+  return `<div class="s-row">
+    <div class="s-range-hdr"><label class="s-lbl">${label}</label><span class="s-range-val" id="${sid}v">${val}${unit}</span></div>
+    <input type="range" id="${sid}" min="${min}" max="${max}" step="${step}" value="${val}"
+      oninput="nxSetTextField('${clip.id}','${field}',+this.value);document.getElementById('${sid}v').textContent=this.value+'${unit}'"
+      onchange="nxCommitInspectorEdit()" aria-label="${label}"/>
+  </div>`;
+}
+function nxSpeedRow(clip) {
+  const speeds = [0.25, 0.5, 0.75, 1, 1.25, 1.5, 2, 4];
+  const isPreset = speeds.includes(clip.speed);
+  return `<div class="s-row">
+    <label class="s-lbl">Playback Speed</label>
+    <div class="s-select-wrap"><select class="s-input" onchange="nxSetClipSpeed('${clip.id}', this.value==='custom' ? null : +this.value)" aria-label="Playback speed">
+      ${speeds.map(s => `<option value="${s}" ${clip.speed === s ? 'selected' : ''}>${s}×</option>`).join('')}
+      <option value="custom" ${!isPreset ? 'selected' : ''}>Custom</option>
+    </select></div>
+    ${!isPreset ? `<input type="number" class="s-input" style="margin-top:6px" min="0.05" max="20" step="0.05" value="${clip.speed}" onchange="nxSetClipSpeed('${clip.id}',+this.value)" aria-label="Custom speed"/>` : ''}
+  </div>`;
+}
+// Changing speed keeps the source range (sourceStart..sourceEnd) fixed —
+// standard NLE convention — and recomputes the clip's timeline duration
+// from it, so e.g. 10s of source at 2x becomes a 5s timeline clip.
+function nxSetClipSpeed(clipId, speed) {
+  const clip = nxClip(clipId);
+  if (!clip || !speed || speed <= 0) return;
+  nxWithHistory(() => {
+    const sourceLen = clip.sourceEnd - clip.sourceStart;
+    clip.speed = speed;
+    clip.duration = sourceLen / speed;
+  });
+  mountNxTimeline();
+}
+function nxInspectorLinkHint(clip, partnerKind) {
+  if (!clip.linkedClipId) return '';
+  return `<div class="s-hint info" style="display:flex;align-items:center;gap:6px;margin-bottom:14px">
+    ${NXT_ICON.link} Linked to ${partnerKind} — moves and trims together.
+    <button type="button" class="nxi-link-btn" onclick="nxUnlinkClip('${clip.id}');nxRenderInspector()">Unlink</button>
+  </div>`;
+}
+function nxInspectorVideoHTML(clip) {
+  if (!clip.transform) clip.transform = nxDefaultTransform();
+  return `
+    ${nxInspectorLinkHint(clip, 'audio track')}
+    <div class="s-group-title">Transform</div>
+    ${nxSlider(clip, 'transform', 'x', 'Position X', -1000, 1000, 1, 'px', 0)}
+    ${nxSlider(clip, 'transform', 'y', 'Position Y', -1000, 1000, 1, 'px', 0)}
+    ${nxSlider(clip, 'transform', 'scale', 'Scale', 10, 400, 1, '%', 100)}
+    ${nxSlider(clip, 'transform', 'rotation', 'Rotation', -180, 180, 1, '°', 0)}
+    ${nxSlider(clip, 'transform', 'opacity', 'Opacity', 0, 100, 1, '%', 100)}
+    <div class="s-group-title">Crop</div>
+    ${nxSlider(clip, 'transform', 'cropL', 'Left', 0, 49, 1, '%', 0)}
+    ${nxSlider(clip, 'transform', 'cropR', 'Right', 0, 49, 1, '%', 0)}
+    ${nxSlider(clip, 'transform', 'cropT', 'Top', 0, 49, 1, '%', 0)}
+    ${nxSlider(clip, 'transform', 'cropB', 'Bottom', 0, 49, 1, '%', 0)}
+    <div class="s-group-title">Speed</div>
+    ${nxSpeedRow(clip)}
+    <div class="s-group-title">Effects</div>
+    <p class="s-hint">Stabilize, freeze frame, and other one-shot effects aren't live-previewed here yet — use the classic tools in the left sidebar (Rotate, Crop, Compress, Reverse, Speed…) to process and download a new file.</p>
+  `;
+}
+function nxInspectorAudioHTML(clip) {
+  return `
+    ${nxInspectorLinkHint(clip, 'video clip')}
+    <div class="s-group-title">Volume &amp; Pan</div>
+    ${nxClipFieldSlider(clip, 'volume', 'Volume', 0, 150, 1, '%', 100)}
+    ${nxPanRow(clip)}
+    <div class="s-group-title">Fades</div>
+    ${nxClipFieldSlider(clip, 'fadeIn', 'Fade In', 0, Math.max(1, clip.duration), 0.1, 's', 0)}
+    ${nxClipFieldSlider(clip, 'fadeOut', 'Fade Out', 0, Math.max(1, clip.duration), 0.1, 's', 0)}
+    <div class="s-group-title">Speed</div>
+    ${nxSpeedRow(clip)}
+    <div class="s-group-title">Effects</div>
+    <p class="s-hint">EQ, Compressor, and Reverb aren't wired into live preview yet — use the classic Audio tools in the left sidebar (Normalize, Pitch, Reverse, Mono…) to process and download a new file.</p>
+  `;
+}
+function nxInspectorTextHTML(clip) {
+  const tx = clip.text;
+  if (!clip.transform) clip.transform = nxDefaultTransform();
+  return `
+    <div class="s-group-title">Content</div>
+    <div class="s-row"><textarea class="s-input" rows="3"
+      oninput="nxSetTextField('${clip.id}','content',this.value)" onchange="nxCommitInspectorEdit();mountNxTimeline()"
+      aria-label="Text content">${tx.content}</textarea></div>
+    <div class="s-group-title">Typography</div>
+    <div class="s-row"><label class="s-lbl">Font</label>
+      <div class="s-select-wrap"><select class="s-input" onchange="nxSetTextField('${clip.id}','font',this.value);nxCommitInspectorEdit()" aria-label="Font">
+        ${['Inter', 'Georgia', 'Courier New', 'Arial', 'Impact'].map(f => `<option value="${f}" ${tx.font === f ? 'selected' : ''}>${f}</option>`).join('')}
+      </select></div>
+    </div>
+    ${nxClipTextSlider(clip, 'size', 'Size', 10, 160, 1, 'px')}
+    <div class="s-row"><label class="s-lbl">Weight</label>
+      <div class="s-select-wrap"><select class="s-input" onchange="nxSetTextField('${clip.id}','weight',+this.value);nxCommitInspectorEdit()" aria-label="Font weight">
+        ${[400, 500, 600, 700, 800, 900].map(w => `<option value="${w}" ${tx.weight == w ? 'selected' : ''}>${w}</option>`).join('')}
+      </select></div>
+    </div>
+    <div class="s-row"><label class="s-lbl">Color</label>
+      <input type="color" class="s-input" value="${tx.color}" oninput="nxSetTextField('${clip.id}','color',this.value)" onchange="nxCommitInspectorEdit()" aria-label="Text color"/></div>
+    <div class="s-row"><label class="s-lbl">Align</label>
+      <div class="s-select-wrap"><select class="s-input" onchange="nxSetTextField('${clip.id}','align',this.value);nxCommitInspectorEdit()" aria-label="Text align">
+        ${['left', 'center', 'right'].map(a => `<option value="${a}" ${tx.align === a ? 'selected' : ''}>${a}</option>`).join('')}
+      </select></div>
+    </div>
+    ${nxClipTextSlider(clip, 'tracking', 'Tracking', -5, 20, 0.5, 'px')}
+    ${nxClipTextSlider(clip, 'lineHeight', 'Line Height', 0.8, 2.5, 0.05, '')}
+    <div class="s-row"><label class="s-checkbox"><input type="checkbox" ${tx.shadow ? 'checked' : ''}
+      onchange="nxSetTextField('${clip.id}','shadow',this.checked);nxCommitInspectorEdit()"/> Drop shadow</label></div>
+    <div class="s-group-title">Position</div>
+    <div class="s-row"><label class="s-lbl">Vertical anchor</label>
+      <div class="s-select-wrap"><select class="s-input" onchange="nxSetTextField('${clip.id}','position',this.value);nxCommitInspectorEdit()" aria-label="Vertical position">
+        ${['top', 'center', 'bottom'].map(p => `<option value="${p}" ${tx.position === p ? 'selected' : ''}>${p}</option>`).join('')}
+      </select></div>
+    </div>
+    ${nxSlider(clip, 'transform', 'opacity', 'Opacity', 0, 100, 1, '%', 100)}
+    <p class="s-hint" style="margin-top:10px">Drag the clip's edges on the timeline to change how long the text stays on screen.</p>
+  `;
+}
+
+// ════════════════════════════════════════════════════════════════════════
+// EXPORT (spec #07, #10, #52)
+// ════════════════════════════════════════════════════════════════════════
+// Deliberately native-browser-only, no FFmpeg: this app's existing
+// FFmpeg.wasm integration loads the engine from a CDN, and that library
+// constructs its own Worker from that same cross-origin URL — browsers
+// have never allowed a Worker's script to be cross-origin (this is
+// unrelated to and predates COOP/COEP), so `ensureFFmpeg()` fails with a
+// SecurityError in ANY browser regardless of how the page is hosted, the
+// moment COOP/COEP are set to unlock SharedArrayBuffer in the first
+// place. That's a pre-existing characteristic of every FFmpeg-based tool
+// already in this app (confirmed via direct testing), not something
+// introduced here — and not a gap this rebuild can safely close without
+// vendoring the FFmpeg package locally. Export instead uses:
+//  - Audio mixdown: OfflineAudioContext, a native W3C API built for
+//    exactly this (sample-accurate offline rendering), encoded to WAV
+//    with a small hand-written writer.
+//  - Video export: captures the SAME live compositor already driving
+//    preview (stacked <video>/text layers) into a canvas at real-time
+//    speed via requestAnimationFrame, combined with the live WebAudio
+//    mix via a MediaStreamAudioDestinationNode, recorded with
+//    MediaRecorder. Real-time (not instant) but genuinely correct output
+//    — the honest native answer to exporting an HTML/CSS/WebAudio scene.
+function nxDownloadBlob(blob, filename) {
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = filename;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 15000);
+}
+// Standard 16-bit PCM WAV writer — AudioBuffer -> Blob, no dependencies.
+function nxAudioBufferToWav(buffer) {
+  const numCh = buffer.numberOfChannels, len = buffer.length, sr = buffer.sampleRate;
+  const bytesPerSample = 2, blockAlign = numCh * bytesPerSample;
+  const dataSize = len * blockAlign;
+  const bufOut = new ArrayBuffer(44 + dataSize);
+  const view = new DataView(bufOut);
+  const writeStr = (off, s) => { for (let i = 0; i < s.length; i++) view.setUint8(off + i, s.charCodeAt(i)); };
+  writeStr(0, 'RIFF'); view.setUint32(4, 36 + dataSize, true); writeStr(8, 'WAVE');
+  writeStr(12, 'fmt '); view.setUint32(16, 16, true); view.setUint16(20, 1, true);
+  view.setUint16(22, numCh, true); view.setUint32(24, sr, true);
+  view.setUint32(28, sr * blockAlign, true); view.setUint16(32, blockAlign, true); view.setUint16(34, 16, true);
+  writeStr(36, 'data'); view.setUint32(40, dataSize, true);
+  const chans = []; for (let c = 0; c < numCh; c++) chans.push(buffer.getChannelData(c));
+  let off = 44;
+  for (let i = 0; i < len; i++) {
+    for (let c = 0; c < numCh; c++) {
+      const s = Math.max(-1, Math.min(1, chans[c][i]));
+      view.setInt16(off, s < 0 ? s * 0x8000 : s * 0x7fff, true);
+      off += 2;
+    }
+  }
+  return new Blob([bufOut], { type: 'audio/wav' });
+}
+async function nxExportAudioMixdown() {
+  const audioTracks = S.timeline.tracks.filter(t => t.type === 'audio' && t.clips.length);
+  if (!audioTracks.length) { showStatus('error', '✕ No audio clips to export.'); return; }
+  const duration = nxDuration();
+  if (!duration || duration < 0.05) { showStatus('error', '✕ Nothing on the timeline to export.'); return; }
+  showOverlay(); setProgress(5, 'Preparing mixdown…');
+  try {
+    const sr = 44100;
+    const offline = new OfflineAudioContext(2, Math.ceil(duration * sr) + sr, sr);
+    let clipCount = 0, done = 0;
+    audioTracks.forEach(t => { if (!nxEffectiveTrackMuted(t)) clipCount += t.clips.length; });
+    if (!clipCount) { hideOverlay(); showStatus('error', '✕ Every audio track is muted — nothing to export.'); return; }
+    for (const t of audioTracks) {
+      if (nxEffectiveTrackMuted(t)) continue;
+      for (const c of t.clips) {
+        const asset = nxAsset(c.sourceAssetId);
+        if (!asset) { done++; continue; }
+        setProgress(5 + Math.round((done / clipCount) * 70), `Decoding ${asset.name}…`);
+        try {
+          const arrBuf = await (await fetch(asset.url)).arrayBuffer();
+          const decoded = await offline.decodeAudioData(arrBuf);
+          const src = offline.createBufferSource();
+          src.buffer = decoded;
+          src.playbackRate.value = c.speed || 1;
+          const gain = offline.createGain();
+          const pan = offline.createStereoPanner();
+          const baseVol = Math.max(0, Math.min(1, (t.volume / 100) * (c.volume / 100)));
+          pan.pan.value = Math.max(-1, Math.min(1, (t.pan + (c.pan || 0)) / 100));
+          const fadeIn = c.fadeIn || 0, fadeOut = c.fadeOut || 0;
+          gain.gain.setValueAtTime(fadeIn > 0 ? 0.0001 : baseVol, c.startTime);
+          if (fadeIn > 0) gain.gain.linearRampToValueAtTime(baseVol, c.startTime + fadeIn);
+          if (fadeOut > 0) {
+            gain.gain.setValueAtTime(baseVol, Math.max(c.startTime, c.startTime + c.duration - fadeOut));
+            gain.gain.linearRampToValueAtTime(0.0001, c.startTime + c.duration);
+          }
+          src.connect(gain).connect(pan).connect(offline.destination);
+          src.start(c.startTime, c.sourceStart, Math.max(0.01, c.sourceEnd - c.sourceStart));
+        } catch (e) {
+          console.warn('Skipped clip in mixdown (decode failed):', asset.name, e.message);
+        }
+        done++;
+      }
+    }
+    setProgress(80, 'Rendering mix…');
+    const rendered = await offline.startRendering();
+    setProgress(95, 'Encoding WAV…');
+    const blob = nxAudioBufferToWav(rendered);
+    setProgress(100, 'Done!');
+    setTimeout(() => {
+      hideOverlay();
+      showStatus('done', '✓ Mixdown exported');
+      nxDownloadBlob(blob, (S.file?.name || 'nexus-mix').replace(/\.[^.]+$/, '') + '_mixdown.wav');
+    }, 200);
+  } catch (err) {
+    console.error(err);
+    hideOverlay();
+    showStatus('error', '✕ Export failed: ' + (err.message || 'unknown error'));
+  }
+}
+
+// Video export: drives the SAME compositor used for live preview at 1x
+// real-time speed, drawing every layer into a canvas each frame and
+// recording canvas.captureStream() + the live WebAudio mix together via
+// MediaRecorder. Runs in real time (a 2-minute timeline takes ~2 minutes
+// to export) — the honest tradeoff for exporting arbitrary HTML/CSS/
+// WebAudio composition without a server-side renderer.
+async function nxExportVideo() {
+  const primary = nxPrimaryVideoTrack();
+  if (!primary) { showStatus('error', '✕ No video track to export.'); return; }
+  if (typeof MediaRecorder === 'undefined' || !HTMLCanvasElement.prototype.captureStream) {
+    showStatus('error', '✕ This browser doesn\'t support MediaRecorder/canvas capture — try Chrome or Edge.');
+    return;
+  }
+  const duration = nxDuration();
+  if (!duration || duration < 0.05) { showStatus('error', '✕ Nothing on the timeline to export.'); return; }
+  const wasPlaying = S.timeline._playing;
+  const wasPlayhead = S.timeline.playhead;
+  nxPauseAll();
+  nxSeekTo(0);
+  await new Promise(r => setTimeout(r, 150)); // let sources actually seek before we start capturing
+
+  const vid = document.getElementById('preview-vid');
+  const W = vid.videoWidth || 1280, H = vid.videoHeight || 720;
+  const canvas = document.createElement('canvas');
+  canvas.width = W; canvas.height = H;
+  const ctx = canvas.getContext('2d');
+
+  const actx = window._mixerAudioCtx || (window._mixerAudioCtx = new (window.AudioContext || window.webkitAudioContext)());
+  const dest = actx.createMediaStreamDestination();
+  const reconnected = [];
+  let anyAudioConnected = false;
+
+  // The primary video's own embedded audio — unless it's muted, which only
+  // happens because a separately-linked audio track already carries this
+  // exact content (see nxExtractLinkedAudio); capturing both would double it.
+  if (!vid.muted) {
+    try {
+      if (!vid._nxMediaElSrc) vid._nxMediaElSrc = actx.createMediaElementSource(vid);
+      vid._nxMediaElSrc.connect(actx.destination);
+      vid._nxMediaElSrc.connect(dest);
+      anyAudioConnected = true;
+    } catch (_) { /* cross-origin or already routed elsewhere — export continues, just without this layer's audio */ }
+  }
+  S.timeline.tracks.filter(t => t.type === 'audio').forEach(t => {
+    nxEnsureTrackAudioEl(t);
+    if (t._pan) {
+      try { t._pan.disconnect(); } catch (_) {}
+      t._pan.connect(actx.destination); t._pan.connect(dest);
+      reconnected.push(t._pan);
+      anyAudioConnected = true;
+    }
+  });
+
+  const canvasStream = canvas.captureStream(30);
+  // Only fold in the audio destination's track if something is actually
+  // feeding it — an attached-but-silent MediaStreamAudioDestination track
+  // can stall the whole recorder (produces zero bytes) rather than just
+  // encoding silence, so a video with no audio at all records video-only.
+  const combined = new MediaStream([...canvasStream.getVideoTracks(), ...(anyAudioConnected ? dest.stream.getAudioTracks() : [])]);
+  const mimeType = (anyAudioConnected
+    ? ['video/webm;codecs=vp9,opus', 'video/webm;codecs=vp8,opus']
+    : ['video/webm;codecs=vp9', 'video/webm;codecs=vp8']
+  ).concat('video/webm').find(m => MediaRecorder.isTypeSupported(m)) || 'video/webm';
+  const recorder = new MediaRecorder(combined, { mimeType });
+  const chunks = [];
+  recorder.ondataavailable = e => { if (e.data.size) chunks.push(e.data); };
+
+  showOverlay(); setProgress(0, 'Recording export (real-time)…');
+  const doneP = new Promise(resolve => { recorder.onstop = resolve; });
+  recorder.start(250);
+  nxPlayAll();
+
+  let cancelled = false;
+  window._nxExportCancel = () => { cancelled = true; };
+  function drawFrame() {
+    ctx.fillStyle = '#000'; ctx.fillRect(0, 0, W, H);
+    // Draw every visible layer in track order (bottom track first, so
+    // higher tracks correctly paint over lower ones), reusing whatever
+    // element the live compositor already has on screen this frame.
+    const order = S.timeline.tracks.filter(t => t.type === 'video').slice().reverse();
+    order.forEach(t => {
+      const isPrimary = t === primary;
+      const el = isPrimary ? vid : document.getElementById('nxt-layer-v_' + t.id);
+      const textEl = document.getElementById('nxt-text-' + t.id);
+      if (el && el.style.display !== 'none' && el.style.opacity !== '0' && el.videoWidth) {
+        ctx.save();
+        ctx.globalAlpha = el.style.opacity === '' ? 1 : parseFloat(el.style.opacity || '1');
+        ctx.drawImage(el, 0, 0, W, H);
+        ctx.restore();
+      }
+      if (textEl && textEl.style.display !== 'none' && textEl.textContent) {
+        ctx.save();
+        ctx.globalAlpha = parseFloat(textEl.style.opacity || '1');
+        ctx.fillStyle = textEl.style.color || '#fff';
+        const sizePx = parseFloat(textEl.style.fontSize || '32') * (H / (el?.clientHeight || H));
+        ctx.font = `${textEl.style.fontWeight || 700} ${Math.round(parseFloat(textEl.style.fontSize) || 32)}px ${textEl.style.fontFamily || 'Inter'}`;
+        ctx.textAlign = textEl.style.textAlign || 'center';
+        const y = textEl.classList.contains('pos-top') ? H * 0.12 : textEl.classList.contains('pos-center') ? H / 2 : H * 0.88;
+        ctx.fillText(textEl.textContent, W / 2, y);
+        ctx.restore();
+      }
+    });
+    setProgress(Math.min(99, Math.round((S.timeline.playhead / duration) * 100)), `Recording… ${fmtTime(S.timeline.playhead)} / ${fmtTime(duration)}`);
+    // Deliberately NOT gated on S.timeline._playing: that flag flips true
+    // asynchronously off the video's 'play' event, which often hasn't
+    // fired yet on this very first rAF tick — checking it here made the
+    // loop stop itself after exactly one frame almost every time.
+    if (!cancelled && S.timeline.playhead < duration) {
+      requestAnimationFrame(drawFrame);
+    } else {
+      nxPauseAll();
+      recorder.stop();
+    }
+  }
+  requestAnimationFrame(drawFrame);
+
+  await doneP;
+  reconnected.forEach(pan => { try { pan.disconnect(); pan.connect(actx.destination); } catch (_) {} });
+  if (vid._nxMediaElSrc) { try { vid._nxMediaElSrc.disconnect(dest); } catch (_) {} }
+  window._nxExportCancel = null;
+
+  if (cancelled) { hideOverlay(); showStatus('info', 'Export cancelled.'); nxSeekTo(wasPlayhead); return; }
+  if (!chunks.length) { hideOverlay(); showStatus('error', '✕ Export produced no data.'); nxSeekTo(wasPlayhead); return; }
+  const blob = new Blob(chunks, { type: mimeType });
+  setProgress(100, 'Done!');
+  setTimeout(() => {
+    hideOverlay();
+    showStatus('done', '✓ Video exported (.webm)');
+    nxDownloadBlob(blob, (S.file?.name || 'nexus-export').replace(/\.[^.]+$/, '') + '_export.webm');
+  }, 200);
+  nxSeekTo(wasPlayhead);
+  if (wasPlaying) nxTogglePlay();
+}
+function nxCancelExport() { if (window._nxExportCancel) window._nxExportCancel(); }
 
 // ── Zoom ─────────────────────────────────────────────────────────────────
 function nxSetZoom(v) { S.timeline.zoom = Math.max(20, Math.min(300, v)); mountNxTimeline(); }
@@ -7021,6 +7997,7 @@ document.addEventListener('keydown', e => {
   if (mod && e.key.toLowerCase() === 'd') { e.preventDefault(); nxDuplicateSelection(); return; }
   if (e.code === 'Space') { e.preventDefault(); nxTogglePlay(); return; }
   if (e.key.toLowerCase() === 's') { nxSplitAtPlayhead(); return; }
+  if (e.key.toLowerCase() === 'm') { nxAddMarker(); return; }
   if (e.key === 'Delete' || e.key === 'Backspace') { nxDeleteSelection(); return; }
   if (e.key === 'ArrowLeft') { nxSeekBy(e.shiftKey ? -1 : -1 / 30); return; }
   if (e.key === 'ArrowRight') { nxSeekBy(e.shiftKey ? 1 : 1 / 30); return; }
@@ -7115,6 +8092,7 @@ function resetEditor() {
   // revoke blob URLs for assets it owns (imported via nxImportMedia — the
   // primary file's URL is revoked above), and reset state to empty.
   nxCleanupDrag();
+  nxCompositorTeardown();
   if (S.timeline._playRAF) cancelAnimationFrame(S.timeline._playRAF);
   S.timeline.tracks.forEach(t => { if (t._el) { t._el.pause(); t._el.src = ''; } });
   Object.values(S.timeline.assets).forEach(a => { if (a._owned && a.url) URL.revokeObjectURL(a.url); });
