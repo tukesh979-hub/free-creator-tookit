@@ -617,8 +617,8 @@ async function runVinylTests() {
       return JSON.stringify({
         hasPlayer: !!document.getElementById('vinyl-player'),
         title: document.getElementById('vinyl-title')?.textContent,
-        filename: document.querySelector('.vinyl-filename')?.textContent,
-        hasFallback: !!document.querySelector('.vinyl-fallback-label'),
+        filename: document.querySelector('.audio-information p')?.textContent,
+        hasFallback: !!document.querySelector('.vinyl-label .nexus-mark'),
         trackColor: document.getElementById('vinyl-player')?.style.getPropertyValue('--track-color'),
       });
     `);
@@ -661,10 +661,10 @@ async function runVinylTests() {
     await page.eval(`nxTogglePlay();`);
     await sleep(100);
     const r = await page.evalBlock(`
-      const bar = document.getElementById('vinyl-reactor-bar');
-      return JSON.stringify({playing: document.getElementById('vinyl-player').classList.contains('playing'), bass: bar.style.getPropertyValue('--react-bass')});
+      const bars = window._nxVinylBarEls;
+      return JSON.stringify({playing: document.getElementById('vinyl-player').classList.contains('playing'), allSettled: bars.every(b => b.style.height === '6px')});
     `);
-    assertEqual(JSON.parse(r), { playing: false, bass: '0' }, 'paused + settled');
+    assertEqual(JSON.parse(r), { playing: false, allSettled: true }, 'paused + settled');
   });
   await test('timeline ruler scrubbing updates the vinyl timecode to the exact playhead', async page => {
     await page.gotoEditor(); await page.setFile(AUDIO); await sleep(1500);
@@ -705,6 +705,41 @@ async function runVinylTests() {
     await page.gotoEditor(); await page.setFile(VIDEO); await sleep(2000);
     const has = await page.eval(`!!document.getElementById('vinyl-container')`);
     assertEqual(has, false, 'vinyl is audio-project-only UI');
+  });
+  await test('spectrum renders exactly 64 bars, driven by real per-bar frequency data', async page => {
+    await page.gotoEditor(); await page.warmUpActivation(); await page.setFile(AUDIO); await sleep(1500);
+    const count = await page.eval(`document.querySelectorAll('.reactor-bar').length`);
+    assertEqual(count, 64, 'spectrum should render 64 bars per the approved spec');
+    await page.eval(`nxTogglePlay();`);
+    await sleep(500);
+    const varied = await page.eval(`new Set(window._nxVinylBarEls.map(b => b.style.height)).size > 1`);
+    assert(varied, 'bars should show varied real heights while audio plays, not a uniform fake value');
+    await page.eval(`nxTogglePlay();`);
+  });
+  await test('clicking the progress track seeks the shared playhead (same as the ruler)', async page => {
+    await page.gotoEditor(); await page.setFile(AUDIO); await sleep(1500);
+    const r = await page.evalBlock(`
+      const track = document.getElementById('vinyl-progress-track');
+      const rect = track.getBoundingClientRect();
+      const midX = rect.left + rect.width * 0.5;
+      track.dispatchEvent(new MouseEvent('mousedown', {clientX: midX, clientY: rect.top + 2, bubbles: true}));
+      document.dispatchEvent(new MouseEvent('mouseup', {clientX: midX, clientY: rect.top + 2, bubbles: true}));
+      const dur = nxDuration();
+      return JSON.stringify({playhead: S.timeline.playhead, expectedApprox: dur * 0.5, fillWidth: document.getElementById('vinyl-progress-fill').style.width});
+    `);
+    const parsed = JSON.parse(r);
+    assert(Math.abs(parsed.playhead - parsed.expectedApprox) < 0.3, 'clicking the middle of the progress track should seek to ~50%: ' + r);
+    assert(parsed.fillWidth.startsWith('4') || parsed.fillWidth.startsWith('5'), 'progress fill should reflect ~50%: ' + r);
+  });
+  await test('reselecting clips repeatedly does not stack duplicate drag listeners', async page => {
+    await page.gotoEditor(); await page.setFile(AUDIO); await sleep(1500);
+    const r = await page.evalBlock(`
+      const c = S.timeline.tracks[0].clips[0];
+      for (let i = 0; i < 8; i++) nxSelectClip(c.id, false);
+      return typeof window._nxVinylDragCleanup;
+    `);
+    assertEqual(r, 'function', 'exactly one live cleanup function should be tracked regardless of reselect count');
+    assert(page.consoleMsgs.length === 0, 'no console errors from repeated reselection: ' + JSON.stringify(page.consoleMsgs));
   });
 }
 // ════════════════════════════════════════════════════════════════════════
