@@ -530,6 +530,83 @@ async function runExportTests() {
 }
 
 // ════════════════════════════════════════════════════════════════════════
+// DSP EFFECTS (track-level: de-esser, EQ, compressor, delay, reverb, ducking)
+// ════════════════════════════════════════════════════════════════════════
+async function runDspTests() {
+  console.log('\n=== DSP effects ===');
+  await test('every effect connects a live node when toggled on', async page => {
+    await page.gotoEditor(); await page.warmUpActivation(); await page.setFile(AUDIO); await sleep(1500);
+    const r = await page.evalBlock(`
+      const t = S.timeline.tracks.find(x=>x.type==='audio');
+      nxSelectClip(t.clips[0].id, false);
+      ['deesser','eq','comp','delay','reverb'].forEach(fx => nxToggleTrackFx(t.id, fx));
+      const m = t._fxNodeMap;
+      return JSON.stringify({deesser:!!m.deesser, eqLow:!!m.eqLow, eqMid:!!m.eqMid, eqHigh:!!m.eqHigh, comp:!!m.comp, delayTime:!!m.delayTime, reverbConv:!!m.reverbConv});
+    `);
+    assertEqual(JSON.parse(r), { deesser: true, eqLow: true, eqMid: true, eqHigh: true, comp: true, delayTime: true, reverbConv: true }, 'all fx nodes present');
+  });
+  await test('a param change updates the existing node without rebuilding it (no click on drag)', async page => {
+    await page.gotoEditor(); await page.warmUpActivation(); await page.setFile(AUDIO); await sleep(1500);
+    const r = await page.evalBlock(`
+      const t = S.timeline.tracks.find(x=>x.type==='audio');
+      nxToggleTrackFx(t.id, 'eq');
+      const before = t._fxNodeMap.eqLow;
+      nxSetTrackFxParam(t.id, 'eq', 'low', 8);
+      nxCommitInspectorEdit();
+      return JSON.stringify({sameNode: before === t._fxNodeMap.eqLow, storedValue: t.fx.eq.low});
+    `);
+    assertEqual(JSON.parse(r), { sameNode: true, storedValue: 8 }, 'in-place param update');
+  });
+  await test('disabling an effect removes its node from the chain', async page => {
+    await page.gotoEditor(); await page.warmUpActivation(); await page.setFile(AUDIO); await sleep(1500);
+    const r = await page.evalBlock(`
+      const t = S.timeline.tracks.find(x=>x.type==='audio');
+      nxToggleTrackFx(t.id, 'eq');
+      nxToggleTrackFx(t.id, 'eq');
+      return JSON.stringify({eqLowGone: !t._fxNodeMap.eqLow, enabled: t.fx.eq.enabled});
+    `);
+    assertEqual(JSON.parse(r), { eqLowGone: true, enabled: false }, 'clean disable');
+  });
+  await test('ducking wires a dedicated gain node distinct from clip volume/fade', async page => {
+    await page.gotoEditor(); await page.warmUpActivation(); await page.setFile(AUDIO); await sleep(1500);
+    const r = await page.evalBlock(`
+      nxAddTrack('audio');
+      const [a1, a2] = S.timeline.tracks.filter(t=>t.type==='audio');
+      a1.fx.duck.enabled = true; a1.fx.duck.againstTrackId = a2.id;
+      nxEnsureTrackAudioEl(a1); nxEnsureTrackAudioEl(a2);
+      for (let i = 0; i < 5; i++) nxUpdateDucking(); // should not throw
+      return JSON.stringify({hasDuckGain: !!a1._duckGain, distinctFromClipGain: a1._duckGain !== a1._gain});
+    `);
+    assertEqual(JSON.parse(r), { hasDuckGain: true, distinctFromClipGain: true }, 'ducking node');
+  });
+  await test('audio mixdown export succeeds with every effect (incl. ducking) enabled', async page => {
+    await page.gotoEditor(); await page.warmUpActivation(); await page.setFile(AUDIO); await sleep(1500);
+    await page.evalBlock(`
+      nxAddTrack('audio');
+      const [a1, a2] = S.timeline.tracks.filter(t=>t.type==='audio');
+      ['deesser','eq','comp','delay','reverb'].forEach(fx => nxToggleTrackFx(a1.id, fx));
+      a1.fx.duck.enabled = true; a1.fx.duck.againstTrackId = a2.id;
+      return null;
+    `);
+    await page.eval(`window.__done = false; nxExportAudioMixdown().then(() => window.__done = true)`);
+    let status = null;
+    for (let i = 0; i < 15; i++) { await sleep(1000); status = await page.eval(`document.getElementById('ed-status')?.textContent`); if (status?.includes('exported') || status?.includes('failed')) break; }
+    assert(status && status.includes('exported'), 'expected export to succeed with effects enabled, got: ' + status);
+    assert(page.consoleMsgs.length === 0, 'no console errors exporting with effects: ' + JSON.stringify(page.consoleMsgs));
+  });
+  await test('Inspector renders the Track Effects section for a selected audio clip', async page => {
+    await page.gotoEditor(); await page.setFile(AUDIO); await sleep(1500);
+    const r = await page.evalBlock(`
+      const t = S.timeline.tracks.find(x=>x.type==='audio');
+      nxSelectClip(t.clips[0].id, false);
+      const html = document.getElementById('er-body').innerHTML;
+      return JSON.stringify({hasEQ: html.includes('3-Band EQ'), hasComp: html.includes('Compressor'), hasDelay: html.includes('Delay'), hasReverb: html.includes('Reverb'), hasDucking: html.includes('Ducking')});
+    `);
+    assertEqual(JSON.parse(r), { hasEQ: true, hasComp: true, hasDelay: true, hasReverb: true, hasDucking: true }, 'Inspector fx sections');
+  });
+}
+
+// ════════════════════════════════════════════════════════════════════════
 // EDGE CASES
 // ════════════════════════════════════════════════════════════════════════
 async function runEdgeCaseTests() {
@@ -614,6 +691,7 @@ async function main() {
   await runMediaBinTests();
   await runLinkedAudioTests();
   await runExportTests();
+  await runDspTests();
   await runEdgeCaseTests();
   await runReloadTest();
 

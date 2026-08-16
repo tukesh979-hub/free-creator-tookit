@@ -64,10 +64,26 @@ ffmpeg -f lavfi -i "testsrc=size=640x360:rate=24:duration=6" -f lavfi -i "sine=f
 ffmpeg -f lavfi -i "sine=frequency=660:duration=8" -c:a aac test_audio.m4a
 ```
 
+## DSP effects (track-level channel strip)
+
+De-esser, 3-band EQ, compressor, delay/echo, reverb, and sidechain
+ducking — all native `WebAudio` nodes (`BiquadFilterNode`,
+`DynamicsCompressorNode`, `DelayNode`, `ConvolverNode` with an
+algorithmically-generated impulse response), applied per-track (like
+volume/pan already are), live during preview and baked into both export
+paths via the same `nxConnectFxChain` builder both use — no separate
+"export-only" logic to drift out of sync.
+
+Ducking is a real sidechain: live preview uses an `AnalyserNode` tap on
+the sidechain track's actual output, polled every playback tick; the
+offline audio export does a pre-pass rendering the sidechain track alone
+to get a real RMS-in-dB envelope, then schedules the ducked track's gain
+against it with `setTargetAtTime`. It uses its own dedicated gain node
+(`t._duckGain`), separate from the node clip volume/fade already
+schedule ramps on — sharing one would make the two schedulers fight.
+
 ## What's intentionally NOT covered
 
-- **DSP effects** (EQ, compressor, reverb, delay, ducking, de-esser) —
-  not yet built; see the project's task list / handoff notes.
 - **Reload persistence** — the last test in the suite documents (rather
   than asserts success) that project state does **not** survive a page
   reload today. There's no save/load layer (no localStorage/IndexedDB

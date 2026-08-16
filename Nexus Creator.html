@@ -6385,7 +6385,22 @@ const NXT_ICON = {
 // ── Model helpers ────────────────────────────────────────────────────────
 function nxMakeTrack(type, name) {
   return { id: uid(), type, name, order: S.timeline.tracks.length,
-    muted: false, solo: false, locked: false, enabled: true, volume: 100, pan: 0, clips: [] };
+    muted: false, solo: false, locked: false, enabled: true, volume: 100, pan: 0, clips: [],
+    fx: type === 'audio' ? nxDefaultTrackFx() : null };
+}
+// Track-level "channel strip" — applies to every clip on the track, live
+// during preview AND during export (see nxConnectFxChain, shared by
+// both). Kept per-track rather than per-clip: matches how volume/pan
+// already work, and is what every DAW channel strip does.
+function nxDefaultTrackFx() {
+  return {
+    deesser: { enabled: false, amount: 6 },                                   // dB reduction ~6.5kHz
+    eq:      { enabled: false, low: 0, mid: 0, high: 0 },                     // dB, -15..15 each band
+    comp:    { enabled: false, threshold: -24, ratio: 4, attack: 0.01, release: 0.25, makeup: 0 },
+    delay:   { enabled: false, time: 0.3, feedback: 0.35, mix: 0.25 },
+    reverb:  { enabled: false, mix: 0.25, decay: 2.0 },
+    duck:    { enabled: false, againstTrackId: null, amount: 12, threshold: -30 }, // dB reduction when sidechain is loud
+  };
 }
 function nxMakeClip(sourceAssetId, trackId, opts) {
   opts = opts || {};
@@ -7295,12 +7310,182 @@ function nxDeleteAsset(assetId) {
   });
 }
 
+// ════════════════════════════════════════════════════════════════════════
+// TRACK FX CHAIN (spec #31 Advanced) — EQ, Compressor, Delay, Reverb,
+// De-esser, Ducking. One builder shared by live playback (nxEnsureTrackAudioEl)
+// and offline export (nxExportAudioMixdown / nxExportVideo's audio tap),
+// so preview and export always match — no separate "export-only" logic
+// to drift out of sync.
+// ════════════════════════════════════════════════════════════════════════
+// Standard algorithmic reverb impulse: exponentially-decaying white noise.
+// Not sampled from a real space, but a real, functioning convolution
+// reverb — genuinely different from a fake "reverb" that's just a delay.
+function nxGenerateReverbImpulse(actx, decaySeconds) {
+  const rate = actx.sampleRate;
+  const length = Math.max(1, Math.floor(rate * Math.max(0.05, decaySeconds)));
+  const impulse = actx.createBuffer(2, length, rate);
+  for (let ch = 0; ch < 2; ch++) {
+    const data = impulse.getChannelData(ch);
+    for (let i = 0; i < length; i++) data[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / length, 2);
+  }
+  return impulse;
+}
+// Builds the enabled portion of a track's channel strip from `source` to
+// `dest`, in a fixed order (de-esser -> EQ -> compressor -> delay ->
+// reverb). Returns the list of newly-created nodes so the caller can
+// disconnect/GC them later (needed for the live path, which rebuilds
+// this whenever an effect is toggled on/off; the offline export path
+// builds it once and lets the whole OfflineAudioContext get discarded).
+// Returns {nodes, map}: `nodes` is every node created (for teardown),
+// `map` keys them by role (e.g. 'eqLow', 'compressor', 'delayTime') so a
+// slider drag can push a value straight to the live AudioParam without
+// rebuilding the graph — only enabling/disabling an effect needs a
+// rebuild (see nxRebuildTrackFxChain).
+function nxConnectFxChain(actx, fx, source, dest) {
+  const nodes = [], map = {};
+  let node = source;
+  if (!fx) { node.connect(dest); return { nodes, map }; }
+
+  if (fx.deesser.enabled) {
+    const f = actx.createBiquadFilter();
+    f.type = 'peaking'; f.frequency.value = 6500; f.Q.value = 1.2; f.gain.value = -fx.deesser.amount;
+    node.connect(f); node = f; nodes.push(f); map.deesser = f;
+  }
+  if (fx.eq.enabled) {
+    const low = actx.createBiquadFilter();  low.type = 'lowshelf';  low.frequency.value = 320;  low.gain.value = fx.eq.low;
+    const mid = actx.createBiquadFilter();  mid.type = 'peaking';   mid.frequency.value = 1000;  mid.Q.value = 0.8; mid.gain.value = fx.eq.mid;
+    const high = actx.createBiquadFilter(); high.type = 'highshelf'; high.frequency.value = 3200; high.gain.value = fx.eq.high;
+    node.connect(low); low.connect(mid); mid.connect(high);
+    node = high; nodes.push(low, mid, high); map.eqLow = low; map.eqMid = mid; map.eqHigh = high;
+  }
+  if (fx.comp.enabled) {
+    const c = actx.createDynamicsCompressor();
+    c.threshold.value = fx.comp.threshold; c.ratio.value = fx.comp.ratio;
+    c.attack.value = fx.comp.attack; c.release.value = fx.comp.release; c.knee.value = 6;
+    node.connect(c); node = c; nodes.push(c); map.comp = c;
+    const mkup = actx.createGain(); mkup.gain.value = Math.pow(10, fx.comp.makeup / 20);
+    node.connect(mkup); node = mkup; nodes.push(mkup); map.compMakeup = mkup;
+  }
+  if (fx.delay.enabled) {
+    const merge = actx.createGain();
+    const dry = actx.createGain(); dry.gain.value = 1 - fx.delay.mix;
+    const wetIn = actx.createGain(); wetIn.gain.value = fx.delay.mix;
+    const d = actx.createDelay(2.0); d.delayTime.value = fx.delay.time;
+    const fb = actx.createGain(); fb.gain.value = fx.delay.feedback;
+    node.connect(dry); dry.connect(merge);
+    node.connect(d); d.connect(wetIn); wetIn.connect(merge);
+    d.connect(fb); fb.connect(d);
+    node = merge; nodes.push(merge, dry, wetIn, d, fb);
+    map.delayTime = d; map.delayFeedback = fb; map.delayDry = dry; map.delayWet = wetIn;
+  }
+  if (fx.reverb.enabled) {
+    const merge = actx.createGain();
+    const dry = actx.createGain(); dry.gain.value = 1 - fx.reverb.mix;
+    const wet = actx.createGain(); wet.gain.value = fx.reverb.mix;
+    const conv = actx.createConvolver();
+    conv.buffer = nxGenerateReverbImpulse(actx, fx.reverb.decay);
+    node.connect(dry); dry.connect(merge);
+    node.connect(conv); conv.connect(wet); wet.connect(merge);
+    node = merge; nodes.push(merge, dry, wet, conv);
+    map.reverbDry = dry; map.reverbWet = wet; map.reverbConv = conv;
+  }
+  node.connect(dest);
+  return { nodes, map };
+}
+// Rebuilds the live chain from t._gain to t._pan whenever an effect is
+// toggled on/off (a topology change — pure param tweaks like an EQ
+// slider update the existing node directly via nxLiveFxParamUpdate and
+// don't need this, which would otherwise reset delay/reverb tails and
+// click on every drag tick).
+function nxRebuildTrackFxChain(t) {
+  // Ducking writes to its own dedicated node (t._duckGain) rather than
+  // t._gain, which nxApplyClipAudioParams already owns for clip volume +
+  // fade scheduling — sharing one node between two independent
+  // schedulers (a rAF-driven duck loop and WebAudio ramp automation)
+  // would make them fight and produce audible glitches.
+  if (!t._gain || !t._duckGain || !t._pan || !t._actx) return;
+  try { t._duckGain.disconnect(); } catch (_) {}
+  (t._fxNodes || []).forEach(n => { try { n.disconnect(); } catch (_) {} });
+  if (!t.fx) t.fx = nxDefaultTrackFx();
+  const built = nxConnectFxChain(t._actx, t.fx, t._duckGain, t._pan);
+  t._fxNodes = built.nodes;
+  t._fxNodeMap = built.map;
+}
+// Pushes one parameter change straight to the already-connected live
+// node (no graph rebuild, no audio glitch) — only meaningful once the
+// owning effect is enabled and its node therefore exists.
+function nxLiveFxParamUpdate(t, effect, field, value) {
+  const m = t._fxNodeMap;
+  if (!m) return;
+  const now = () => t._actx.currentTime;
+  if (effect === 'deesser' && m.deesser) m.deesser.gain.setTargetAtTime(-value, now(), 0.02);
+  if (effect === 'eq') {
+    if (field === 'low' && m.eqLow) m.eqLow.gain.setTargetAtTime(value, now(), 0.02);
+    if (field === 'mid' && m.eqMid) m.eqMid.gain.setTargetAtTime(value, now(), 0.02);
+    if (field === 'high' && m.eqHigh) m.eqHigh.gain.setTargetAtTime(value, now(), 0.02);
+  }
+  if (effect === 'comp' && m.comp) {
+    if (field === 'threshold') m.comp.threshold.setTargetAtTime(value, now(), 0.02);
+    if (field === 'ratio') m.comp.ratio.setTargetAtTime(value, now(), 0.02);
+    if (field === 'attack') m.comp.attack.setTargetAtTime(value, now(), 0.02);
+    if (field === 'release') m.comp.release.setTargetAtTime(value, now(), 0.02);
+    if (field === 'makeup' && m.compMakeup) m.compMakeup.gain.setTargetAtTime(Math.pow(10, value / 20), now(), 0.02);
+  }
+  if (effect === 'delay') {
+    if (field === 'time' && m.delayTime) m.delayTime.delayTime.setTargetAtTime(value, now(), 0.02);
+    if (field === 'feedback' && m.delayFeedback) m.delayFeedback.gain.setTargetAtTime(value, now(), 0.02);
+    if (field === 'mix' && m.delayDry && m.delayWet) { m.delayDry.gain.setTargetAtTime(1 - value, now(), 0.02); m.delayWet.gain.setTargetAtTime(value, now(), 0.02); }
+  }
+  if (effect === 'reverb') {
+    if (field === 'mix' && m.reverbDry && m.reverbWet) { m.reverbDry.gain.setTargetAtTime(1 - value, now(), 0.02); m.reverbWet.gain.setTargetAtTime(value, now(), 0.02); }
+    if (field === 'decay' && m.reverbConv) m.reverbConv.buffer = nxGenerateReverbImpulse(t._actx, value); // decay changes the impulse itself — no smooth param for this one
+  }
+}
+
+// ── Ducking (live only — see nxOfflineDuckEnvelope for the export path) ──
+// A real sidechain: an AnalyserNode taps the sidechain track's own
+// post-fx output (so ducking reacts to how that track actually sounds,
+// including its own EQ/compression) without affecting what's audible —
+// analysers are passive taps, not inline processors.
+function nxEnsureTrackAnalyser(t) {
+  if (t._analyser) return t._analyser;
+  if (!t._pan || !t._actx) return null;
+  const an = t._actx.createAnalyser();
+  an.fftSize = 512;
+  t._pan.connect(an);
+  t._analyser = an;
+  t._analyserBuf = new Uint8Array(an.frequencyBinCount);
+  return an;
+}
+function nxTrackRmsDb(t) {
+  const an = nxEnsureTrackAnalyser(t);
+  if (!an) return -100;
+  an.getByteTimeDomainData(t._analyserBuf);
+  let sumSq = 0;
+  for (let i = 0; i < t._analyserBuf.length; i++) { const v = (t._analyserBuf[i] - 128) / 128; sumSq += v * v; }
+  const rms = Math.sqrt(sumSq / t._analyserBuf.length);
+  return rms <= 0.00001 ? -100 : 20 * Math.log10(rms);
+}
+// Called every playback tick (see nxBindVideoElement/nxDrivePlaybackClock)
+// alongside the existing per-clip volume/pan/fade sync — cheap (one
+// Analyser read per ducked track) and independent of clip playback state.
+function nxUpdateDucking() {
+  S.timeline.tracks.filter(t => t.type === 'audio' && t.fx && t.fx.duck.enabled && t.fx.duck.againstTrackId && t._duckGain && t._actx).forEach(t => {
+    const side = nxTrack(t.fx.duck.againstTrackId);
+    if (!side) return;
+    nxEnsureTrackAudioEl(side); // the sidechain needs its own graph running to have anything to analyse
+    const db = nxTrackRmsDb(side);
+    const target = db > t.fx.duck.threshold ? Math.pow(10, -t.fx.duck.amount / 20) : 1;
+    t._duckGain.gain.setTargetAtTime(target, t._actx.currentTime, 0.08);
+  });
+}
+
 // ── Playback / seek ──────────────────────────────────────────────────────
 // Per-track graph: <audio> -> gain (clip volume + fade envelope, scheduled
-// with WebAudio ramps for click-free fades) -> pan (track pan + clip pan)
-// -> destination. el.volume is also kept in sync as a fallback for browsers
-// where createMediaElementSource is unavailable (playback still works,
-// just without WebAudio-precision fades/pan).
+// with WebAudio ramps for click-free fades) -> [fx chain] -> pan (track
+// pan + clip pan) -> destination. el.volume is also kept in sync as a
+// fallback for browsers where createMediaElementSource is unavailable
+// (playback still works, just without WebAudio-precision fades/pan/fx).
 function nxEnsureTrackAudioEl(t) {
   if (t._el) return t._el;
   t._el = new Audio();
@@ -7309,13 +7494,42 @@ function nxEnsureTrackAudioEl(t) {
     const actx = window._mixerAudioCtx || (window._mixerAudioCtx = new (window.AudioContext || window.webkitAudioContext)());
     const src = actx.createMediaElementSource(t._el);
     const gain = actx.createGain();
+    const duckGain = actx.createGain(); // ducking's own node — see nxRebuildTrackFxChain
     const pan = actx.createStereoPanner();
-    src.connect(gain).connect(pan).connect(actx.destination);
+    src.connect(gain).connect(duckGain);
+    pan.connect(actx.destination);
     t._pan = pan;
     t._gain = gain;
+    t._duckGain = duckGain;
     t._actx = actx;
+    nxRebuildTrackFxChain(t);
   } catch (_) {}
   return t._el;
+}
+// Toggling an effect changes topology (needs a rebuild); tweaking one of
+// its parameters doesn't (pushed straight to the live AudioParam so a
+// slider drag stays click-free). Coalesced into the same one-entry-per-
+// drag undo pattern the Inspector's other fields use.
+function nxToggleTrackFx(trackId, effect) {
+  const t = nxTrack(trackId);
+  if (!t || !t.fx) return;
+  // Ensures the live node graph exists even if this track has never
+  // played yet — otherwise the very first effect toggle silently only
+  // updates the data model (still correctly reflected in export, which
+  // rebuilds its own graph fresh every time, but the Inspector's sliders
+  // would look connected while doing nothing live until playback started).
+  nxEnsureTrackAudioEl(t);
+  nxWithHistory(() => { t.fx[effect].enabled = !t.fx[effect].enabled; });
+  if (t._actx) nxRebuildTrackFxChain(t);
+  nxRenderInspector();
+}
+function nxSetTrackFxParam(trackId, effect, field, value) {
+  const t = nxTrack(trackId);
+  if (!t || !t.fx) return;
+  nxEnsureTrackAudioEl(t);
+  if (!window._nxInspectorDirty) { window._nxInspectorSnapshot = nxSnapshot(); window._nxInspectorDirty = true; }
+  t.fx[effect][field] = value;
+  if (t._actx) nxLiveFxParamUpdate(t, effect, field, value);
 }
 function nxActiveClipAt(t, time) {
   return t.clips.find(c => time >= c.startTime && time < c.startTime + c.duration) || null;
@@ -7374,6 +7588,7 @@ function nxBindVideoElement() {
     S.timeline.playhead = vid.currentTime;
     nxUpdatePlayheadUI();
     S.timeline.tracks.filter(t => t.type === 'audio').forEach(t => nxSyncTrackPlaybackToPlayhead(t, S.timeline.playhead));
+    nxUpdateDucking();
   });
   vid.addEventListener('play', () => {
     S.timeline._playing = true;
@@ -7418,6 +7633,7 @@ function nxDrivePlaybackClock() {
   }
   S.timeline.tracks.filter(t => t.type === 'audio').forEach(t => nxSyncTrackPlaybackToPlayhead(t, S.timeline.playhead));
   S.timeline.tracks.filter(t => t.type === 'audio').forEach(t => { if (t._el && t._activeClip && t._el.paused) t._el.play().catch(() => {}); });
+  nxUpdateDucking();
   nxUpdatePlayheadUI();
   if (S.timeline.playhead >= nxDuration()) { nxPauseAudioOnly(); return; }
   S.timeline._playRAF = requestAnimationFrame(nxDrivePlaybackClock);
@@ -7814,7 +8030,74 @@ function nxInspectorVideoHTML(clip) {
     <p class="s-hint">Stabilize, freeze frame, and other one-shot effects aren't live-previewed here yet — use the classic tools in the left sidebar (Rotate, Crop, Compress, Reverse, Speed…) to process and download a new file.</p>
   `;
 }
+function nxFxToggleRow(t, effect, label) {
+  const enabled = t.fx[effect].enabled;
+  return `<div class="s-row s-row-inline" style="margin-top:16px">
+    <label class="s-checkbox"><input type="checkbox" ${enabled ? 'checked' : ''} onchange="nxToggleTrackFx('${t.id}','${effect}')"/> <strong>${label}</strong></label>
+  </div>`;
+}
+function nxFxSlider(t, effect, field, label, min, max, step, unit, decimals) {
+  decimals = decimals != null ? decimals : 0;
+  const val = t.fx[effect][field];
+  const sid = 'nxfx_' + t.id + '_' + effect + '_' + field;
+  return `<div class="s-row">
+    <div class="s-range-hdr"><label class="s-lbl">${label}</label><span class="s-range-val" id="${sid}v">${(+val).toFixed(decimals)}${unit}</span></div>
+    <input type="range" id="${sid}" min="${min}" max="${max}" step="${step}" value="${val}" ${t.fx[effect].enabled ? '' : 'disabled'}
+      oninput="nxSetTrackFxParam('${t.id}','${effect}','${field}',+this.value);document.getElementById('${sid}v').textContent=(+this.value).toFixed(${decimals})+'${unit}'"
+      onchange="nxCommitInspectorEdit()" aria-label="${label}"/>
+  </div>`;
+}
+// Track-level channel strip — shown under whichever clip on this track
+// is currently selected (matches how volume/pan already work: one knob
+// per track, not per clip). Live in preview AND in the exported mix —
+// see nxConnectFxChain, the single builder both paths share.
+function nxInspectorTrackFxHTML(t) {
+  if (!t.fx) return '';
+  const otherAudio = S.timeline.tracks.filter(x => x.type === 'audio' && x.id !== t.id);
+  return `
+    <div class="s-group-title">Track Effects — ${t.name}</div>
+    <p class="s-hint">Applies to every clip on this track, live in preview and in the exported mix.</p>
+
+    ${nxFxToggleRow(t, 'deesser', 'De-esser')}
+    ${nxFxSlider(t, 'deesser', 'amount', 'Reduction (~6.5kHz)', 0, 18, 0.5, ' dB', 1)}
+
+    ${nxFxToggleRow(t, 'eq', '3-Band EQ')}
+    ${nxFxSlider(t, 'eq', 'low', 'Low (320Hz)', -15, 15, 0.5, ' dB', 1)}
+    ${nxFxSlider(t, 'eq', 'mid', 'Mid (1kHz)', -15, 15, 0.5, ' dB', 1)}
+    ${nxFxSlider(t, 'eq', 'high', 'High (3.2kHz)', -15, 15, 0.5, ' dB', 1)}
+
+    ${nxFxToggleRow(t, 'comp', 'Compressor')}
+    ${nxFxSlider(t, 'comp', 'threshold', 'Threshold', -60, 0, 1, ' dB', 0)}
+    ${nxFxSlider(t, 'comp', 'ratio', 'Ratio', 1, 20, 0.5, ':1', 1)}
+    ${nxFxSlider(t, 'comp', 'attack', 'Attack', 0, 1, 0.005, ' s', 3)}
+    ${nxFxSlider(t, 'comp', 'release', 'Release', 0, 1, 0.01, ' s', 2)}
+    ${nxFxSlider(t, 'comp', 'makeup', 'Makeup Gain', 0, 24, 0.5, ' dB', 1)}
+
+    ${nxFxToggleRow(t, 'delay', 'Delay / Echo')}
+    ${nxFxSlider(t, 'delay', 'time', 'Time', 0.02, 1.5, 0.01, ' s', 2)}
+    ${nxFxSlider(t, 'delay', 'feedback', 'Feedback', 0, 0.9, 0.01, '', 2)}
+    ${nxFxSlider(t, 'delay', 'mix', 'Mix', 0, 1, 0.01, '', 2)}
+
+    ${nxFxToggleRow(t, 'reverb', 'Reverb')}
+    ${nxFxSlider(t, 'reverb', 'decay', 'Decay', 0.2, 6, 0.1, ' s', 1)}
+    ${nxFxSlider(t, 'reverb', 'mix', 'Mix', 0, 1, 0.01, '', 2)}
+
+    ${nxFxToggleRow(t, 'duck', 'Ducking (sidechain)')}
+    <div class="s-row"><label class="s-lbl">Duck against</label>
+      <div class="s-select-wrap"><select class="s-input" ${t.fx.duck.enabled ? '' : 'disabled'}
+        onchange="nxSetTrackFxParam('${t.id}','duck','againstTrackId',this.value);nxCommitInspectorEdit()">
+        <option value="">Choose a track…</option>
+        ${otherAudio.map(o => `<option value="${o.id}" ${t.fx.duck.againstTrackId === o.id ? 'selected' : ''}>${o.name}</option>`).join('')}
+      </select></div>
+    </div>
+    ${nxFxSlider(t, 'duck', 'threshold', 'Trigger Threshold', -60, 0, 1, ' dB', 0)}
+    ${nxFxSlider(t, 'duck', 'amount', 'Reduction', 0, 24, 1, ' dB', 0)}
+    ${!otherAudio.length ? '<p class="s-hint">Add another audio track to duck against it — e.g. duck music under dialogue.</p>' : ''}
+    <p class="s-hint" style="margin-top:6px">Ducking previews live and renders into the audio export. Video export currently captures the live mix in real time, so ducking is audible there too — just not yet baked in as a separate automation curve.</p>
+  `;
+}
 function nxInspectorAudioHTML(clip) {
+  const track = nxClipTrack(clip.id);
   return `
     ${nxInspectorLinkHint(clip, 'video clip')}
     <div class="s-group-title">Volume &amp; Pan</div>
@@ -7825,8 +8108,7 @@ function nxInspectorAudioHTML(clip) {
     ${nxClipFieldSlider(clip, 'fadeOut', 'Fade Out', 0, Math.max(1, clip.duration), 0.1, 's', 0)}
     <div class="s-group-title">Speed</div>
     ${nxSpeedRow(clip)}
-    <div class="s-group-title">Effects</div>
-    <p class="s-hint">EQ, Compressor, and Reverb aren't wired into live preview yet — use the classic Audio tools in the left sidebar (Normalize, Pitch, Reverse, Mono…) to process and download a new file.</p>
+    ${track ? nxInspectorTrackFxHTML(track) : ''}
   `;
 }
 function nxInspectorTextHTML(clip) {
@@ -7925,24 +8207,105 @@ function nxAudioBufferToWav(buffer) {
   }
   return new Blob([bufOut], { type: 'audio/wav' });
 }
+// Renders one track completely in isolation (its own clips + its own fx
+// chain, nothing else) — used only to get a real amplitude envelope for
+// ducking's sidechain analysis. Same sample rate/duration as the real
+// mix so its envelope's timestamps line up directly.
+async function nxRenderTrackAlone(track, duration, sr) {
+  const offline = new OfflineAudioContext(2, Math.ceil(duration * sr) + sr, sr);
+  const trackInput = offline.createGain();
+  for (const c of track.clips) {
+    const asset = nxAsset(c.sourceAssetId);
+    if (!asset) continue;
+    try {
+      const arrBuf = await (await fetch(asset.url)).arrayBuffer();
+      const decoded = await offline.decodeAudioData(arrBuf);
+      const src = offline.createBufferSource();
+      src.buffer = decoded; src.playbackRate.value = c.speed || 1;
+      const gain = offline.createGain();
+      gain.gain.value = Math.max(0, Math.min(1, (track.volume / 100) * (c.volume / 100)));
+      src.connect(gain).connect(trackInput);
+      src.start(c.startTime, c.sourceStart, Math.max(0.01, c.sourceEnd - c.sourceStart));
+    } catch (_) { /* a clip that fails to decode just contributes silence to the envelope, not a fatal error */ }
+  }
+  nxConnectFxChain(offline, track.fx, trackInput, offline.destination);
+  return offline.startRendering();
+}
+// Windowed RMS-in-dB envelope — coarse (default 50ms windows) is exactly
+// what ducking needs: reacting to individual samples would just be noise.
+function nxComputeRmsEnvelope(buffer, windowSec) {
+  const sr = buffer.sampleRate;
+  const winSize = Math.max(1, Math.floor(sr * windowSec));
+  const ch0 = buffer.getChannelData(0);
+  const ch1 = buffer.numberOfChannels > 1 ? buffer.getChannelData(1) : null;
+  const envelope = [];
+  for (let i = 0; i < buffer.length; i += winSize) {
+    let sum = 0, n = 0;
+    for (let j = i; j < Math.min(i + winSize, buffer.length); j++) { const v = ch1 ? (ch0[j] + ch1[j]) / 2 : ch0[j]; sum += v * v; n++; }
+    const rms = Math.sqrt(sum / Math.max(1, n));
+    envelope.push({ time: i / sr, db: rms <= 0.00001 ? -100 : 20 * Math.log10(rms) });
+  }
+  return envelope;
+}
+// Schedules the ducked track's gain to follow a precomputed sidechain
+// envelope — the offline equivalent of nxUpdateDucking()'s live
+// AnalyserNode polling, since OfflineAudioContext has no real-time loop
+// to poll during.
+function nxApplyDuckEnvelope(gainNode, envelope, thresholdDb, amountDb, windowSec) {
+  const targetLin = Math.pow(10, -amountDb / 20);
+  envelope.forEach(pt => { gainNode.gain.setTargetAtTime(pt.db > thresholdDb ? targetLin : 1, pt.time, windowSec * 0.6); });
+}
 async function nxExportAudioMixdown() {
   const audioTracks = S.timeline.tracks.filter(t => t.type === 'audio' && t.clips.length);
   if (!audioTracks.length) { showStatus('error', '✕ No audio clips to export.'); return; }
   const duration = nxDuration();
   if (!duration || duration < 0.05) { showStatus('error', '✕ Nothing on the timeline to export.'); return; }
-  showOverlay(); setProgress(5, 'Preparing mixdown…');
+  showOverlay(); setProgress(3, 'Preparing mixdown…');
   try {
     const sr = 44100;
+
+    // Ducking pre-pass: render each referenced sidechain track alone so
+    // there's a real amplitude envelope to schedule the ducked track's
+    // gain against (see nxRenderTrackAlone/nxComputeRmsEnvelope above).
+    const duckEnvelopes = {};
+    const sidechainIds = new Set(
+      audioTracks.filter(t => !nxEffectiveTrackMuted(t) && t.fx && t.fx.duck.enabled && t.fx.duck.againstTrackId).map(t => t.fx.duck.againstTrackId)
+    );
+    let sc = 0;
+    for (const sideId of sidechainIds) {
+      const side = S.timeline.tracks.find(x => x.id === sideId);
+      if (!side) continue;
+      setProgress(3 + Math.round((sc / Math.max(1, sidechainIds.size)) * 12), `Analyzing "${side.name}" for ducking…`);
+      duckEnvelopes[sideId] = nxComputeRmsEnvelope(await nxRenderTrackAlone(side, duration, sr), 0.05);
+      sc++;
+    }
+
     const offline = new OfflineAudioContext(2, Math.ceil(duration * sr) + sr, sr);
     let clipCount = 0, done = 0;
     audioTracks.forEach(t => { if (!nxEffectiveTrackMuted(t)) clipCount += t.clips.length; });
     if (!clipCount) { hideOverlay(); showStatus('error', '✕ Every audio track is muted — nothing to export.'); return; }
+
     for (const t of audioTracks) {
       if (nxEffectiveTrackMuted(t)) continue;
+      // Per-track: clips -> trackInput -> [duck gain, if ducking against
+      // an analysed sidechain] -> fx chain -> destination. Matches the
+      // live graph's shape (gain -> duckGain -> fx -> pan -> destination)
+      // so preview and export always agree.
+      const trackInput = offline.createGain();
+      let fxSource = trackInput;
+      const duckEnv = t.fx && t.fx.duck.enabled ? duckEnvelopes[t.fx.duck.againstTrackId] : null;
+      if (duckEnv) {
+        const duckGain = offline.createGain();
+        trackInput.connect(duckGain);
+        nxApplyDuckEnvelope(duckGain, duckEnv, t.fx.duck.threshold, t.fx.duck.amount, 0.05);
+        fxSource = duckGain;
+      }
+      nxConnectFxChain(offline, t.fx, fxSource, offline.destination);
+
       for (const c of t.clips) {
         const asset = nxAsset(c.sourceAssetId);
         if (!asset) { done++; continue; }
-        setProgress(5 + Math.round((done / clipCount) * 70), `Decoding ${asset.name}…`);
+        setProgress(15 + Math.round((done / clipCount) * 55), `Decoding ${asset.name}…`);
         try {
           const arrBuf = await (await fetch(asset.url)).arrayBuffer();
           const decoded = await offline.decodeAudioData(arrBuf);
@@ -7960,7 +8323,7 @@ async function nxExportAudioMixdown() {
             gain.gain.setValueAtTime(baseVol, Math.max(c.startTime, c.startTime + c.duration - fadeOut));
             gain.gain.linearRampToValueAtTime(0.0001, c.startTime + c.duration);
           }
-          src.connect(gain).connect(pan).connect(offline.destination);
+          src.connect(gain).connect(pan).connect(trackInput);
           src.start(c.startTime, c.sourceStart, Math.max(0.01, c.sourceEnd - c.sourceStart));
         } catch (e) {
           console.warn('Skipped clip in mixdown (decode failed):', asset.name, e.message);
@@ -7968,7 +8331,7 @@ async function nxExportAudioMixdown() {
         done++;
       }
     }
-    setProgress(80, 'Rendering mix…');
+    setProgress(75, 'Rendering mix…');
     const rendered = await offline.startRendering();
     setProgress(95, 'Encoding WAV…');
     const blob = nxAudioBufferToWav(rendered);
