@@ -53,6 +53,22 @@ canvas + `MediaRecorder` real-time capture of the live compositor for
 video — both fully native, both verified working end-to-end by this
 suite.
 
+## Vinyl audio player
+
+Replaces the plain filename card for audio projects. Nothing about it is
+independent state: disc rotation angle is `f(S.timeline.playhead)` at a
+real 33⅓ RPM (not a wall-clock timer, so seeking is in sync by
+construction), the reactor taps the displayed clip's actual track output
+via the same `AnalyserNode` pattern built for ducking, and the play
+button calls the exact `nxTogglePlay()` the timeline toolbar uses.
+
+Selecting an audio clip in the timeline swaps which clip the vinyl
+represents (title/artwork/color/source all follow); with nothing
+selected it falls back to the primary audio track's clip at the
+playhead. Embedded artwork is read via a real ID3v2 APIC frame parser
+(MP3 only — other containers fall back honestly to a generated label
+using the track's color, never fake data).
+
 ## Fixtures
 
 `test/fixtures/test_video.mp4` (6s SMPTE color bars + 440Hz tone) and

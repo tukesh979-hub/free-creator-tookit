@@ -607,6 +607,107 @@ async function runDspTests() {
 }
 
 // ════════════════════════════════════════════════════════════════════════
+// VINYL AUDIO PLAYER
+// ════════════════════════════════════════════════════════════════════════
+async function runVinylTests() {
+  console.log('\n=== Vinyl audio player ===');
+  await test('mounts with cleaned title, filename, fallback label, and track color', async page => {
+    await page.gotoEditor(); await page.setFile(AUDIO); await sleep(1500);
+    const r = await page.evalBlock(`
+      return JSON.stringify({
+        hasPlayer: !!document.getElementById('vinyl-player'),
+        title: document.getElementById('vinyl-title')?.textContent,
+        filename: document.querySelector('.vinyl-filename')?.textContent,
+        hasFallback: !!document.querySelector('.vinyl-fallback-label'),
+        trackColor: document.getElementById('vinyl-player')?.style.getPropertyValue('--track-color'),
+      });
+    `);
+    const parsed = JSON.parse(r);
+    assert(parsed.hasPlayer, 'vinyl player should mount for an audio project');
+    assertEqual(parsed.title, 'Test Audio', 'cleaned title from test_audio.m4a');
+    assertEqual(parsed.filename, 'test_audio.m4a', 'original filename kept as secondary metadata');
+    assert(parsed.hasFallback, 'no embedded art in the fixture — fallback label expected');
+    assertEqual(parsed.trackColor, '#ff3b3b', "A1's assigned palette color");
+  });
+  await test('metadata line reflects real decoded sample rate and channel count', async page => {
+    await page.gotoEditor(); await page.setFile(AUDIO); await sleep(2500);
+    const text = await page.eval(`document.getElementById('vinyl-meta')?.textContent`);
+    assert(/M4A/.test(text), 'format from extension: ' + text);
+    assert(/kHz/i.test(text), 'real sample rate present: ' + text);
+    assert(/Mono|Stereo/.test(text), 'real channel count present: ' + text);
+  });
+  await test('disc rotation angle is an exact function of playhead (33⅓ RPM), not a timer', async page => {
+    await page.gotoEditor(); await page.setFile(AUDIO); await sleep(1500);
+    const r = await page.evalBlock(`
+      nxSeekTo(3);
+      const RPM = 33 + 1/3;
+      const expected = (3 * (RPM/60*360)) % 360;
+      const m = document.getElementById('vinyl-disc').style.transform.match(/rotate\\(([-\\d.]+)deg\\)/);
+      const actual = m ? parseFloat(m[1]) : null;
+      return JSON.stringify({expected: +expected.toFixed(1), actual, close: Math.abs(expected-actual) < 0.5});
+    `);
+    const parsed = JSON.parse(r);
+    assert(parsed.close, 'rotation angle should exactly match playhead formula: ' + r);
+  });
+  await test('play advances rotation in real time and updates the play/pause icon; pause settles the reactor', async page => {
+    await page.gotoEditor(); await page.warmUpActivation(); await page.setFile(AUDIO); await sleep(1500);
+    await page.eval(`nxSeekTo(2); nxTogglePlay();`);
+    const playingClass = await page.eval(`document.getElementById('vinyl-player').classList.contains('playing')`);
+    assert(playingClass, 'playing class should be set');
+    const angle1 = await page.eval(`document.getElementById('vinyl-disc').style.transform`);
+    await sleep(600);
+    const angle2 = await page.eval(`document.getElementById('vinyl-disc').style.transform`);
+    assert(angle1 !== angle2, 'rotation should advance while playing');
+    await page.eval(`nxTogglePlay();`);
+    await sleep(100);
+    const r = await page.evalBlock(`
+      const bar = document.getElementById('vinyl-reactor-bar');
+      return JSON.stringify({playing: document.getElementById('vinyl-player').classList.contains('playing'), bass: bar.style.getPropertyValue('--react-bass')});
+    `);
+    assertEqual(JSON.parse(r), { playing: false, bass: '0' }, 'paused + settled');
+  });
+  await test('timeline ruler scrubbing updates the vinyl timecode to the exact playhead', async page => {
+    await page.gotoEditor(); await page.setFile(AUDIO); await sleep(1500);
+    const r = await page.evalBlock(`
+      const ruler = document.getElementById('nxt-ruler');
+      const rect = ruler.getBoundingClientRect();
+      nxSeekFromRuler({clientX: rect.left + 2 * S.timeline.zoom, stopPropagation(){}});
+      return JSON.stringify({playhead: S.timeline.playhead, timeText: document.getElementById('vinyl-time').textContent, expected: fmtTime(S.timeline.playhead) + ' / ' + fmtTime(nxDuration())});
+    `);
+    const parsed = JSON.parse(r);
+    assertEqual(parsed.timeText, parsed.expected, 'vinyl timecode should exactly match the scrubbed playhead');
+  });
+  await test('selecting a different audio clip updates title, color, and source together', async page => {
+    await page.gotoEditor(); await page.setFile(AUDIO); await sleep(1500);
+    const r = await page.evalBlock(`
+      nxAddTrack('audio');
+      const t1 = S.timeline.tracks.find(t=>t.name==='A1');
+      const t2 = S.timeline.tracks.find(t=>t.name==='A2');
+      const c = nxMakeClip(t1.clips[0].sourceAssetId, t2.id, {startTime:0, duration: t1.clips[0].duration, sourceEnd: t1.clips[0].duration});
+      t2.clips.push(c);
+      nxSelectClip(c.id, false);
+      return JSON.stringify({trackColor: t2.color, vinylColor: document.getElementById('vinyl-player').style.getPropertyValue('--track-color')});
+    `);
+    const parsed = JSON.parse(r);
+    assertEqual(parsed.vinylColor, parsed.trackColor, "vinyl should reflect the newly selected clip's track color");
+  });
+  await test('10x rapid play/pause never desyncs vinyl from timeline state', async page => {
+    await page.gotoEditor(); await page.warmUpActivation(); await page.setFile(AUDIO); await sleep(1500);
+    const r = await page.evalBlock(`
+      for (let i = 0; i < 10; i++) nxTogglePlay();
+      return JSON.stringify({timelinePlaying: S.timeline._playing, vinylPlayingClass: document.getElementById('vinyl-player').classList.contains('playing')});
+    `);
+    const parsed = JSON.parse(r);
+    assertEqual(parsed.vinylPlayingClass, parsed.timelinePlaying, 'vinyl playing-state must match timeline state after rapid toggling');
+    assert(page.consoleMsgs.length === 0, 'no console errors from rapid toggling: ' + JSON.stringify(page.consoleMsgs));
+  });
+  await test('video projects never mount a vinyl container', async page => {
+    await page.gotoEditor(); await page.setFile(VIDEO); await sleep(2000);
+    const has = await page.eval(`!!document.getElementById('vinyl-container')`);
+    assertEqual(has, false, 'vinyl is audio-project-only UI');
+  });
+}
+// ════════════════════════════════════════════════════════════════════════
 // EDGE CASES
 // ════════════════════════════════════════════════════════════════════════
 async function runEdgeCaseTests() {
@@ -692,6 +793,7 @@ async function main() {
   await runLinkedAudioTests();
   await runExportTests();
   await runDspTests();
+  await runVinylTests();
   await runEdgeCaseTests();
   await runReloadTest();
 

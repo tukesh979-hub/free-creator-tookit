@@ -742,6 +742,74 @@ footer{background:var(--bg2);border-top:1px solid var(--border);padding:48px 20p
 /* legacy card kept for fallback */
 .audio-card{background:var(--bg3);border:1px solid var(--border);padding:10px 12px;display:flex;align-items:center;gap:10px;width:100%;max-width:400px;border-radius:6px}
 .audio-thumb{width:36px;height:36px;background:var(--bg4);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;color:var(--red);flex-shrink:0;border-radius:6px}
+
+/* ═══════════ VINYL AUDIO PLAYER ═══════════
+   Replaces the plain filename card for audio projects. Everything here
+   reads from the same S.timeline.playhead/_playing the timeline toolbar
+   already uses — disc rotation is angle = f(playhead), not a wall-clock
+   timer, so seeking is inherently in sync (see nxUpdateVinylUI). */
+.vinyl-container{width:100%;height:100%;position:relative;overflow:hidden;border-radius:6px;
+  background:radial-gradient(ellipse 90% 70% at 28% 42%, var(--bg3), var(--bg) 72%)}
+.vinyl-empty{display:flex;align-items:center;justify-content:center;height:100%;color:var(--dim);font-size:15px}
+.vinyl-player{position:absolute;inset:0;display:flex;align-items:center}
+
+.vinyl-reactor{position:absolute;left:30px;top:50%;transform:translateY(-50%);
+  width:64px;height:56%;max-height:400px;min-height:180px;
+  display:flex;align-items:center;justify-content:center;z-index:3}
+.vinyl-reactor-bar{
+  --react-bass:0; --react-mid:0; --react-high:0;
+  position:relative;width:5px;height:100%;border-radius:999px;opacity:.55;
+  background:linear-gradient(to top,
+    color-mix(in srgb, var(--track-color, var(--red)) calc(22% + var(--react-bass) * 55%), transparent) 0%,
+    color-mix(in srgb, var(--track-color, var(--red)) calc(16% + var(--react-mid) * 45%), transparent) 50%,
+    color-mix(in srgb, var(--track-color, var(--red)) calc(10% + var(--react-high) * 40%), transparent) 100%);
+  transition:background .1s linear, opacity .3s ease}
+.vinyl-player.playing .vinyl-reactor-bar{opacity:1}
+.vinyl-reactor-core{position:absolute;left:50%;top:50%;width:16px;height:16px;border-radius:50%;
+  background:var(--track-color, var(--red));box-shadow:0 0 22px color-mix(in srgb, var(--track-color, var(--red)) 70%, transparent);
+  transform:translate(-50%,-50%) scale(1);transition:transform .45s cubic-bezier(.22,1,.36,.9)}
+
+.vinyl-disc-wrap{position:absolute;right:-16%;top:50%;transform:translateY(-50%);
+  width:min(76vh,600px);height:min(76vh,600px);z-index:2;pointer-events:none}
+.vinyl-disc{width:100%;height:100%;border-radius:50%;position:relative;transform-origin:center center;will-change:transform;
+  background:radial-gradient(circle at 50% 50%, #1c1c1c 0%, #0c0c0c 62%, #050505 100%);
+  box-shadow:0 24px 70px rgba(0,0,0,.55), inset 0 0 0 1px rgba(255,255,255,.05)}
+.vinyl-grooves{position:absolute;inset:6%;border-radius:50%;
+  background:repeating-radial-gradient(circle at center, rgba(255,255,255,.035) 0px, rgba(255,255,255,.035) 1px, transparent 2px, transparent 5px)}
+.vinyl-sheen{position:absolute;inset:0;border-radius:50%;pointer-events:none;
+  background:conic-gradient(from 200deg, transparent 0deg, rgba(255,255,255,.07) 28deg, transparent 68deg, transparent 360deg)}
+.vinyl-label{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);
+  width:34%;height:34%;border-radius:50%;overflow:hidden;
+  box-shadow:0 0 0 2px rgba(0,0,0,.45), 0 4px 18px rgba(0,0,0,.5)}
+.vinyl-label img{width:100%;height:100%;object-fit:cover;display:block}
+.vinyl-spindle{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);
+  width:13px;height:13px;border-radius:50%;background:#000;box-shadow:0 0 0 3px rgba(255,255,255,.08);z-index:1}
+
+.vinyl-fallback-label{width:100%;height:100%;position:relative;display:flex;align-items:center;justify-content:center}
+.vinyl-fallback-rings{position:absolute;inset:0}
+.vinyl-fallback-initial{position:relative;font-size:40px;font-weight:800;font-family:var(--font)}
+
+.vinyl-info{position:relative;z-index:4;margin-left:118px;max-width:400px;
+  display:flex;flex-direction:column;gap:9px;padding:22px 26px;border-radius:16px;
+  background:linear-gradient(135deg, rgba(8,8,8,.55), rgba(8,8,8,.22));
+  backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);border:1px solid rgba(255,255,255,.06)}
+.vinyl-title{font-size:22px;font-weight:800;color:var(--text);letter-spacing:-.2px;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.vinyl-filename{font-family:var(--mono);font-size:12px;color:var(--dim);
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:-4px}
+.vinyl-play-btn{width:54px;height:54px;border-radius:50%;background:var(--track-color, var(--red));color:#fff;
+  display:flex;align-items:center;justify-content:center;margin-top:4px;flex-shrink:0;
+  box-shadow:0 8px 22px color-mix(in srgb, var(--track-color, var(--red)) 45%, transparent);
+  transition:transform var(--transition)}
+.vinyl-play-btn:hover{transform:scale(1.06)}
+.vinyl-play-btn svg{width:20px;height:20px}
+.vinyl-time{font-family:var(--mono);font-size:15px;color:var(--muted);letter-spacing:.4px}
+.vinyl-meta{font-family:var(--mono);font-size:12px;color:var(--dim);letter-spacing:1px;text-transform:uppercase}
+@media (max-width:900px){
+  .vinyl-disc-wrap{width:min(60vh,420px);height:min(60vh,420px);right:-22%}
+  .vinyl-info{margin-left:96px;max-width:280px;padding:16px 18px}
+  .vinyl-title{font-size:18px}
+}
 .audio-name{font-size:17px;font-weight:600;margin-bottom:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:240px}
 .audio-size{font-family:var(--mono);font-size:15px;color:var(--dim)}
 
@@ -6383,9 +6451,17 @@ const NXT_ICON = {
 };
 
 // ── Model helpers ────────────────────────────────────────────────────────
+// Deterministic per-track color (spec #14) — cycles a small palette by
+// creation order within each type, so tracks stay visually distinct
+// without the user having to pick anything. Used subtly: the vinyl
+// player's reactor/label/progress, track badges, etc.
+const NXT_TRACK_PALETTE = { video: ['#3b82f6', '#a855f7', '#06b6d4', '#eab308', '#22c55e'], audio: ['#ff3b3b', '#f97316', '#ec4899', '#06b6d4', '#22c55e'] };
 function nxMakeTrack(type, name) {
+  const palette = NXT_TRACK_PALETTE[type] || NXT_TRACK_PALETTE.audio;
+  const sameTypeCount = S.timeline.tracks.filter(t => t.type === type).length;
   return { id: uid(), type, name, order: S.timeline.tracks.length,
     muted: false, solo: false, locked: false, enabled: true, volume: 100, pan: 0, clips: [],
+    color: palette[sameTypeCount % palette.length],
     fx: type === 'audio' ? nxDefaultTrackFx() : null };
 }
 // Track-level "channel strip" — applies to every clip on the track, live
@@ -6814,6 +6890,7 @@ function mountNxTimeline() {
   }
   nxBindVideoElement();
   nxRenderInspector();
+  if ($('vinyl-container')) nxRenderVinylPlayer($('vinyl-container'));
 }
 
 // Rubber-band multi-select: mousedown on empty lane space (not a clip)
@@ -6923,6 +7000,7 @@ function nxSelectClip(id, additive) {
     el.classList.toggle('selected', S.timeline.selection.includes(el.dataset.clip));
   });
   nxRenderInspector();
+  if ($('vinyl-container')) nxRenderVinylPlayer($('vinyl-container'));
 }
 
 // ── Snap ─────────────────────────────────────────────────────────────────
@@ -7615,12 +7693,15 @@ function nxPlayAudioOnly() {
   const b = $('nxt-play-btn'); if (b) b.innerHTML = NXT_ICON.pause;
   if (S.timeline._playRAF) cancelAnimationFrame(S.timeline._playRAF);
   S.timeline._playRAF = requestAnimationFrame(nxDrivePlaybackClock);
+  nxStartVinylReactorLoop();
+  nxUpdateVinylUI();
 }
 function nxPauseAudioOnly() {
   S.timeline._playing = false;
   if (S.timeline._playRAF) cancelAnimationFrame(S.timeline._playRAF);
   S.timeline.tracks.filter(t => t.type === 'audio').forEach(t => { if (t._el) t._el.pause(); });
   const b = $('nxt-play-btn'); if (b) b.innerHTML = NXT_ICON.play;
+  nxUpdateVinylUI(); // reactor loop self-terminates on its next tick (checks S.timeline._playing)
 }
 function nxDrivePlaybackClock() {
   if (!S.timeline._playing) return;
@@ -7679,6 +7760,7 @@ function nxUpdatePlayheadUI() {
   const timeEl = $('nxt-time');
   if (timeEl) timeEl.textContent = `${fmtTime(S.timeline.playhead)} / ${fmtTime(nxDuration())}`;
   nxCompositorSync();
+  nxUpdateVinylUI();
 }
 
 // ════════════════════════════════════════════════════════════════════════
@@ -8510,6 +8592,210 @@ document.addEventListener('keydown', e => {
   if (e.key === 'ArrowRight') { nxSeekBy(e.shiftKey ? 1 : 1 / 30); return; }
 });
 
+// ════════════════════════════════════════════════════════════════════════
+// VINYL AUDIO PLAYER — replaces the plain filename card for audio
+// projects. Nothing here owns its own playback state: rotation angle is
+// a pure function of S.timeline.playhead, the play button calls the
+// exact same nxTogglePlay() the timeline toolbar uses, and the reactor
+// taps the real per-track WebAudio analyser already built for ducking
+// (nxEnsureTrackAnalyser) — no fake waveform, no independent timer.
+// ════════════════════════════════════════════════════════════════════════
+function nxCleanTitle(filename) {
+  let name = (filename || '').replace(/\.[^.]+$/, '');
+  name = name.replace(/^[\[(]?\d{1,3}[\])]?[\s._-]+/, ''); // leading track number
+  name = name.replace(/[_.\-]+/g, ' ').replace(/\s+/g, ' ').trim();
+  if (!name) return filename || 'Untitled';
+  return name.split(' ').map(w => w ? w[0].toUpperCase() + w.slice(1) : w).join(' ');
+}
+// Real ID3v2 APIC (embedded album art) parser — MP3 only. Other
+// containers (m4a/AAC 'covr' atoms, WAV) aren't parsed; those files
+// honestly fall back to the generated Nexus label rather than pretending
+// to have read art that was never actually decoded.
+async function nxParseId3ArtworkFromUrl(url) {
+  try {
+    const blob = await (await fetch(url)).blob();
+    const head = await blob.slice(0, 10).arrayBuffer();
+    const h = new DataView(head);
+    if (String.fromCharCode(h.getUint8(0), h.getUint8(1), h.getUint8(2)) !== 'ID3') return null;
+    const majorVer = h.getUint8(3);
+    const tagSize = (h.getUint8(6) << 21) | (h.getUint8(7) << 14) | (h.getUint8(8) << 7) | h.getUint8(9);
+    const buf = await blob.slice(10, 10 + tagSize).arrayBuffer();
+    const view = new DataView(buf);
+    let offset = 0;
+    while (offset < buf.byteLength - 10) {
+      const frameId = String.fromCharCode(view.getUint8(offset), view.getUint8(offset + 1), view.getUint8(offset + 2), view.getUint8(offset + 3));
+      const frameSize = majorVer >= 4
+        ? (view.getUint8(offset + 4) << 21) | (view.getUint8(offset + 5) << 14) | (view.getUint8(offset + 6) << 7) | view.getUint8(offset + 7)
+        : view.getUint32(offset + 4, false);
+      if (frameSize <= 0 || offset + 10 + frameSize > buf.byteLength) break;
+      if (frameId === 'APIC') {
+        const bytes = new Uint8Array(buf, offset + 10, frameSize);
+        const encoding = bytes[0];
+        let p = 1, mime = '';
+        while (p < bytes.length && bytes[p] !== 0) { mime += String.fromCharCode(bytes[p]); p++; }
+        p++; p++; // null terminator + picture-type byte
+        if (encoding === 1 || encoding === 2) { while (p < bytes.length - 1 && !(bytes[p] === 0 && bytes[p + 1] === 0)) p += 2; p += 2; }
+        else { while (p < bytes.length && bytes[p] !== 0) p++; p++; }
+        const imgBytes = bytes.slice(p);
+        if (!mime || !imgBytes.length) return null;
+        return URL.createObjectURL(new Blob([imgBytes], { type: mime.startsWith('image/') ? mime : 'image/jpeg' }));
+      }
+      if (frameId === '\0\0\0\0') break;
+      offset += 10 + frameSize;
+    }
+    return null;
+  } catch (_) { return null; }
+}
+async function nxEnsureAudioAssetMeta(asset) {
+  if (asset._metaReady) return asset;
+  asset._metaReady = true;
+  try {
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    const buf = await (await fetch(asset.url)).arrayBuffer();
+    const decoded = await ctx.decodeAudioData(buf);
+    asset.sampleRate = decoded.sampleRate;
+    asset.channels = decoded.numberOfChannels;
+    ctx.close();
+  } catch (_) { /* meta line just omits sample rate/channels if this fails */ }
+  return asset;
+}
+function nxVinylFallbackLabelHTML(title, color) {
+  const initial = (title || 'N').trim().charAt(0).toUpperCase() || 'N';
+  return `<div class="vinyl-fallback-label" style="background:radial-gradient(circle at 35% 30%, color-mix(in srgb, ${color} 22%, transparent), color-mix(in srgb, ${color} 8%, transparent) 60%, transparent 70%), var(--bg3)">
+    <svg class="vinyl-fallback-rings" viewBox="0 0 100 100"><circle cx="50" cy="50" r="46" fill="none" stroke="${color}" stroke-opacity=".35" stroke-width="1"/><circle cx="50" cy="50" r="34" fill="none" stroke="${color}" stroke-opacity=".22" stroke-width="1"/></svg>
+    <span class="vinyl-fallback-initial" style="color:${color}">${initial}</span>
+  </div>`;
+}
+// What the vinyl currently represents: the single selected clip if it's
+// an audio clip, else the primary audio track's active-at-playhead clip
+// (or its first clip if the playhead is in a gap) — always something, as
+// long as an audio track with clips exists.
+function nxVinylActiveClip() {
+  const selId = S.timeline.selection.length === 1 ? S.timeline.selection[0] : null;
+  if (selId) {
+    const c = nxClip(selId);
+    const t = c && nxClipTrack(c.id);
+    if (c && t && t.type === 'audio' && !c.text) return { clip: c, track: t };
+  }
+  const track = S.timeline.tracks.find(t => t.type === 'audio' && t.clips.length);
+  if (!track) return null;
+  const active = nxActiveClipAt(track, S.timeline.playhead) || track.clips[0];
+  return active ? { clip: active, track } : null;
+}
+function nxRenderVinylPlayer(container) {
+  if (!container) return;
+  const active = nxVinylActiveClip();
+  const asset = active && nxAsset(active.clip.sourceAssetId);
+  if (!active || !asset) { container.innerHTML = `<div class="vinyl-empty">Drop or select an audio clip to preview it here.</div>`; return; }
+  const { clip, track } = active;
+  const color = track.color || 'var(--red)';
+  const title = nxCleanTitle(asset.name);
+  const ext = (asset.name.split('.').pop() || 'AUDIO').toUpperCase();
+  const metaParts = [ext];
+  if (asset.sampleRate) metaParts.push(Math.round(asset.sampleRate / 1000) + ' kHz');
+  if (asset.channels) metaParts.push(asset.channels >= 2 ? 'Stereo' : 'Mono');
+  metaParts.push(fmtTime(asset.duration));
+
+  container.dataset.vinylClip = clip.id;
+  container.innerHTML = `
+    <div class="vinyl-player${S.timeline._playing ? ' playing' : ''}" id="vinyl-player" style="--track-color:${color}">
+      <div class="vinyl-reactor" id="vinyl-reactor">
+        <div class="vinyl-reactor-bar" id="vinyl-reactor-bar"></div>
+        <div class="vinyl-reactor-core" id="vinyl-reactor-core"></div>
+      </div>
+      <div class="vinyl-disc-wrap">
+        <div class="vinyl-disc" id="vinyl-disc">
+          <div class="vinyl-grooves"></div>
+          <div class="vinyl-label" id="vinyl-label">${asset._artworkUrl ? `<img src="${asset._artworkUrl}" alt=""/>` : nxVinylFallbackLabelHTML(title, color)}</div>
+          <div class="vinyl-spindle"></div>
+          <div class="vinyl-sheen"></div>
+        </div>
+      </div>
+      <div class="vinyl-info">
+        <div class="vinyl-title" id="vinyl-title" title="${title}">${title}</div>
+        <div class="vinyl-filename" title="${asset.name}">${asset.name}</div>
+        <button class="vinyl-play-btn" id="vinyl-play-btn" onclick="nxTogglePlay()" aria-label="Play or pause">${S.timeline._playing ? NXT_ICON.pause : NXT_ICON.play}</button>
+        <div class="vinyl-time" id="vinyl-time">${fmtTime(S.timeline.playhead)} / ${fmtTime(nxDuration())}</div>
+        <div class="vinyl-meta" id="vinyl-meta">${metaParts.join(' · ')}</div>
+      </div>
+    </div>`;
+  nxUpdateVinylUI();
+
+  if (!asset._metaReady) {
+    nxEnsureAudioAssetMeta(asset).then(() => { if (container.dataset.vinylClip === clip.id) nxRenderVinylPlayer(container); });
+  }
+  if (!asset._artworkChecked) {
+    asset._artworkChecked = true;
+    nxParseId3ArtworkFromUrl(asset.url).then(url => {
+      asset._artworkUrl = url;
+      if (url && container.dataset.vinylClip === clip.id) nxRenderVinylPlayer(container);
+    });
+  }
+}
+// Cheap per-tick sync — called from nxUpdatePlayheadUI (the same central
+// hook the compositor uses), so the disc, timecode, and play icon are
+// always exactly as fresh as the playhead itself, on every path that
+// moves it (seek, scrub, timeupdate, the audio-only rAF clock).
+function nxUpdateVinylUI() {
+  const disc = $('vinyl-disc');
+  if (!disc) return;
+  const RPM = 33 + 1 / 3; // real 33⅓ vinyl speed — not load-bearing, just authentic
+  const degPerSec = (RPM / 60) * 360;
+  disc.style.transform = `rotate(${(S.timeline.playhead * degPerSec % 360).toFixed(2)}deg)`;
+  const timeEl = $('vinyl-time');
+  if (timeEl) timeEl.textContent = `${fmtTime(S.timeline.playhead)} / ${fmtTime(nxDuration())}`;
+  const btn = $('vinyl-play-btn');
+  if (btn) btn.innerHTML = S.timeline._playing ? NXT_ICON.pause : NXT_ICON.play;
+  const player = $('vinyl-player');
+  if (player) player.classList.toggle('playing', !!S.timeline._playing);
+}
+// Reactor animation loop — separate from the playhead-advancing clocks
+// on purpose: this is visual-only (never advances S.timeline.playhead
+// itself), reads real frequency data from the displayed clip's track,
+// and self-terminates the instant playback stops rather than free-running.
+function nxVinylReactorTick() {
+  const bar = $('vinyl-reactor-bar'), core = $('vinyl-reactor-core');
+  if (!bar || !core) return;
+  if (!S.timeline._playing) { bar.style.setProperty('--react-bass', 0); bar.style.setProperty('--react-mid', 0); bar.style.setProperty('--react-high', 0); core.style.transform = 'translate(-50%,-50%) scale(1)'; return; }
+  const active = nxVinylActiveClip();
+  if (active) {
+    const track = active.track;
+    nxEnsureTrackAudioEl(track);
+    const an = nxEnsureTrackAnalyser(track);
+    if (an) {
+      const buf = track._analyserFreqBuf || (track._analyserFreqBuf = new Uint8Array(an.frequencyBinCount));
+      an.getByteFrequencyData(buf);
+      const binHz = track._actx.sampleRate / 2 / buf.length;
+      const bassEnd = Math.min(buf.length, Math.round(250 / binHz));
+      const midEnd = Math.min(buf.length, Math.round(4000 / binHz));
+      let bass = 0, mid = 0, high = 0;
+      for (let i = 0; i < bassEnd; i++) bass += buf[i];
+      for (let i = bassEnd; i < midEnd; i++) mid += buf[i];
+      for (let i = midEnd; i < buf.length; i++) high += buf[i];
+      bass /= Math.max(1, bassEnd) * 255;
+      mid /= Math.max(1, midEnd - bassEnd) * 255;
+      high /= Math.max(1, buf.length - midEnd) * 255;
+      const amp = (bass + mid + high) / 3;
+      const prev = track._reactorSmooth || { bass: 0, mid: 0, high: 0, amp: 0 };
+      const lerp = (a, b, t) => a + (b - a) * t;
+      const sm = { bass: lerp(prev.bass, bass, 0.25), mid: lerp(prev.mid, mid, 0.25), high: lerp(prev.high, high, 0.25), amp: lerp(prev.amp, amp, 0.2) };
+      track._reactorSmooth = sm;
+      bar.style.setProperty('--react-bass', sm.bass.toFixed(3));
+      bar.style.setProperty('--react-mid', sm.mid.toFixed(3));
+      bar.style.setProperty('--react-high', sm.high.toFixed(3));
+      const scale = 1 + sm.amp * 0.35;
+      const shiftY = (sm.bass - sm.high) * 10;
+      core.style.transform = `translate(-50%, calc(-50% + ${shiftY.toFixed(1)}px)) scale(${scale.toFixed(3)})`;
+    }
+  }
+  window._nxVinylReactorRaf = requestAnimationFrame(nxVinylReactorTick);
+}
+function nxStartVinylReactorLoop() {
+  if (!$('vinyl-reactor-bar')) return; // not an audio project — nothing to animate
+  if (window._nxVinylReactorRaf) cancelAnimationFrame(window._nxVinylReactorRaf);
+  window._nxVinylReactorRaf = requestAnimationFrame(nxVinylReactorTick);
+}
+
 function renderPreview() {
   const f = S.file;
   if (!f) return;
@@ -8543,17 +8829,14 @@ function renderPreview() {
     hideEdScrubber();
     requestAnimationFrame(() => requestAnimationFrame(mountNxTimeline));
   } else if (f.type === 'audio') {
-    // Audio has no visual preview — the real workspace is the timeline
-    // panel below. Show a simple file-info placeholder here instead of
-    // the old in-preview mixer.
-    area.innerHTML = `
-      <div class="img-preview-wrap" style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;color:var(--dim)">
-        <svg width="40" height="40" fill="none" stroke="currentColor" stroke-width="1.4" viewBox="0 0 24 24"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>
-        <div style="font-size:16px;font-weight:600;color:var(--text)">${f.name}</div>
-        <div style="font-family:var(--mono);font-size:13px">${fmtTime(f.duration)} · ${fmtBytes(f.size)}</div>
-      </div>`;
+    // The real editing workspace is the timeline panel below; this is
+    // the intuitive playback surface — a vinyl player bound to the same
+    // S.timeline.playhead/_playing state as everything else.
+    area.style.position = 'relative';
+    area.innerHTML = `<div class="vinyl-container" id="vinyl-container"></div>`;
     hideEdScrubber();
     mountNxTimeline();
+    nxRenderVinylPlayer($('vinyl-container'));
   } else {
     hideEdScrubber();
     hideNxTimeline();
@@ -8601,6 +8884,7 @@ function resetEditor() {
   nxCleanupDrag();
   nxCompositorTeardown();
   if (S.timeline._playRAF) cancelAnimationFrame(S.timeline._playRAF);
+  if (window._nxVinylReactorRaf) cancelAnimationFrame(window._nxVinylReactorRaf);
   S.timeline.tracks.forEach(t => { if (t._el) { t._el.pause(); t._el.src = ''; } });
   Object.values(S.timeline.assets).forEach(a => { if (a._owned && a.url) URL.revokeObjectURL(a.url); });
   S.timeline = { assets: {}, tracks: [], zoom: 80, snap: true, ripple: false, playhead: 0, selection: [], markers: [], history: [], future: [], _seededFor: null, _playing: false };
