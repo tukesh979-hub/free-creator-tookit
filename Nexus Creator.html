@@ -8273,17 +8273,12 @@ function nxInspectorTextHTML(clip) {
 // ════════════════════════════════════════════════════════════════════════
 // EXPORT (spec #07, #10, #52)
 // ════════════════════════════════════════════════════════════════════════
-// Deliberately native-browser-only, no FFmpeg: this app's existing
-// FFmpeg.wasm integration loads the engine from a CDN, and that library
-// constructs its own Worker from that same cross-origin URL — browsers
-// have never allowed a Worker's script to be cross-origin (this is
-// unrelated to and predates COOP/COEP), so `ensureFFmpeg()` fails with a
-// SecurityError in ANY browser regardless of how the page is hosted, the
-// moment COOP/COEP are set to unlock SharedArrayBuffer in the first
-// place. That's a pre-existing characteristic of every FFmpeg-based tool
-// already in this app (confirmed via direct testing), not something
-// introduced here — and not a gap this rebuild can safely close without
-// vendoring the FFmpeg package locally. Export instead uses:
+// Deliberately native-browser-only, no FFmpeg: ensureFFmpeg() is now fixed
+// (see its own comments — classWorkerURL + rewriting worker.js's relative
+// imports), but export still doesn't route through it. Both native paths
+// below are simpler and faster for their specific job than a ~30MB engine
+// download would be, and this keeps export usable even before that first
+// FFmpeg download completes. Export instead uses:
 //  - Audio mixdown: OfflineAudioContext, a native W3C API built for
 //    exactly this (sample-accurate offline rendering), encoded to WAV
 //    with a small hand-written writer.
@@ -9258,10 +9253,37 @@ async function ensureFFmpeg() {
 
   setProgress(15, 'Downloading core (one-time, ~30 MB)…');
   const base = 'https://cdn.jsdelivr.net/npm/@ffmpeg/core@0.12.6/dist/esm';
+  const ffBase = 'https://cdn.jsdelivr.net/npm/@ffmpeg/ffmpeg@0.12.10/dist/esm';
   try {
+    // Without classWorkerURL, FFmpeg.load() falls back to
+    // `new Worker(new URL('./worker.js', import.meta.url))`, which
+    // resolves against the CDN's own URL — a cross-origin Worker
+    // construction that every browser rejects with a SecurityError,
+    // regardless of COOP/COEP.
+    //
+    // Blobbing worker.js (same trick as coreURL/wasmURL below) fixes THAT,
+    // but breaks a second, separate thing: worker.js itself has two
+    // relative ES module imports (`./const.js`, `./errors.js`) that only
+    // resolve correctly from its real CDN path — a blob: URL has no
+    // directory for a relative import to resolve against, so the worker's
+    // module graph fails to load. This doesn't surface as a catchable
+    // exception (module resolution failures fire the Worker's `onerror`
+    // with a sanitized/empty message instead), so `ffmpegInst.load()`
+    // silently hangs forever with no error at all — confirmed via a CDP
+    // worker-target attach that it dies within ~10ms of construction.
+    // Rewriting those two specifiers to absolute CDN URLs before blobbing
+    // resolves both problems at once: same-origin construction AND a
+    // working module graph.
+    let workerSrc = await (await fetch(`${ffBase}/worker.js`)).text();
+    workerSrc = workerSrc
+      .replace('"./const.js"', JSON.stringify(`${ffBase}/const.js`))
+      .replace('"./errors.js"', JSON.stringify(`${ffBase}/errors.js`));
+    const classWorkerURL = URL.createObjectURL(new Blob([workerSrc], { type: 'text/javascript' }));
+
     await ffmpegInst.load({
       coreURL: await UtilModule.toBlobURL(`${base}/ffmpeg-core.js`, 'text/javascript'),
       wasmURL: await UtilModule.toBlobURL(`${base}/ffmpeg-core.wasm`, 'application/wasm'),
+      classWorkerURL,
     });
     ffLoaded = true;
     setStatus('ok', 'Ready');

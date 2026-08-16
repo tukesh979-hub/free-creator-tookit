@@ -313,7 +313,10 @@ async function runTrackTests() {
     await page.gotoEditor(); await page.setFile(VIDEO); await sleep(2500);
     const r = await page.evalBlock(`
       nxAddTrack('audio'); nxAddTrack('audio'); nxAddTrack('audio');
-      const tracks = S.timeline.tracks.filter(t=>t.type==='audio');
+      // .slice(-3): scope to just the 3 tracks this test added, independent
+      // of whether linked-audio extraction (spec #33) already added its own
+      // audio track by now — this test is about solo semantics, not that.
+      const tracks = S.timeline.tracks.filter(t=>t.type==='audio').slice(-3);
       nxToggleTrackSolo(tracks[0].id); nxToggleTrackSolo(tracks[1].id);
       return JSON.stringify(tracks.map(t => nxEffectiveTrackMuted(t)));
     `);
@@ -449,17 +452,24 @@ async function runMarkerTests() {
 async function runMediaBinTests() {
   console.log('\n=== Media bin ===');
   await test('adding an existing asset again creates a second clip without re-decoding', async page => {
-    await page.gotoEditor(); await page.setFile(VIDEO); await sleep(2500);
+    await page.gotoEditor(); await page.setFile(VIDEO); await sleep(3500);
     const r = await page.evalBlock(`
       const assetId = Object.keys(S.timeline.assets)[0];
       const before = S.timeline.tracks[0].clips.length;
+      const assetsBefore = Object.keys(S.timeline.assets).length;
       nxAddAssetToTimeline(assetId);
-      return JSON.stringify({before, after: S.timeline.tracks[0].clips.length, assetsStillOne: Object.keys(S.timeline.assets).length});
+      return JSON.stringify({before, after: S.timeline.tracks[0].clips.length, assetsUnchanged: Object.keys(S.timeline.assets).length === assetsBefore});
     `);
-    assertEqual(JSON.parse(r), { before: 1, after: 2, assetsStillOne: 1 }, 'reuse-asset add');
+    // assetsUnchanged (not a fixed count): linked-audio extraction (spec #33)
+    // adds its own second asset in the background, so the total asset count
+    // depends on whether extraction has finished by now — what this test
+    // actually cares about is that RE-ADDING the same asset doesn't create
+    // a new one, which "before vs after nxAddAssetToTimeline" captures
+    // regardless of that background count.
+    assertEqual(JSON.parse(r), { before: 1, after: 2, assetsUnchanged: true }, 'reuse-asset add');
   });
   await test('search and category filters narrow the visible list', async page => {
-    await page.gotoEditor(); await page.setFile(VIDEO); await sleep(2500);
+    await page.gotoEditor(); await page.setFile(VIDEO); await sleep(3500);
     const r = await page.evalBlock(`
       nxSetLeftPanelTab('media');
       const all = document.querySelectorAll('.media-bin-item').length;
@@ -471,36 +481,100 @@ async function runMediaBinTests() {
       return JSON.stringify({all, noMatch, audioOnly});
     `);
     const parsed = JSON.parse(r);
-    assertEqual(parsed.all, 1, 'one video asset visible under All');
+    // 2, not 1: the video asset plus the linked-audio track's own asset
+    // (spec #33 extraction — see runLinkedAudioTests) now that FFmpeg
+    // actually loads and extraction succeeds instead of failing silently.
+    assertEqual(parsed.all, 2, 'video asset + its auto-extracted linked audio asset visible under All');
     assertEqual(parsed.noMatch, 0, 'search with no match should show nothing');
-    assertEqual(parsed.audioOnly, 0, 'no audio assets in a video-only project');
+    assertEqual(parsed.audioOnly, 1, 'the auto-extracted linked audio asset should show under the Audio filter');
   });
   await test('deleting an asset (through the real confirm-modal flow) cascades to every clip built from it', async page => {
-    await page.gotoEditor(); await page.setFile(VIDEO); await sleep(2500);
-    await page.evalBlock(`const id = Object.keys(S.timeline.assets)[0]; nxAddAssetToTimeline(id); return null;`);
-    await page.evalBlock(`nxDeleteAsset(Object.keys(S.timeline.assets)[0]); return null;`);
+    await page.gotoEditor(); await page.setFile(VIDEO); await sleep(3500);
+    // Target the video asset specifically (by id, captured up front) rather
+    // than assuming it's the only asset in the project — linked-audio
+    // extraction (spec #33) adds an unrelated second asset in the
+    // background, and deleting the video asset should not touch that one.
+    const targetId = await page.eval(`Object.keys(S.timeline.assets)[0]`);
+    const targetIdJson = JSON.stringify(targetId);
+    await page.evalBlock(`nxAddAssetToTimeline(${targetIdJson}); return null;`);
+    await page.evalBlock(`nxDeleteAsset(${targetIdJson}); return null;`);
     await sleep(200);
     const modalShown = await page.eval(`document.getElementById('modal-bg').classList.contains('show')`);
     assert(modalShown, 'expected the confirm modal to appear before deleting');
     await page.trustedClickSelector('#modal-confirm');
     await sleep(300);
-    const r = await page.eval(`JSON.stringify({assets: Object.keys(S.timeline.assets).length, clips: S.timeline.tracks.reduce((n,t)=>n+t.clips.length,0)})`);
+    const r = await page.eval(`JSON.stringify({
+      assetStillExists: ${targetIdJson} in S.timeline.assets,
+      clipsFromTarget: S.timeline.tracks.reduce((n,t)=>n+t.clips.filter(c=>c.sourceAssetId===${targetIdJson}).length, 0),
+    })`);
     const parsed = JSON.parse(r);
-    assertEqual(parsed.assets, 0, 'asset removed');
-    assertEqual(parsed.clips, 0, 'both clips built from it removed');
+    assertEqual(parsed.assetStillExists, false, 'the deleted asset itself is gone');
+    assertEqual(parsed.clipsFromTarget, 0, 'both clips built from the deleted asset removed');
   });
 }
 
 // ════════════════════════════════════════════════════════════════════════
-// LINKED AUDIO (graceful degradation — see test/README.md)
+// LINKED AUDIO (spec #33 — video's embedded audio demuxed into an
+// independent, editable track)
 // ════════════════════════════════════════════════════════════════════════
 async function runLinkedAudioTests() {
-  console.log('\n=== Linked audio (graceful degradation) ===');
-  await test('failed extraction never crashes, leaves video audible and unmuted', async page => {
-    await page.gotoEditor(); await page.setFile(VIDEO); await sleep(6000); // give extraction time to attempt + fail
-    const vidMuted = await page.eval(`document.getElementById('preview-vid').muted`);
-    assertEqual(vidMuted, false, 'video should stay unmuted if linked-audio extraction did not succeed');
-    assert(page.consoleMsgs.filter(m => /uncaught/i.test(m)).length === 0, 'no uncaught exceptions from a failed extraction: ' + JSON.stringify(page.consoleMsgs));
+  console.log('\n=== Linked audio ===');
+  await test('extraction succeeds: video audio is demuxed into an independent, editable audio track', async page => {
+    await page.gotoEditor(); await page.setFile(VIDEO); await sleep(6000); // give extraction time to complete
+    const r = await page.evalBlock(`
+      const vid = document.getElementById('preview-vid');
+      const audioTracks = S.timeline.tracks.filter(t => t.type === 'audio');
+      const videoClip = S.timeline.tracks.find(t => t.type === 'video').clips[0];
+      return JSON.stringify({
+        vidMuted: vid.muted,
+        audioTrackCount: audioTracks.length,
+        linked: !!videoClip.linkedClipId && audioTracks.some(t => t.clips.some(c => c.id === videoClip.linkedClipId)),
+      });
+    `);
+    const parsed = JSON.parse(r);
+    assertEqual(parsed.vidMuted, true, "the original <video>'s own audio should be muted once it's independently extracted");
+    assert(parsed.audioTrackCount >= 1, 'expected at least one linked audio track after extraction');
+    assert(parsed.linked, 'the video clip and the extracted audio clip should reference each other via linkedClipId');
+    assert(page.consoleMsgs.filter(m => /uncaught/i.test(m)).length === 0, 'no uncaught exceptions during extraction: ' + JSON.stringify(page.consoleMsgs));
+  });
+  // Graceful degradation (no audio stream in the source, or FFmpeg
+  // unavailable) is handled by nxExtractLinkedAudio's own try/catch and the
+  // data.byteLength < 512 bail-out — verified by reading that code, not
+  // reproduced here: doing so honestly would need a real fixture with no
+  // audio stream, which this suite doesn't have.
+}
+
+// ════════════════════════════════════════════════════════════════════════
+// FFMPEG STANDALONE TOOLS (the 10 audio + 13 video single-file processors
+// in the left sidebar — separate from the timeline's native export path)
+// ════════════════════════════════════════════════════════════════════════
+// ensureFFmpeg() loads @ffmpeg/ffmpeg from a CDN into a page hosted
+// elsewhere, which needs classWorkerURL to avoid a cross-origin Worker
+// SecurityError — and, less obviously, needs worker.js's own two relative
+// imports (./const.js, ./errors.js) rewritten to absolute CDN URLs once
+// it's blobbed, since a blob: URL has no directory for a relative import
+// to resolve against. Without the second half of that fix, the worker
+// dies within ~10ms of construction with no catchable exception at all
+// (module resolution failures fire a sanitized Worker onerror instead),
+// so ffmpegInst.load() hangs forever — this test exists specifically to
+// catch that regressing silently again.
+async function runFfmpegToolsTests() {
+  console.log('\n=== FFmpeg standalone tools ===');
+  await test('audio-trim initializes FFmpeg and produces a real downloadable file', async page => {
+    await page.gotoEditor();
+    await page.evalBlock(`selectTool(TOOLS.find(t => t.id === 'audio-trim')); return null;`);
+    await page.setFile(AUDIO);
+    await sleep(1500);
+    await page.trustedClickSelector('#btn-process');
+    let r = null;
+    for (let i = 0; i < 60; i++) {
+      await sleep(1000);
+      const parsed = JSON.parse(await page.eval(`JSON.stringify({processing: S.processing, hasOutput: !!S.outputBlob, outputName: S.outputName})`));
+      if (!parsed.processing && parsed.hasOutput) { r = parsed; break; }
+    }
+    assert(r, 'FFmpeg processing should complete within 60s, not hang indefinitely');
+    assertEqual(r.outputName, 'test_audio_trim.m4a', 'expected output filename');
+    assert(page.consoleMsgs.length === 0, 'no console errors: ' + JSON.stringify(page.consoleMsgs));
   });
 }
 
@@ -769,26 +843,32 @@ async function runEdgeCaseTests() {
     assert(page.consoleMsgs.length === 0, 'no console errors with 15+ clips: ' + JSON.stringify(page.consoleMsgs));
   });
   await test('many tracks (10x add) keeps mount/undo/redo stable', async page => {
-    await page.gotoEditor(); await page.setFile(VIDEO); await sleep(2500);
+    await page.gotoEditor(); await page.setFile(VIDEO); await sleep(3500);
     const r = await page.evalBlock(`
+      const startCount = S.timeline.tracks.length; // V1, plus its linked-audio track (spec #33) once extraction completes
       for (let i = 0; i < 10; i++) nxAddTrack(i % 2 === 0 ? 'audio' : 'video');
       const count = S.timeline.tracks.length;
       nxUndo(); nxUndo(); nxRedo();
-      return JSON.stringify({count, afterUndoRedo: S.timeline.tracks.length});
+      return JSON.stringify({startCount, added: count - startCount, afterUndoRedo: S.timeline.tracks.length});
     `);
     const parsed = JSON.parse(r);
-    assertEqual(parsed.count, 11, '10 added + the original V1');
-    assert(page.consoleMsgs.length === 0, 'no console errors with 11 tracks');
+    assertEqual(parsed.added, 10, 'all 10 nxAddTrack calls landed');
+    assert(page.consoleMsgs.length === 0, 'no console errors with many tracks: ' + JSON.stringify(page.consoleMsgs));
   });
   await test('deleting the only clip on a track leaves an empty (not broken) track', async page => {
-    await page.gotoEditor(); await page.setFile(VIDEO); await sleep(2500);
+    await page.gotoEditor(); await page.setFile(VIDEO); await sleep(3500);
     const r = await page.evalBlock(`
+      const trackCountBefore = S.timeline.tracks.length;
       const c = S.timeline.tracks[0].clips[0];
       nxSelectClip(c.id, false);
       nxDeleteSelection();
-      return JSON.stringify({tracks: S.timeline.tracks.length, clips: S.timeline.tracks[0].clips.length});
+      return JSON.stringify({tracksUnchanged: S.timeline.tracks.length === trackCountBefore, clips: S.timeline.tracks[0].clips.length});
     `);
-    assertEqual(JSON.parse(r), { tracks: 1, clips: 0 }, 'track survives with zero clips');
+    // tracksUnchanged (not a fixed count): a linked-audio track (spec #33)
+    // may or may not have finished attaching by now — this test only cares
+    // that deleting a clip doesn't also delete the (now empty) track it
+    // lived on, regardless of how many other tracks exist.
+    assertEqual(JSON.parse(r), { tracksUnchanged: true, clips: 0 }, 'track survives with zero clips');
     assert(page.consoleMsgs.length === 0, 'no errors deleting the last clip');
   });
   await test('rapid play/pause (10x) produces no console errors', async page => {
@@ -826,6 +906,7 @@ async function main() {
   await runMarkerTests();
   await runMediaBinTests();
   await runLinkedAudioTests();
+  await runFfmpegToolsTests();
   await runExportTests();
   await runDspTests();
   await runVinylTests();

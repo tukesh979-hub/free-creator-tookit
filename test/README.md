@@ -24,34 +24,45 @@ node test/run-tests.mjs
 
 Exits non-zero if anything fails, with a summary at the end.
 
-## A known, pre-existing limitation: FFmpeg-based tools
+## FFmpeg-based tools (fixed — see `ensureFFmpeg()`'s own comments)
 
-While testing, we root-caused why `ensureFFmpeg()` (used by the classic
-per-tool destructive panels — Trim, Crop, Compress, Convert, etc. — and
-by the new linked-audio-extraction feature) fails in every environment
-that has `SharedArrayBuffer` available: `@ffmpeg/ffmpeg`, loaded from
-the jsdelivr CDN, tries to construct its own Worker from that same
-cross-origin URL. Browsers have never allowed a Worker's script to be
-cross-origin — this predates and is unrelated to COOP/COEP — so it fails
-with a `SecurityError` regardless of how the page is hosted, the moment
-COOP/COEP unlock `SharedArrayBuffer` in the first place (without those
-headers, `ensureFFmpeg()` fails even earlier, with its own explicit
-"needs COOP/COEP headers" error).
+The classic per-tool destructive panels (Trim, Crop, Compress, Convert,
+etc. — 10 audio + 13 video tools) and the linked-audio-extraction feature
+all route through `ensureFFmpeg()`, which loads `@ffmpeg/ffmpeg` from the
+jsdelivr CDN into a page hosted elsewhere. That combination breaks in two
+separate, easy-to-conflate ways:
 
-This is **not** something introduced by the timeline rebuild — it's a
-characteristic of every FFmpeg-based tool already in the app. It fails
-gracefully everywhere it's used (clear error message via `showStatus`,
-never a silent failure, never a crash) — confirmed by the
-`Linked audio (graceful degradation)` test group above. Fixing it would
-mean vendoring the FFmpeg package locally (no CDN, no cross-origin
-Worker) — a real option for a future session, but out of scope here.
+1. **Cross-origin Worker construction.** Without `classWorkerURL`,
+   `FFmpeg.load()` constructs its Worker from the CDN's own URL — browsers
+   have never allowed a Worker's script to be cross-origin (this predates
+   and is unrelated to COOP/COEP), so it throws a `SecurityError`
+   immediately. Fixed by fetching `worker.js` ourselves and handing it
+   over as a same-origin `blob:` URL via `classWorkerURL` — the same
+   `toBlobURL` trick already used for `coreURL`/`wasmURL`.
+2. **`worker.js`'s own relative imports break once blobbed.** `worker.js`
+   has two relative ES module imports (`./const.js`, `./errors.js`) that
+   resolve fine from its real CDN path but have no directory to resolve
+   against once loaded from a `blob:` URL. This doesn't throw a catchable
+   exception — module resolution failures fire the Worker's `onerror`
+   with a sanitized/empty message instead — so without also fixing this,
+   `ffmpegInst.load()` just hangs forever with zero error, zero console
+   output, confirmed via a CDP worker-target attach showing the worker
+   dying within ~10ms of construction. Fixed by rewriting those two
+   specifiers to absolute CDN URLs before blobbing `worker.js`.
 
-Because of this, the new export features (`nxExportAudioMixdown`,
-`nxExportVideo`) were deliberately built on native browser APIs instead
-of FFmpeg — `OfflineAudioContext` for the audio mixdown, and a
-canvas + `MediaRecorder` real-time capture of the live compositor for
-video — both fully native, both verified working end-to-end by this
-suite.
+Both fixes are needed together — `classWorkerURL` alone trades a fast,
+clean error for a silent infinite hang, which is worse. Verified
+end-to-end (real FFmpeg processing, real output file, zero console
+errors) for both an audio tool and a video tool; regression-covered by
+the `FFmpeg standalone tools` test group above.
+
+The export features (`nxExportAudioMixdown`, `nxExportVideo`) still don't
+route through FFmpeg — that was a deliberate, independent choice (native
+is simpler and faster for both jobs, and doesn't need the ~30MB engine
+download), not a workaround for this bug. `OfflineAudioContext` handles
+the audio mixdown, and a canvas + `MediaRecorder` real-time capture of
+the live compositor handles video — both fully native, both verified
+working end-to-end by this suite.
 
 ## Vinyl audio player
 
