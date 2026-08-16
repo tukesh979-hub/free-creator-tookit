@@ -617,7 +617,7 @@ async function runVinylTests() {
       return JSON.stringify({
         hasPlayer: !!document.getElementById('vinyl-player'),
         title: document.getElementById('vinyl-title')?.textContent,
-        filename: document.querySelector('.audio-information p')?.textContent,
+        filename: document.querySelector('.cover-text p')?.textContent,
         hasFallback: !!document.querySelector('.vinyl-label .nexus-mark'),
         trackColor: document.getElementById('vinyl-player')?.style.getPropertyValue('--track-color'),
       });
