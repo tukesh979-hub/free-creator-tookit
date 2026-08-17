@@ -602,7 +602,9 @@ async function runFfmpegToolsTests() {
     await page.evalBlock(`selectTool(TOOLS.find(t => t.id === 'audio-trim')); return null;`);
     await page.setFile(AUDIO);
     await sleep(1500);
-    await page.trustedClickSelector('#btn-process');
+    // Process and Download were merged into one button — see
+    // "remove Process, make every tool preview live" in the app's history.
+    await page.trustedClickSelector('#btn-dl');
     let r = null;
     for (let i = 0; i < 60; i++) {
       await sleep(1000);

@@ -1426,22 +1426,15 @@ body.resizing-y,body.resizing-y *{cursor:row-resize!important;user-select:none!i
 textarea.s-input{resize:vertical;min-height:64px;font-family:var(--font);line-height:1.4}
 input[type=color].s-input{height:38px;padding:3px;cursor:pointer}
 
-/* Process buttons */
-.btn-process{
+/* Primary inspector action — every tool previews live, so this is the one
+   button left: run the real export and download it. */
+.btn-primary{
   background:var(--red);color:#fff;font-size:17px;font-weight:700;letter-spacing:2px;
   text-transform:uppercase;padding:11px;width:100%;transition:background var(--transition);
   display:flex;align-items:center;justify-content:center;gap:5px;border-radius:6px
 }
-.btn-process:hover:not(:disabled){background:var(--red2)}
-.btn-process:disabled{background:var(--border2);color:var(--dim);cursor:not-allowed}
-.btn-dl{
-  background:transparent;border:1px solid var(--border2);color:var(--muted);
-  font-size:16px;font-weight:600;letter-spacing:2px;text-transform:uppercase;
-  padding:9px;width:100%;display:none;align-items:center;justify-content:center;gap:5px;
-  transition:all var(--transition);border-radius:6px
-}
-.btn-dl.show{display:flex}
-.btn-dl:hover{border-color:var(--muted);color:var(--text)}
+.btn-primary:hover:not(:disabled){background:var(--red2)}
+.btn-primary:disabled{background:var(--border2);color:var(--dim);cursor:not-allowed}
 .btn-newfile{
   background:transparent;border:1px solid var(--border);color:var(--dim);
   font-family:var(--mono);font-size:15px;letter-spacing:1px;text-transform:uppercase;
@@ -2219,8 +2212,12 @@ input[type=color].s-input{height:38px;padding:3px;cursor:pointer}
       <p class="s-hint">Select a tool from the left to begin.</p>
     </div>
     <div class="er-foot">
-      <button class="btn-process" id="btn-process" disabled onclick="runProcess()" aria-label="Process file">⚡ Process</button>
-      <button class="btn-dl" id="btn-dl" onclick="doDownload()" aria-label="Download result">↓ Download</button>
+      <!-- Every tool previews live now (see applyLivePreview/applyVideoPreview/
+           applyAudioPreview) — there's nothing left for a separate "Process"
+           step to do that isn't already visible/audible, so this one button
+           just runs the real export and downloads it (runProcess() already
+           calls doDownload() internally). -->
+      <button class="btn-primary" id="btn-dl" disabled onclick="runProcess()" aria-label="Download result">⬇ Download</button>
       <button class="btn-newfile" id="btn-newfile" onclick="confirmNewFile()" aria-label="Start with new file">← New File</button>
     </div>
     <div class="er-status" aria-label="System status">
@@ -2350,12 +2347,11 @@ const TOOLS = [
   {id:'audio-convert',   label:'Convert',      desc:'MP3, WAV, AAC, FLAC',           cat:'audio', eng:'ffmpeg', icon:'convert',  group:'Optimization'},
   {id:'audio-compress',  label:'Compress',     desc:'Reduce audio file size',        cat:'audio', eng:'ffmpeg', icon:'compress', group:'Optimization'},
   {id:'audio-normalize', label:'Normalize',    desc:'Auto-level loudness',           cat:'audio', eng:'ffmpeg', icon:'normalize',group:'Optimization'},
+  {id:'audio-mono',      label:'Mono',         desc:'Stereo to mono mix-down',       cat:'audio', eng:'ffmpeg', icon:'compress', group:'Optimization'},
   // AUDIO — Effects
   {id:'audio-speed',     label:'Speed',        desc:'Speed up or slow down',         cat:'audio', eng:'ffmpeg', icon:'speed',    group:'Effects'},
   {id:'audio-reverse',   label:'Reverse',      desc:'Play audio backwards',          cat:'audio', eng:'ffmpeg', icon:'reverse',  group:'Effects'},
   {id:'audio-pitch',     label:'Pitch',        desc:'Shift pitch ±12 semitones',     cat:'audio', eng:'ffmpeg', icon:'speed',    group:'Effects'},
-  // AUDIO — Utility
-  {id:'audio-mono',      label:'Mono',         desc:'Stereo to mono mix-down',       cat:'audio', eng:'ffmpeg', icon:'compress', group:'Optimization'},
 ];
 
 const AI_TOOLS = [
@@ -2848,8 +2844,28 @@ function renderToolList() {
 
 function selectTool(tool) {
   if (!tool) return;
+  const prevToolId = S.tool && S.tool.id;
   S.tool = tool;
   S.settings = {};
+  // Tear down live-preview state that must not leak into the NEXT tool —
+  // mono forces the shared gain node to 1 channel, reverse points the
+  // shared asset at a reversed blob; both apply to the one real audio
+  // track every classic audio tool previews through (nxClassicAudioTrack),
+  // so every OTHER tool would inherit them if left in place.
+  if (prevToolId === 'audio-mono' || prevToolId === 'audio-reverse') {
+    const pt = nxClassicAudioTrack();
+    if (pt) {
+      if (prevToolId === 'audio-mono' && pt._gain) { pt._gain.channelCount = 2; pt._gain.channelCountMode = 'max'; }
+      if (prevToolId === 'audio-reverse') {
+        const pc = pt.clips[0];
+        const pAsset = pc && nxAsset(pc.sourceAssetId);
+        if (pAsset && pAsset._originalUrl) {
+          pAsset.url = pAsset._originalUrl;
+          if (pt._el) pt._el.src = pAsset.url;
+        }
+      }
+    }
+  }
   // Reset module-level crop aspect-ratio lock
   _cropAR = null;
   S._crop = null;
@@ -2903,7 +2919,7 @@ function selectTool(tool) {
   $('er-tool-name').textContent = tool.label;
   $('mobile-tool-name').textContent = tool.label;
   renderSettings(tool.id);
-  updateProcessBtn();
+  updateDownloadBtn();
 
   // Show compare bar only for photo-effects (only tool where compare shows a visible difference)
   const compareBar = $('compare-bar');
@@ -2928,6 +2944,11 @@ function selectTool(tool) {
         applyLivePreview();
       }
     }, 60);
+  } else if (S.file) {
+    // Video/audio: apply the newly-selected tool's default settings
+    // immediately, same reasoning as the photo branch above — otherwise
+    // nothing previews until the user first touches a slider.
+    setTimeout(applyLivePreview, 60);
   }
   closeMobilePanels();
 }
@@ -3667,7 +3688,8 @@ const PANELS = {
         ? `<div class="fmt-info-line">✓ Lossless — no bitrate reduction, original audio preserved</div>`
         : `${selectRow('Quality', 'convertBitrate', ['64k','96k','128k','192k','256k','320k'])}
            <div class="fmt-info-line">Higher bitrate → better quality &amp; larger file</div>`
-      }`;
+      }
+      <p class="s-hint" style="margin-top:6px">Format/bitrate changes have nothing to preview live — download to hear the real result.</p>`;
   },
 
   'audio-compress': () => {
@@ -3697,7 +3719,8 @@ const PANELS = {
           ${+estMB < +origMB
             ? ` (saves ~${(+origMB - +estMB).toFixed(1)} MB)`
             : ' — file may already be highly compressed'}
-        </div>` : ''}`;
+        </div>` : ''}
+      <p class="s-hint" style="margin-top:6px">Bitrate changes have nothing to preview live — download to hear the real result.</p>`;
   },
 
   'audio-normalize': () => {
@@ -3763,7 +3786,7 @@ const PANELS = {
       </div>
       <div style="font-family:var(--mono);font-size:15px;color:var(--dim);padding:6px 12px;
         background:var(--bg4);border:1px solid var(--border);border-radius:6px;text-align:center">
-        Click PROCESS to apply
+        ▶ Playing in reverse right now — press Download when ready
       </div>
     </div>`,
 
@@ -3785,7 +3808,8 @@ const PANELS = {
       ])}
       <div class="fmt-info-line" style="margin-top:6px">
         ✓ Speed stays the same — pitch only
-      </div>`;
+      </div>
+      <p class="s-hint" style="margin-top:6px">Live preview isn't available for pitch shifting — it applies when you press Download.</p>`;
   },
 
   'audio-mono': () => `
@@ -3807,7 +3831,7 @@ const PANELS = {
       </div>
       <div style="font-family:var(--mono);font-size:15px;color:var(--dim);padding:6px 12px;
         background:var(--bg4);border:1px solid var(--border);border-radius:6px;text-align:center">
-        Click PROCESS to apply
+        ▶ Playing in mono right now — press Download when ready
       </div>
     </div>`,
 };
@@ -4388,6 +4412,10 @@ function applyVideoPreview(id, s) {
   vid.style.filter    = '';
   vid.style.transform = '';
   if (vid.playbackRate !== 1) vid.playbackRate = 1;
+  // Only video-mute/video-noaudio (below) should ever mute the live
+  // element — always start from unmuted so leaving those tools restores
+  // real audible playback instead of leaving it silently stuck muted.
+  if (id !== 'video-mute' && id !== 'video-noaudio') vid.muted = false;
   // The interactive crop overlay (drag box + resize handles) owns the DOM while
   // it's mounted — wiping it on every setting change would rip out live handles
   // mid-drag or after a manual X/Y/W/H edit. Leave it alone; its case below syncs it.
@@ -4503,6 +4531,11 @@ function applyVideoPreview(id, s) {
 
     case 'video-noaudio':
     case 'video-mute': {
+      // Really mute the live element — previously this was a badge only,
+      // so the video kept playing full audio while claiming to preview
+      // silence, exactly the "sounds like nothing changed" complaint this
+      // whole pass exists to fix.
+      vid.muted = true;
       if (!ov) break;
       const badge = document.createElement('div');
       badge.className = 'vid-speed-badge';
@@ -4674,20 +4707,21 @@ function syncVideoInputsToCrop() {
 // AUDIO LIVE PREVIEW HELPERS
 // ════════════════════════════════════════════════════════════════════════════
 function applyAudioPreview(id, s) {
+  // Real, audible live preview for every tool where one is technically
+  // possible — see nxApplyClassicAudioPreview. audio-trim already has its
+  // own real preview (the timeline scrubber). audio-convert/audio-compress
+  // are pure format/bitrate changes with no signal difference to preview
+  // before encoding — audio-pitch is left out too: its own copy promises
+  // pitch shift with speed preserved, which needs a proper time-stretch
+  // algorithm (FFmpeg's asetrate+aresample chain), not a playbackRate
+  // approximation that would audibly contradict that promise.
+  if (['audio-volume', 'audio-fade', 'audio-speed', 'audio-mono', 'audio-normalize', 'audio-reverse'].includes(id)) {
+    nxApplyClassicAudioPreview(id, s);
+  }
   switch (id) {
     case 'audio-fade':
       // Re-draw the fade curve whenever any fade setting changes
       drawFadeCurve();
-      break;
-
-    case 'audio-speed': {
-      const ap = window._apAudioEl;
-      if (ap) ap.playbackRate = Math.max(0.25, Math.min(4, +s.speed || 1));
-      break;
-    }
-
-    case 'audio-volume':
-      // The dB label is handled by bindVolumeDbSync; nothing extra needed
       break;
 
     case 'audio-pitch': {
@@ -5858,9 +5892,8 @@ async function loadFile(file) {
 
     // Render preview
     renderPreview();
-    updateProcessBtn();
+    updateDownloadBtn();
     hideStatus();
-    $('btn-dl').classList.remove('show');
     $('btn-newfile').classList.add('show');
   } catch(err) {
     console.error('[Nexus] loadFile error:', err);
@@ -6651,7 +6684,10 @@ function nxEnsureTimeline() {
   const type = S.file.type === 'video' ? 'video' : (S.file.type === 'audio' ? 'audio' : null);
   if (!type) return;
   if (S.timeline._seededFor === S.file.url && S.timeline.tracks.length) return;
-  Object.values(S.timeline.assets).forEach(a => { if (a._owned && a.url) URL.revokeObjectURL(a.url); });
+  Object.values(S.timeline.assets).forEach(a => {
+    if (a._owned && a.url) URL.revokeObjectURL(a.url);
+    if (a._reversedUrl) URL.revokeObjectURL(a._reversedUrl); // see audio-reverse live preview
+  });
   S.timeline.assets = {};
   S.timeline.tracks = [];
   S.timeline.selection = [];
@@ -7496,6 +7532,7 @@ function nxDeleteAsset(assetId) {
     nxWithHistory(() => {
       S.timeline.tracks.forEach(t => { t.clips = t.clips.filter(c => c.sourceAssetId !== assetId); });
       if (asset._owned && asset.url) URL.revokeObjectURL(asset.url);
+      if (asset._reversedUrl) URL.revokeObjectURL(asset._reversedUrl);
       delete S.timeline.assets[assetId];
     });
     mountNxTimeline();
@@ -7752,6 +7789,141 @@ function nxApplyClipAudioParams(t, c, timeIntoClip) {
     const fadeOutStart = dur - fadeOut;
     if (timeIntoClip < fadeOutStart) t._gain.gain.setValueAtTime(baseVol, now + (fadeOutStart - timeIntoClip));
     t._gain.gain.linearRampToValueAtTime(0.0001, now + Math.max(0, dur - timeIntoClip));
+  }
+}
+
+// ════════════════════════════════════════════════════════════════════════
+// CLASSIC SINGLE-TOOL AUDIO PANELS — real live preview
+// ════════════════════════════════════════════════════════════════════════
+// The 10 audio-* tools (Trim/Volume/Fade/Convert/Compress/Normalize/Speed/
+// Reverse/Pitch/Mono) used to only touch S.settings, with nothing playing
+// it back until Process ran FFmpeg. There's already exactly one real,
+// live WebAudio track for the loaded file — nxEnsureTimeline() seeds
+// S.timeline.tracks[0] from S.file, and it's what the vinyl player's play
+// button actually drives (nxPlayAudioOnly). So instead of building a
+// second preview engine, these functions drive THAT one: what you hear
+// while dragging a slider is exactly what's really going to play, not an
+// approximation layered on top of it.
+function nxClassicAudioTrack() {
+  return S.timeline.tracks.find(t => t.type === 'audio') || null;
+}
+function nxReapplyClassicAudioParams(t, c) {
+  nxEnsureTrackAudioEl(t);
+  nxApplyClipAudioParams(t, c, Math.max(0, S.timeline.playhead - c.startTime));
+}
+// Reverses the whole decoded buffer once (cached on the asset) and hands
+// back a blob: URL nxApplyClassicAudioPreview swaps the asset onto — a
+// <video>/<audio> element has no way to play backwards natively, but
+// swapping which (still perfectly normal, forward-playing) file it
+// points at is genuinely real reversed audio, not a fake badge.
+async function nxGetReversedAssetUrl(asset) {
+  if (asset._reversedUrl) return asset._reversedUrl;
+  if (!asset._reversingPromise) {
+    asset._reversingPromise = (async () => {
+      const actx = window._mixerAudioCtx || (window._mixerAudioCtx = new (window.AudioContext || window.webkitAudioContext)());
+      const arrBuf = await (await fetch(asset.url)).arrayBuffer();
+      const decoded = await actx.decodeAudioData(arrBuf);
+      const reversed = actx.createBuffer(decoded.numberOfChannels, decoded.length, decoded.sampleRate);
+      for (let ch = 0; ch < decoded.numberOfChannels; ch++) {
+        const src = decoded.getChannelData(ch), dst = reversed.getChannelData(ch), n = src.length;
+        for (let i = 0; i < n; i++) dst[i] = src[n - 1 - i];
+      }
+      asset._reversedUrl = URL.createObjectURL(nxAudioBufferToWav(reversed));
+      return asset._reversedUrl;
+    })();
+  }
+  return asset._reversingPromise;
+}
+// One-time peak scan (cached on the asset), used to approximate Normalize's
+// live preview — a real, audible gain response to the target slider, not
+// a bit-exact stand-in for FFmpeg's two-pass loudnorm (true integrated
+// LUFS measurement needs a full BS.1770 pass, out of scope for a live
+// per-slider-tick preview). Directionally correct: louder target = less
+// or no gain reduction, quieter target = more reduction.
+async function nxEnsurePeakAnalysis(asset) {
+  if (asset._peakLinear != null) return asset._peakLinear;
+  if (!asset._peakPromise) {
+    asset._peakPromise = (async () => {
+      const actx = window._mixerAudioCtx || (window._mixerAudioCtx = new (window.AudioContext || window.webkitAudioContext)());
+      const arrBuf = await (await fetch(asset.url)).arrayBuffer();
+      const decoded = await actx.decodeAudioData(arrBuf);
+      let peak = 0.0001;
+      for (let ch = 0; ch < decoded.numberOfChannels; ch++) {
+        const data = decoded.getChannelData(ch);
+        for (let i = 0; i < data.length; i++) { const v = Math.abs(data[i]); if (v > peak) peak = v; }
+      }
+      asset._peakLinear = peak;
+      return peak;
+    })();
+  }
+  return asset._peakPromise;
+}
+function nxApplyNormalizePreview(t, c, targetLufs) {
+  const asset = nxAsset(c.sourceAssetId);
+  if (!asset) return;
+  nxEnsurePeakAnalysis(asset).then(peak => {
+    if (S.tool?.id !== 'audio-normalize' || nxClassicAudioTrack() !== t) return; // user moved on meanwhile
+    // nxApplyClipAudioParams clamps baseVol to unity — this preview can
+    // only ever pull loud audio down toward the target, same as it would
+    // for any peak already under target (matches the common case; a
+    // separate boost path would need that shared clamp changed, which
+    // would also affect the timeline's normal volume/fade behavior).
+    const targetLinear = Math.pow(10, targetLufs / 20);
+    c.volume = Math.max(1, Math.min(100, (targetLinear / peak) * 100));
+    nxReapplyClassicAudioParams(t, c);
+  });
+}
+function nxApplyClassicAudioPreview(id, s) {
+  const t = nxClassicAudioTrack();
+  if (!t) return;
+  const c = t.clips[0];
+  if (!c) return;
+  nxEnsureTrackAudioEl(t);
+  switch (id) {
+    case 'audio-volume':
+      c.volume = Math.max(0, +s.volume || 1) * 100;
+      nxReapplyClassicAudioParams(t, c);
+      break;
+    case 'audio-fade':
+      c.fadeIn = Math.max(0, +s.fadeIn || 0);
+      c.fadeOut = Math.max(0, +s.fadeOut || 0);
+      nxReapplyClassicAudioParams(t, c);
+      break;
+    case 'audio-speed': {
+      const rate = Math.max(0.25, Math.min(4, +s.speed || 1));
+      c.speed = rate;
+      if (t._el) t._el.playbackRate = rate;
+      break;
+    }
+    case 'audio-mono':
+      // Stereo→mono downmix: forcing channelCount=1 on the shared gain
+      // node sums both channels — standard WebAudio down-mix, no extra
+      // node needed. Reverted in selectTool() when leaving this tool.
+      if (t._gain) { t._gain.channelCount = 1; t._gain.channelCountMode = 'explicit'; }
+      break;
+    case 'audio-normalize':
+      nxApplyNormalizePreview(t, c, +(s.targetLufs !== undefined ? s.targetLufs : -16));
+      break;
+    case 'audio-reverse': {
+      const asset = nxAsset(c.sourceAssetId);
+      if (!asset) break;
+      const swapIn = (url) => {
+        if (!asset._originalUrl) asset._originalUrl = asset.url;
+        asset.url = url;
+        if (t._el && t._el.src !== url) {
+          const wasPlaying = t._el && !t._el.paused;
+          t._el.src = url;
+          t._el.currentTime = S.timeline.playhead;
+          if (wasPlaying) t._el.play().catch(() => {});
+        }
+      };
+      if (asset._reversedUrl) swapIn(asset._reversedUrl);
+      else nxGetReversedAssetUrl(asset).then(url => {
+        if (S.tool?.id !== 'audio-reverse' || nxClassicAudioTrack() !== t) return; // user moved on meanwhile
+        swapIn(url);
+      });
+      break;
+    }
   }
 }
 function nxSyncTrackPlaybackToPlayhead(t, time) {
@@ -9096,7 +9268,10 @@ function resetEditor() {
   if (S.timeline._playRAF) cancelAnimationFrame(S.timeline._playRAF);
   if (window._nxVinylReactorRaf) cancelAnimationFrame(window._nxVinylReactorRaf);
   S.timeline.tracks.forEach(t => { if (t._el) { t._el.pause(); t._el.src = ''; } });
-  Object.values(S.timeline.assets).forEach(a => { if (a._owned && a.url) URL.revokeObjectURL(a.url); });
+  Object.values(S.timeline.assets).forEach(a => {
+    if (a._owned && a.url) URL.revokeObjectURL(a.url);
+    if (a._reversedUrl) URL.revokeObjectURL(a._reversedUrl); // see audio-reverse live preview
+  });
   S.timeline = { assets: {}, tracks: [], zoom: 80, snap: true, ripple: false, playhead: 0, selection: [], markers: [], history: [], future: [], _seededFor: null, _playing: false };
   hideNxTimeline();
   nxSetLeftPanelTab('tools');
@@ -9108,15 +9283,14 @@ function resetEditor() {
   area.innerHTML = '';
   hideEdScrubber();
   hideStatus();
-  $('btn-dl').classList.remove('show');
   $('btn-newfile').classList.remove('show');
-  updateProcessBtn();
+  updateDownloadBtn();
   // Re-render settings to clear defaults
   if (S.tool) renderSettings(S.tool.id);
 }
 
-function updateProcessBtn() {
-  $('btn-process').disabled = !S.file || !S.tool || S.processing;
+function updateDownloadBtn() {
+  $('btn-dl').disabled = !S.file || !S.tool || S.processing;
 }
 
 // ════════════════════════════════════════════════════════════════════════════
@@ -9699,10 +9873,9 @@ async function exportMixdown() {
 
   S.processing = true;
   S.outputBlob = null;
-  updateProcessBtn();
+  updateDownloadBtn();
   showOverlay();
   hideStatus();
-  $('btn-dl').classList.remove('show');
 
   const inFiles = [];
   try {
@@ -9765,7 +9938,6 @@ async function exportMixdown() {
     setTimeout(() => {
       hideOverlay();
       showStatus('done', `✓ ${S.outputName} ready`);
-      $('btn-dl').classList.add('show');
       doDownload();
     }, 300);
 
@@ -9780,7 +9952,7 @@ async function exportMixdown() {
       try { await ff.deleteFile('mixdown.wav'); } catch {}
     } catch {}
     S.processing = false;
-    updateProcessBtn();
+    updateDownloadBtn();
   }
 }
 
@@ -9791,10 +9963,9 @@ async function runProcess() {
   if (!S.file || !S.tool || S.processing) return;
   S.processing = true;
   S.outputBlob = null;
-  updateProcessBtn();
+  updateDownloadBtn();
   showOverlay();
   hideStatus();
-  $('btn-dl').classList.remove('show');
 
   try {
     const result = S.tool.eng === 'canvas'
@@ -9810,7 +9981,6 @@ async function runProcess() {
     setTimeout(() => {
       hideOverlay();
       showStatus('done', `✓ ${S.outputName} ready`);
-      $('btn-dl').classList.add('show');
       doDownload();
     }, 300);
 
@@ -9820,7 +9990,7 @@ async function runProcess() {
     showStatus('error', '✕ ' + (err.message || 'Processing failed'));
   } finally {
     S.processing = false;
-    updateProcessBtn();
+    updateDownloadBtn();
   }
 }
 
@@ -10014,7 +10184,7 @@ document.addEventListener('keydown', e => {
   }
   if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
     e.preventDefault();
-    if (!$('btn-process').disabled) runProcess();
+    if (!$('btn-dl').disabled) runProcess();
   }
   if ((e.ctrlKey || e.metaKey) && e.key === 's' && S.outputBlob) {
     e.preventDefault();
