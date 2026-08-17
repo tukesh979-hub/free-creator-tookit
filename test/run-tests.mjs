@@ -140,6 +140,7 @@ function assertEqual(a, b, msg) { if (JSON.stringify(a) !== JSON.stringify(b)) t
 // ── Fixtures ─────────────────────────────────────────────────────────────
 const VIDEO = FIXTURES + 'test_video.mp4';
 const AUDIO = FIXTURES + 'test_audio.m4a';
+const IMAGE = FIXTURES + 'test_image.png';
 
 // ════════════════════════════════════════════════════════════════════════
 // IMPORT
@@ -536,6 +537,42 @@ async function runLinkedAudioTests() {
     assert(parsed.audioTrackCount >= 1, 'expected at least one linked audio track after extraction');
     assert(parsed.linked, 'the video clip and the extracted audio clip should reference each other via linkedClipId');
     assert(page.consoleMsgs.filter(m => /uncaught/i.test(m)).length === 0, 'no uncaught exceptions during extraction: ' + JSON.stringify(page.consoleMsgs));
+  });
+  await test('switching to a photo mid-extraction never leaks the timeline panel into photo mode', async page => {
+    // Regression test for a real bug: nxExtractLinkedAudio() runs in the
+    // background after a video loads. If the user replaces the project
+    // with a photo before that finishes, the extraction's completion used
+    // to call mountNxTimeline() unconditionally — showing the video/audio
+    // timeline panel, populated with a stale audio track, underneath a
+    // photo-editing tool. Delays ensureFFmpeg() by 1.5s (real extraction on
+    // the tiny test fixture finishes in well under 500ms, too fast to
+    // reliably race in a test) so there's a wide, deterministic window to
+    // switch files inside — no production code is touched, only this
+    // page's own copy of the function.
+    await page.gotoEditor();
+    await page.evalBlock(`
+      const _origEnsureFFmpeg = window.ensureFFmpeg;
+      window.ensureFFmpeg = (...args) => new Promise(resolve => {
+        setTimeout(() => resolve(_origEnsureFFmpeg(...args)), 1500);
+      });
+      return null;
+    `);
+    await page.setFile(VIDEO);
+    await sleep(400); // well inside the 1.5s artificial delay
+    await page.setFile(IMAGE); // triggers the "Replace File?" modal
+    await sleep(300);
+    await page.trustedClickSelector('#modal-confirm');
+    await sleep(2500); // long enough for the delayed extraction to finish
+    const r = await page.evalBlock(`
+      return JSON.stringify({
+        fileType: S.file?.type,
+        panelShowing: document.getElementById('nx-timeline')?.classList.contains('show'),
+      });
+    `);
+    const parsed = JSON.parse(r);
+    assertEqual(parsed.fileType, 'image', 'the photo should be the active project');
+    assertEqual(parsed.panelShowing, false, 'the video/audio timeline panel must never appear while a photo is active');
+    assert(page.consoleMsgs.filter(m => /uncaught/i.test(m)).length === 0, 'no uncaught exceptions: ' + JSON.stringify(page.consoleMsgs));
   });
   // Graceful degradation (no audio stream in the source, or FFmpeg
   // unavailable) is handled by nxExtractLinkedAudio's own try/catch and the

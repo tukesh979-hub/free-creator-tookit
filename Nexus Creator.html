@@ -6632,10 +6632,23 @@ async function nxExtractLinkedAudio(videoClip) {
   if (!S.file || !S.file.file) return;
   const asset = nxAsset(videoClip.sourceAssetId);
   if (!asset) return;
-  let ff, inFile = 'link_in.' + ((S.file.name.split('.').pop() || 'mp4').toLowerCase());
+  // All captured up front, together: this async work always processes the
+  // video it was actually started for (not whatever S.file happens to
+  // point to by the time each `await` resumes), and originalFileUrl lets
+  // us tell afterward whether the user has since replaced the project
+  // with something else entirely (e.g. a photo). videoClip staying
+  // present in S.timeline.tracks isn't enough on its own to prove that —
+  // loading a photo never clears the timeline's track/asset data (there's
+  // nothing for a photo to seed), so a stale video clip from a prior
+  // project can look "still there" even though S.file has long since
+  // moved on.
+  const originalFileUrl = S.file.url;
+  const originalFile = S.file.file;
+  const originalFileName = S.file.name;
+  let ff, inFile = 'link_in.' + ((originalFileName.split('.').pop() || 'mp4').toLowerCase());
   try {
     ff = await ensureFFmpeg();
-    await ff.writeFile(inFile, await UtilModule.fetchFile(S.file.file));
+    await ff.writeFile(inFile, await UtilModule.fetchFile(originalFile));
     await ff.exec(['-i', inFile, '-vn', '-acodec', 'libmp3lame', '-q:a', '2', 'link_out.mp3']);
     const data = await ff.readFile('link_out.mp3');
     try { await ff.deleteFile(inFile); } catch (_) {}
@@ -6644,7 +6657,7 @@ async function nxExtractLinkedAudio(videoClip) {
     // The video track may have been rebuilt/reset while extraction ran
     // (user loaded a different file) — bail rather than attach audio to
     // a clip that no longer belongs to the current project.
-    if (!nxClip(videoClip.id)) return;
+    if (S.file?.url !== originalFileUrl || !nxClip(videoClip.id)) return;
     const url = URL.createObjectURL(new Blob([data], { type: 'audio/mpeg' }));
     const audioAssetId = uid();
     S.timeline.assets[audioAssetId] = { id: audioAssetId, type: 'audio', name: asset.name + ' (audio)', url, duration: asset.duration, _owned: true };
@@ -6889,6 +6902,16 @@ function nxCleanupDrag() {
 function mountNxTimeline() {
   const panel = $('nx-timeline');
   if (!panel) return;
+  // The timeline is video/audio-only UI. Guarded here — not just at each
+  // call site — because any caller (present or future) calling this while
+  // a photo project is active would otherwise unconditionally reveal the
+  // panel below, populated with whatever stale tracks/assets are still
+  // sitting in S.timeline from the last video/audio project (nothing
+  // clears that state when a photo loads, since a photo has no timeline
+  // of its own to seed). Concretely: a video's background linked-audio
+  // extraction (nxExtractLinkedAudio) finishing after the user has already
+  // switched to a photo used to do exactly this.
+  if (S.file && S.file.type !== 'video' && S.file.type !== 'audio') { hideNxTimeline(); return; }
   nxEnsureTimeline();
   panel.classList.add('show');
   nxCleanupDrag();
