@@ -629,10 +629,35 @@ footer{background:var(--bg2);border-top:1px solid var(--border);padding:48px 20p
    S.file.type. Disabled rather than hidden so it's clear why. */
 .cat-btn:disabled{opacity:.3;cursor:not-allowed;pointer-events:none}
 
+/* ═══════════ PANEL RESIZERS ═══════════
+   Thin drag handles between the editor's major regions — replaces what
+   used to be a plain 1px static border, so the resizer itself draws that
+   divider line (rest state == var(--border), same as before) and only
+   changes on hover/drag. flex-shrink:0 so it never gets squeezed by its
+   neighbors; sits between the two panels it resizes in DOM order. */
+.panel-resizer{flex-shrink:0;position:relative;background:var(--border);z-index:5;transition:background var(--transition)}
+.panel-resizer.resizer-x{width:5px;cursor:col-resize}
+.panel-resizer.resizer-y{height:5px;cursor:row-resize}
+.panel-resizer:hover,.panel-resizer.dragging{background:var(--red)}
+/* Wider invisible hit-area than the visible line, so it's easy to grab
+   without needing pixel-perfect aim on a 5px sliver. */
+.panel-resizer.resizer-x::before{content:'';position:absolute;top:0;bottom:0;left:-4px;right:-4px}
+.panel-resizer.resizer-y::before{content:'';position:absolute;left:0;right:0;top:-4px;bottom:-4px}
+body.resizing-x,body.resizing-x *{cursor:col-resize!important;user-select:none!important}
+body.resizing-y,body.resizing-y *{cursor:row-resize!important;user-select:none!important}
+
 .ed-tools{
-  width:224px;background:var(--bg2);border-right:1px solid var(--border);
+  width:224px;background:var(--bg2);
   overflow-y:auto;flex-shrink:0
 }
+/* Sidebar tool list — grouped by TOOLS[].group (Basic/Optimization/Audio/
+   Effects/Utility) instead of one undifferentiated list; the field already
+   existed in the data, this just gives it a visual expression. */
+.tool-group-lbl{
+  padding:14px 18px 4px;font-family:var(--mono);font-size:11px;font-weight:700;
+  letter-spacing:1.5px;color:var(--dim);text-transform:uppercase
+}
+.tool-group-lbl:not(:first-child){margin-top:6px;padding-top:14px;border-top:1px solid var(--border)}
 .ed-tools-lbl{padding:14px 18px 8px;font-family:var(--mono);font-size:15px;letter-spacing:2px;color:var(--dim);text-transform:uppercase}
 .ed-tools-tabs{display:flex;border-bottom:1px solid var(--border)}
 .ed-tools-tab{flex:1;padding:11px 0;font-family:var(--mono);font-size:13px;font-weight:700;letter-spacing:1px;
@@ -739,6 +764,25 @@ footer{background:var(--bg2);border-top:1px solid var(--border);padding:48px 20p
   flex-wrap:wrap;justify-content:center;pointer-events:none
 }
 .preview-meta span{display:flex;align-items:center;gap:4px}
+
+/* Compact live audio meter — shown on top of the video preview once the
+   timeline has a real audio track (own embedded audio, linked-extraction,
+   or an imported track), so playback shows real audio activity alongside
+   the picture instead of audio being audible-only. Reuses .reactor-bar
+   (see the vinyl player's audio-reactor) at a smaller scale, driven by
+   the exact same real-FFT nxVinylReactorTick loop — not a separate fake
+   animation — since only one of {vinyl player, this meter} is ever
+   mounted at a time (mutually exclusive by S.file.type). */
+.vid-audio-meter{
+  position:absolute;top:18px;right:18px;z-index:3;display:none;align-items:center;gap:8px;
+  padding:7px 10px;background:color-mix(in srgb, var(--bg2) 82%, transparent);
+  border:1px solid var(--border);border-radius:var(--r-md);backdrop-filter:blur(6px);
+  max-width:calc(100% - 36px);pointer-events:none
+}
+.vam-bars{display:flex;align-items:flex-end;gap:2px;height:20px;flex-shrink:0}
+.vam-bars .reactor-bar{width:2.5px;min-height:3px}
+.vam-name{font-family:var(--mono);font-size:11px;color:var(--muted);letter-spacing:.3px;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:160px}
 /* legacy card kept for fallback */
 .audio-card{background:var(--bg3);border:1px solid var(--border);padding:10px 12px;display:flex;align-items:center;gap:10px;width:100%;max-width:400px;border-radius:6px}
 .audio-thumb{width:36px;height:36px;background:var(--bg4);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;color:var(--red);flex-shrink:0;border-radius:6px}
@@ -1138,8 +1182,8 @@ footer{background:var(--bg2);border-top:1px solid var(--border);padding:48px 20p
    transport as the editor's single timeline for both video and audio
    editing. Three zones: toolbar, sticky time ruler, track headers (fixed
    left column) + scrolling lanes holding N clips per track. */
-.nx-timeline{display:none;flex-direction:column;height:43vh;min-height:280px;max-height:600px;
-  border-top:1px solid var(--border);background:var(--bg2);flex-shrink:0;overflow:hidden}
+.nx-timeline{display:none;flex-direction:column;height:43vh;min-height:200px;max-height:80vh;
+  background:var(--bg2);flex-shrink:0;overflow:hidden}
 .nx-timeline.show{display:flex}
 
 .nxt-toolbar{display:flex;align-items:center;gap:4px;padding:6px 10px;
@@ -1321,7 +1365,7 @@ footer{background:var(--bg2);border-top:1px solid var(--border);padding:48px 20p
 
 /* Right settings panel */
 .ed-right{
-  width:344px;background:var(--bg2);border-left:1px solid var(--border);
+  width:344px;background:var(--bg2);
   display:flex;flex-direction:column;overflow:hidden;flex-shrink:0
 }
 .er-head{padding:16px 20px;border-bottom:1px solid var(--border)}
@@ -2106,6 +2150,8 @@ input[type=color].s-input{height:38px;padding:3px;cursor:pointer}
     <div id="ed-media-bin" style="display:none"></div>
   </div>
 
+  <div class="panel-resizer resizer-x" id="pr-tools" role="separator" aria-orientation="vertical" aria-label="Resize tool panel" tabindex="0"></div>
+
   <!-- Center main area -->
   <div class="ed-main">
     <!-- Persistent Before/After compare bar — shown for photo-effects only -->
@@ -2145,6 +2191,7 @@ input[type=color].s-input{height:38px;padding:3px;cursor:pointer}
         <div class="proc-pct" id="proc-pct">0%</div>
       </div>
     </div>
+    <div class="panel-resizer resizer-y" id="pr-timeline" role="separator" aria-orientation="horizontal" aria-label="Resize timeline panel" tabindex="0"></div>
     <div class="ed-scrub" id="ed-scrub">
       <button class="ed-scrub-play" id="ed-scrub-play" aria-label="Play">
         <svg id="ed-scrub-play-ico" width="9" height="9" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
@@ -2159,6 +2206,8 @@ input[type=color].s-input{height:38px;padding:3px;cursor:pointer}
     <div class="nx-timeline" id="nx-timeline"></div>
     <div class="ed-status" id="ed-status" role="status" aria-live="polite"></div>
   </div>
+
+  <div class="panel-resizer resizer-x" id="pr-right" role="separator" aria-orientation="vertical" aria-label="Resize inspector panel" tabindex="0"></div>
 
   <!-- Right settings panel -->
   <div class="ed-right" id="ed-right">
@@ -2784,9 +2833,17 @@ function renderToolList() {
     return;
   }
   const tools = byCat(S.cat);
-  $('ed-tool-list').innerHTML = tools.map(t => `
+  // Grouped by TOOLS[].group in first-seen order (Basic/Optimization/Audio/
+  // Effects/…) instead of one flat list — the field already existed in the
+  // data and was previously read nowhere in this render path.
+  let lastGroup = null;
+  $('ed-tool-list').innerHTML = tools.map(t => {
+    const header = t.group !== lastGroup ? `<div class="tool-group-lbl">${t.group}</div>` : '';
+    lastGroup = t.group;
+    return header + `
     <button class="tool-btn ${S.tool && S.tool.id === t.id ? 'active' : ''}" role="listitem"
-      onclick="selectTool(byId('${t.id}'))" aria-label="${t.label}">${t.label}</button>`).join('');
+      onclick="selectTool(byId('${t.id}'))" aria-label="${t.label}">${t.label}</button>`;
+  }).join('');
 }
 
 function selectTool(tool) {
@@ -7734,6 +7791,8 @@ function nxBindVideoElement() {
       if (t._el) { t._el.volume = Math.min(1, t.volume / 100); if (t._activeClip) t._el.play().catch(() => {}); }
     });
     const b = $('nxt-play-btn'); if (b) b.innerHTML = NXT_ICON.pause;
+    // Same real-FFT reactor loop the vinyl player uses — see nxRenderVideoAudioMeterHTML.
+    nxStartVinylReactorLoop();
   });
   vid.addEventListener('pause', () => {
     S.timeline._playing = false;
@@ -7819,6 +7878,7 @@ function nxUpdatePlayheadUI() {
   if (timeEl) timeEl.textContent = `${fmtTime(S.timeline.playhead)} / ${fmtTime(nxDuration())}`;
   nxCompositorSync();
   nxUpdateVinylUI();
+  nxUpdateVideoAudioMeter();
 }
 
 // ════════════════════════════════════════════════════════════════════════
@@ -8856,6 +8916,37 @@ function nxUpdateVinylUI() {
   const player = $('vinyl-player');
   if (player) player.classList.toggle('playing', !!S.timeline._playing);
 }
+const NXT_VIDEO_METER_BAR_COUNT = 28;
+// Compact live audio meter markup for the video preview — same purpose as
+// the vinyl player's .audio-reactor, just smaller and without the record/
+// album chrome that only makes sense in audio-only mode. Always rendered
+// (even before any audio track exists — e.g. before linked-audio
+// extraction finishes) and toggled via display:none/flex in
+// nxUpdateVideoAudioMeter(), rather than re-created each time a track
+// appears — a plain video with no audio at all just leaves it hidden.
+function nxRenderVideoAudioMeterHTML() {
+  const bars = Array.from({ length: NXT_VIDEO_METER_BAR_COUNT }, () => `<div class="reactor-bar" style="height:3px"></div>`).join('');
+  return `<div class="vid-audio-meter" id="vid-audio-meter">
+    <div class="vam-bars">${bars}</div>
+    <span class="vam-name" id="vam-name"></span>
+  </div>`;
+}
+// Called from nxUpdatePlayheadUI (the same central hook nxUpdateVinylUI
+// uses) so the meter's visibility/label are always exactly as fresh as
+// the playhead itself — including the moment linked-audio extraction
+// finishes and mountNxTimeline() re-runs mid-project.
+function nxUpdateVideoAudioMeter() {
+  const el = $('vid-audio-meter');
+  if (!el) return;
+  const active = nxVinylActiveClip();
+  if (!active) { el.style.display = 'none'; return; }
+  el.style.display = 'flex';
+  el.style.setProperty('--track-color', active.track.color || 'var(--red)');
+  const asset = nxAsset(active.clip.sourceAssetId);
+  const label = asset ? nxCleanTitle(asset.name) : 'Audio';
+  const nameEl = $('vam-name');
+  if (nameEl && nameEl.textContent !== label) nameEl.textContent = label;
+}
 // A second AnalyserNode dedicated to the reactor (separate from
 // nxEnsureTrackAnalyser's ducking tap) so the reactor's fftSize=128 /
 // smoothingTimeConstant tuning can't affect ducking's RMS precision —
@@ -8934,7 +9025,13 @@ function renderPreview() {
         <video id="preview-vid" src="${f.url}" playsinline></video>
         <div id="vid-overlay" class="vid-overlay"></div>
       </div>
+      ${nxRenderVideoAudioMeterHTML()}
       <div class="preview-meta">${meta}</div>`;
+    // Real audio+video live preview: the meter's bars become the reactor
+    // loop's target (see nxStartVinylReactorLoop in nxBindVideoElement's
+    // 'play' listener) — hidden via nxUpdateVideoAudioMeter() until a real
+    // audio track exists (own embedded audio, linked-extraction, or import).
+    window._nxVinylBarEls = Array.from(area.querySelectorAll('.reactor-bar'));
     // Apply any tool-specific live preview immediately after render
     requestAnimationFrame(applyLivePreview);
     // Unified timeline mounts below the preview once the <video> element
@@ -10080,6 +10177,90 @@ function initAudioBanner() {
 // ════════════════════════════════════════════════════════════════════════════
 // INIT
 // ════════════════════════════════════════════════════════════════════════════
+// ════════════════════════════════════════════════════════════════════════════
+// PANEL RESIZERS — drag .ed-tools / .ed-right width and .nx-timeline height
+// ════════════════════════════════════════════════════════════════════════════
+// One generic driver for all three dividers: each .panel-resizer element
+// (see the HTML around .ed-tools/.ed-main/.ed-right/.nx-timeline) resizes
+// exactly one target element along one axis. Pointer-capture so the drag
+// keeps tracking even if the cursor leaves the thin handle mid-move, same
+// pattern already used elsewhere in this file (crop handles, clip trim).
+const PANEL_RESIZE_CONFIGS = [
+  // Dragging the tools|main divider right grows .ed-tools (not inverted).
+  { handle: 'pr-tools',    target: 'ed-tools',   axis: 'x', prop: 'width',  min: 180, max: 460, invert: false, storageKey: 'nx-panel-tools-w' },
+  // Dragging the main|right divider left grows .ed-right (inverted).
+  { handle: 'pr-right',    target: 'ed-right',   axis: 'x', prop: 'width',  min: 260, max: 620, invert: true,  storageKey: 'nx-panel-right-w' },
+  // Dragging the divider up grows .nx-timeline (inverted).
+  { handle: 'pr-timeline', target: 'nx-timeline',axis: 'y', prop: 'height', min: 200, max: 0,   invert: true,  storageKey: 'nx-panel-timeline-h' },
+];
+function nxClamp(v, min, max) { return Math.max(min, Math.min(max, v)); }
+function initPanelResizers() {
+  PANEL_RESIZE_CONFIGS.forEach(cfg => {
+    const handle = $(cfg.handle), target = $(cfg.target);
+    if (!handle || !target) return;
+    // Timeline's max is viewport-relative (leave room for toolbar/preview above
+    // it), so it's computed fresh on every drag start rather than being a fixed
+    // constant like the two width configs.
+    const getMax = () => cfg.max || Math.round(window.innerHeight * 0.75);
+    // Restore a previously-dragged size before first paint reads it.
+    if (cfg.storageKey) {
+      const saved = parseFloat(localStorage.getItem(cfg.storageKey));
+      if (!isNaN(saved)) target.style[cfg.prop] = nxClamp(saved, cfg.min, getMax()) + 'px';
+    }
+    let dragging = false, startPos = 0, startSize = 0;
+    const axisProp = cfg.axis === 'x' ? 'width' : 'height';
+    const onDown = e => {
+      dragging = true;
+      startPos = cfg.axis === 'x' ? e.clientX : e.clientY;
+      startSize = target.getBoundingClientRect()[axisProp];
+      handle.classList.add('dragging');
+      document.body.classList.add(cfg.axis === 'x' ? 'resizing-x' : 'resizing-y');
+      try { handle.setPointerCapture(e.pointerId); } catch (_) {}
+      e.preventDefault();
+    };
+    const onMove = e => {
+      if (!dragging) return;
+      const delta = (cfg.axis === 'x' ? e.clientX : e.clientY) - startPos;
+      const next = nxClamp(startSize + (cfg.invert ? -delta : delta), cfg.min, getMax());
+      target.style[cfg.prop] = next + 'px';
+    };
+    const onUp = () => {
+      if (!dragging) return;
+      dragging = false;
+      handle.classList.remove('dragging');
+      document.body.classList.remove('resizing-x', 'resizing-y');
+      if (cfg.storageKey) {
+        try { localStorage.setItem(cfg.storageKey, parseFloat(target.style[cfg.prop])); } catch (_) {}
+      }
+    };
+    // Keyboard: arrow keys nudge by 16px, focusable via tabindex on the handle.
+    const onKey = e => {
+      const step = 16;
+      let delta = 0;
+      if (cfg.axis === 'x' && e.key === 'ArrowLeft') delta = -step;
+      else if (cfg.axis === 'x' && e.key === 'ArrowRight') delta = step;
+      else if (cfg.axis === 'y' && e.key === 'ArrowUp') delta = -step;
+      else if (cfg.axis === 'y' && e.key === 'ArrowDown') delta = step;
+      else return;
+      e.preventDefault();
+      const cur = target.getBoundingClientRect()[axisProp];
+      const next = nxClamp(cur + (cfg.invert ? -delta : delta), cfg.min, getMax());
+      target.style[cfg.prop] = next + 'px';
+      if (cfg.storageKey) { try { localStorage.setItem(cfg.storageKey, next); } catch (_) {} }
+    };
+    handle.addEventListener('pointerdown', onDown);
+    handle.addEventListener('pointermove', onMove);
+    handle.addEventListener('pointerup', onUp);
+    handle.addEventListener('pointercancel', onUp);
+    handle.addEventListener('keydown', onKey);
+    // Double-click resets to the CSS default for that panel.
+    handle.addEventListener('dblclick', () => {
+      target.style[cfg.prop] = '';
+      if (cfg.storageKey) { try { localStorage.removeItem(cfg.storageKey); } catch (_) {} }
+    });
+  });
+}
+
 document.addEventListener('DOMContentLoaded', () => {
   applyTheme(S.theme);
   renderHomeGrids();
@@ -10092,6 +10273,7 @@ document.addEventListener('DOMContentLoaded', () => {
   initQAFaders();
   initAudioWaveHero();
   initSystemStatus();
+  initPanelResizers();
 
   if (typeof SharedArrayBuffer === 'undefined') {
     setStatus('partial', 'Photo only');
