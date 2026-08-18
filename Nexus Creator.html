@@ -7997,7 +7997,18 @@ function nxDrivePlaybackClock() {
   const lead = S.timeline.tracks.find(t => t.type === 'audio' && t._el && !t._el.paused && t._activeClip);
   if (lead) {
     const c = lead._activeClip;
-    S.timeline.playhead = c.startTime + (lead._el.currentTime - c.sourceStart);
+    // el.currentTime advances at `speed` (that's what playbackRate does) but
+    // S.timeline.playhead is a timeline-seconds clock — dividing by speed here
+    // is what keeps this in sync with nxSyncTrackPlaybackToPlayhead's own
+    // (timeIntoClip * speed) source-time formula below. Skipping the divide
+    // (as this used to) makes the two formulas agree only at speed===1; at
+    // any other speed each frame computes a "corrected" sourceTime that's
+    // already wrong again next frame, so t._el.currentTime gets reassigned
+    // (a real seek) on literally every animation frame — 60 forced seeks/sec
+    // pins the main thread and hangs the tab. Not hypothetical: this is
+    // exactly what froze audio-speed's live preview.
+    const speed = c.speed || 1;
+    S.timeline.playhead = c.startTime + (lead._el.currentTime - c.sourceStart) / speed;
   } else {
     S.timeline.playhead += 1 / 30;
   }

@@ -77,8 +77,16 @@ class Page {
     await this.eval(`goPage('editor')`);
     await sleep(200);
   }
+  // timeoutMs actually bounds the wait (Promise.race) instead of just being
+  // an accepted-but-ignored option — without this, a genuinely hung page
+  // (main thread pinned, e.g. by a runaway per-frame seek loop) makes the
+  // CDP response never arrive, so `await this.send(...)` hangs forever and
+  // takes the whole suite down with it instead of failing that one test.
   async eval(expr, { awaitPromise = false, timeoutMs = 15000 } = {}) {
-    const r = await this.send('Runtime.evaluate', { expression: expr, returnByValue: true, awaitPromise });
+    const r = await Promise.race([
+      this.send('Runtime.evaluate', { expression: expr, returnByValue: true, awaitPromise }),
+      sleep(timeoutMs).then(() => { throw new Error(`eval timed out after ${timeoutMs}ms — page is likely hung/unresponsive`); }),
+    ]);
     if (r.exceptionDetails) throw new Error(r.exceptionDetails.text + ' :: ' + (r.exceptionDetails.exception?.description || ''));
     return r.result?.value;
   }
@@ -856,6 +864,92 @@ async function runVinylTests() {
   });
 }
 // ════════════════════════════════════════════════════════════════════════
+// CLASSIC AUDIO-TOOL LIVE PREVIEW
+// ════════════════════════════════════════════════════════════════════════
+// Regression coverage for a real hang: nxDrivePlaybackClock derived
+// S.timeline.playhead from the playing element's currentTime WITHOUT
+// dividing by clip.speed, while nxSyncTrackPlaybackToPlayhead's sourceTime
+// formula DOES multiply by speed — the two only agreed at speed===1. At
+// any other speed the "corrected" sourceTime was wrong again every single
+// frame, so it force-seeked the <audio> element every frame — 60 real
+// seeks/sec pins the main thread and hangs the tab. Unreachable before the
+// classic single-tool audio-speed panel started actually setting
+// clip.speed away from 1 during live playback.
+async function runClassicAudioLivePreviewTests() {
+  console.log('\n=== Classic audio-tool live preview ===');
+  await test('changing speed while playing never hangs the page, at any speed in range', async page => {
+    await page.gotoEditor(); await page.warmUpActivation(); await page.setFile(AUDIO); await sleep(1500);
+    await page.evalBlock(`selectTool(byId('audio-speed'));`);
+    await sleep(150); // let selectTool's own delayed default-apply settle first
+    await page.eval(`nxTogglePlay();`);
+    for (const rate of [2, 4, 0.25, 1.5, 1]) {
+      // setS() is the exact function the real slider's oninput calls — a
+      // short, bounded eval; if the bug were back, this specific call is
+      // what would hang (Page.eval's timeoutMs now actually enforces
+      // that, see its own comment), failing this test instead of the
+      // whole suite.
+      await page.evalBlock(`setS('speed', ${rate});`, { timeoutMs: 3000 });
+      await sleep(250);
+    }
+    const responsive = await page.eval(`1+1`, { timeoutMs: 3000 });
+    assertEqual(responsive, 2, 'page must still be responsive after cycling through every speed while playing');
+  });
+  await test('playhead and el.currentTime stay proportional to speed — no drift-correction seek storm', async page => {
+    await page.gotoEditor(); await page.warmUpActivation(); await page.setFile(AUDIO); await sleep(1500);
+    await page.evalBlock(`selectTool(byId('audio-speed'));`);
+    await sleep(150); // let selectTool's own delayed default-apply (1.5x) settle before we set 2x, or it wins the race and overwrites us
+    await page.evalBlock(`setS('speed', 2);`);
+    await page.eval(`nxTogglePlay();`);
+    await sleep(1200);
+    const r = await page.evalBlock(`
+      const t = S.timeline.tracks.find(x => x.type === 'audio');
+      return JSON.stringify({ playhead: S.timeline.playhead, elCurrentTime: t._el.currentTime, playing: S.timeline._playing, rate: t._el.playbackRate });
+    `, { timeoutMs: 3000 });
+    const parsed = JSON.parse(r);
+    assert(parsed.playing, 'should still be playing after 1.2s at 2x speed');
+    assertEqual(parsed.rate, 2, 'the live element playbackRate should actually be 2');
+    // el.currentTime should be ~2x playhead (playbackRate=2), within timing slack —
+    // NOT wildly diverged/reset, which is what the seek-storm bug produced.
+    const ratio = parsed.elCurrentTime / parsed.playhead;
+    assert(ratio > 1.6 && ratio < 2.4, `elCurrentTime/playhead should track speed (~2x), got ${ratio.toFixed(2)} (playhead=${parsed.playhead}, elCurrentTime=${parsed.elCurrentTime})`);
+  });
+  await test('mono forces a live channel downmix and reverts cleanly on leaving the tool', async page => {
+    await page.gotoEditor(); await page.setFile(AUDIO); await sleep(1500);
+    await page.evalBlock(`selectTool(byId('audio-mono'));`);
+    await sleep(150); // let the delayed default-apply (this tool has no slider — it only applies via that timeout) actually run
+    const r1 = await page.evalBlock(`
+      const t = S.timeline.tracks.find(x => x.type === 'audio');
+      return JSON.stringify({ channelCount: t._gain?.channelCount, mode: t._gain?.channelCountMode });
+    `);
+    assertEqual(JSON.parse(r1), { channelCount: 1, mode: 'explicit' }, 'mono tool should force a live 1-channel downmix');
+    await page.evalBlock(`selectTool(byId('audio-volume'));`);
+    await sleep(150);
+    const r2 = await page.evalBlock(`
+      const t = S.timeline.tracks.find(x => x.type === 'audio');
+      return JSON.stringify({ channelCount: t._gain?.channelCount, mode: t._gain?.channelCountMode });
+    `);
+    assertEqual(JSON.parse(r2), { channelCount: 2, mode: 'max' }, 'leaving mono must restore normal stereo, or every other tool inherits the downmix');
+  });
+  await test('reverse swaps in a genuinely reversed asset and reverts on leaving the tool', async page => {
+    await page.gotoEditor(); await page.setFile(AUDIO); await sleep(1500);
+    await page.evalBlock(`selectTool(byId('audio-reverse'));`);
+    await sleep(2000); // decode + reverse the buffer
+    const r1 = await page.evalBlock(`
+      const t = S.timeline.tracks.find(x => x.type === 'audio');
+      const asset = S.timeline.assets[t.clips[0].sourceAssetId];
+      return JSON.stringify({ swapped: asset.url === asset._reversedUrl, hasReversed: !!asset._reversedUrl });
+    `);
+    assertEqual(JSON.parse(r1), { swapped: true, hasReversed: true }, 'reverse tool should swap the live asset onto a real reversed buffer');
+    const r2 = await page.evalBlock(`
+      selectTool(byId('audio-volume'));
+      const t = S.timeline.tracks.find(x => x.type === 'audio');
+      const asset = S.timeline.assets[t.clips[0].sourceAssetId];
+      return JSON.stringify({ restored: asset.url === asset._originalUrl });
+    `);
+    assertEqual(JSON.parse(r2), { restored: true }, 'leaving reverse must restore the original asset, or every other tool inherits reversed audio');
+  });
+}
+// ════════════════════════════════════════════════════════════════════════
 // EDGE CASES
 // ════════════════════════════════════════════════════════════════════════
 async function runEdgeCaseTests() {
@@ -949,6 +1043,7 @@ async function main() {
   await runExportTests();
   await runDspTests();
   await runVinylTests();
+  await runClassicAudioLivePreviewTests();
   await runEdgeCaseTests();
   await runReloadTest();
 
