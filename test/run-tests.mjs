@@ -181,6 +181,45 @@ async function runImportTests() {
     const fileIsStillAudio = await page.eval(`S.file && S.file.type === 'audio'`);
     assert(fileIsStillAudio, 'file should not have been silently replaced without confirming the modal');
   });
+  await test('replacing the file while its audio is actively playing stops the old track for good', async page => {
+    // Regression test: nxEnsureTimeline() used to wipe S.timeline.tracks on
+    // file replace without ever pausing the outgoing track's <audio>
+    // element. That element's WebAudio graph (createMediaElementSource ->
+    // ... -> actx.destination) keeps it alive and producing sound even once
+    // nothing in JS references the track object anymore, so replacing a
+    // file while it was playing left the OLD file's audio playing forever
+    // in the background — the new file loaded silently on top of it.
+    await page.gotoEditor();
+    await page.setFile(AUDIO);
+    await sleep(1000);
+    await page.trustedClickSelector('#vinyl-play-btn');
+    await sleep(800);
+    const before = JSON.parse(await page.evalBlock(`
+      window._oldTrack = S.timeline.tracks.find(t => t.type === 'audio');
+      window._oldEl = window._oldTrack._el;
+      return JSON.stringify({ playing: S.timeline._playing, elPaused: window._oldEl ? window._oldEl.paused : 'no-el' });
+    `));
+    assertEqual(before, { playing: true, elPaused: false }, 'old track should genuinely be playing before replace');
+
+    await page.setFile(AUDIO); // triggers the modal again (a second load of the same file is still a "replace")
+    await sleep(300);
+    await page.trustedClickSelector('#modal-confirm');
+    await sleep(600);
+
+    const after = JSON.parse(await page.evalBlock(`
+      return JSON.stringify({
+        newTrackIsDifferentObject: S.timeline.tracks.find(t => t.type === 'audio') !== window._oldTrack,
+        oldElPaused: window._oldEl.paused,
+        oldElCurrentTimeSnapshot: window._oldEl.currentTime,
+      });
+    `));
+    assert(after.newTrackIsDifferentObject, 'replace should build a fresh track, not reuse the old one');
+    assert(after.oldElPaused, 'the outgoing track\'s <audio> element must be paused on replace');
+
+    await sleep(1200); // if the old element were still silently playing, currentTime would keep advancing
+    const stillFrozen = await page.eval(`window._oldEl.currentTime === ${after.oldElCurrentTimeSnapshot}`);
+    assert(stillFrozen, 'old track audio must not still be advancing/playing after replace');
+  });
 }
 
 // ════════════════════════════════════════════════════════════════════════

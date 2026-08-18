@@ -6603,6 +6603,22 @@ function nxDefaultTrackFx() {
     duck:    { enabled: false, againstTrackId: null, amount: 12, threshold: -30 }, // dB reduction when sidechain is loud
   };
 }
+// Fully stops a track's live audio. Pausing is the part that actually
+// matters — an <audio> element whose src is wired into a WebAudio graph
+// (createMediaElementSource → gain → pan → actx.destination, see
+// nxEnsureTrackAudioEl) is kept alive by that graph and keeps producing
+// sound even after every JS reference to the track object is dropped
+// (e.g. S.timeline.tracks reassigned to a fresh array on file replace) —
+// disconnecting the nodes alone does NOT silence an already-playing
+// element. Call this on every code path that discards a track object.
+function nxTeardownTrackAudio(t) {
+  if (t._el) { try { t._el.pause(); } catch (_) {} try { t._el.src = ''; } catch (_) {} }
+  if (t._gain) try { t._gain.disconnect(); } catch (_) {}
+  if (t._duckGain) try { t._duckGain.disconnect(); } catch (_) {}
+  if (t._pan) try { t._pan.disconnect(); } catch (_) {}
+  if (t._analyser) try { t._analyser.disconnect(); } catch (_) {}
+  (t._fxNodes || []).forEach(n => { try { n.disconnect(); } catch (_) {} });
+}
 function nxMakeClip(sourceAssetId, trackId, opts) {
   opts = opts || {};
   return {
@@ -6684,6 +6700,15 @@ function nxEnsureTimeline() {
   const type = S.file.type === 'video' ? 'video' : (S.file.type === 'audio' ? 'audio' : null);
   if (!type) return;
   if (S.timeline._seededFor === S.file.url && S.timeline.tracks.length) return;
+  // Replacing the file: stop the OLD project's audio before dropping the
+  // references to it. Without this, a track that's actively playing when
+  // the user replaces the file keeps playing indefinitely in the
+  // background — its WebAudio graph holds the <audio> element alive even
+  // though S.timeline.tracks no longer points to it (see
+  // nxTeardownTrackAudio for why).
+  if (S.timeline._playRAF) { cancelAnimationFrame(S.timeline._playRAF); S.timeline._playRAF = null; }
+  S.timeline._playing = false;
+  S.timeline.tracks.forEach(nxTeardownTrackAudio);
   Object.values(S.timeline.assets).forEach(a => {
     if (a._owned && a.url) URL.revokeObjectURL(a.url);
     if (a._reversedUrl) URL.revokeObjectURL(a._reversedUrl); // see audio-reverse live preview
@@ -7385,6 +7410,7 @@ function nxAddTextClip() {
 function nxDeleteTrack(id) {
   const t = nxTrack(id);
   if (!t || t.locked) return;
+  nxTeardownTrackAudio(t); // otherwise a playing track keeps making sound after being deleted
   nxWithHistory(() => { S.timeline.tracks = S.timeline.tracks.filter(tt => tt.id !== id); });
   mountNxTimeline();
 }
@@ -9265,7 +9291,7 @@ function resetEditor() {
   // Tear down any mixer track <audio> elements + revoke their blob URLs —
   // track 0 shares S.file.url (already revoked above), skip double-revoke.
   S.tracks.forEach((t, i) => {
-    if (t._el) { t._el.pause(); t._el.src = ''; }
+    nxTeardownTrackAudio(t);
     if (i > 0 && t.url) URL.revokeObjectURL(t.url);
   });
   S.tracks = [];
@@ -9278,7 +9304,7 @@ function resetEditor() {
   nxCompositorTeardown();
   if (S.timeline._playRAF) cancelAnimationFrame(S.timeline._playRAF);
   if (window._nxVinylReactorRaf) cancelAnimationFrame(window._nxVinylReactorRaf);
-  S.timeline.tracks.forEach(t => { if (t._el) { t._el.pause(); t._el.src = ''; } });
+  S.timeline.tracks.forEach(nxTeardownTrackAudio);
   Object.values(S.timeline.assets).forEach(a => {
     if (a._owned && a.url) URL.revokeObjectURL(a.url);
     if (a._reversedUrl) URL.revokeObjectURL(a._reversedUrl); // see audio-reverse live preview
