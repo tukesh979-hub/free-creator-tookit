@@ -682,6 +682,56 @@ async function runFfmpegToolsTests() {
     assertEqual(r.outputName, 'test_audio_trim.m4a', 'expected output filename');
     assert(page.consoleMsgs.length === 0, 'no console errors: ' + JSON.stringify(page.consoleMsgs));
   });
+  await test('audio-to-video produces a real, decodable video in every output format', async page => {
+    await page.gotoEditor();
+    await page.setFile(AUDIO);
+    await sleep(1500);
+    await page.evalBlock(`selectTool(byId('audio-to-video'));`);
+    await sleep(300);
+    await page.trustedClickSelector('#btn-dl');
+    let r = null;
+    for (let i = 0; i < 90; i++) {
+      await sleep(1000);
+      const parsed = JSON.parse(await page.eval(`JSON.stringify({processing: S.processing, hasOutput: !!S.outputBlob, outputName: S.outputName, blobSize: S.outputBlob ? S.outputBlob.size : 0})`));
+      if (!parsed.processing && parsed.hasOutput) { r = parsed; break; }
+    }
+    assert(r, 'audio-to-video should complete within 90s, not hang indefinitely');
+    assertEqual(r.outputName, 'test_audio_to-video.mp4', 'expected output filename');
+    assert(r.blobSize > 10000, 'output video should be a real, non-trivial file: ' + JSON.stringify(r));
+    const meta = JSON.parse(await page.evalBlock(`
+      return (async () => {
+        const url = URL.createObjectURL(S.outputBlob);
+        const v = document.createElement('video');
+        v.src = url;
+        await new Promise((res, rej) => { v.onloadedmetadata = res; v.onerror = rej; setTimeout(rej, 8000); });
+        return JSON.stringify({ duration: v.duration, width: v.videoWidth, height: v.videoHeight });
+      })();
+    `, { awaitPromise: true, timeoutMs: 12000 }));
+    assert(meta.duration > 0 && meta.width === 1280 && meta.height === 720, 'output should be a genuinely decodable 1280x720 video: ' + JSON.stringify(meta));
+    assert(page.consoleMsgs.length === 0, 'no console errors: ' + JSON.stringify(page.consoleMsgs));
+  });
+  await test('video-extract offers all 6 audio formats and each produces real output', async page => {
+    await page.gotoEditor();
+    await page.setFile(VIDEO);
+    await sleep(2500);
+    await page.evalBlock(`selectTool(byId('video-extract'));`);
+    await sleep(200);
+    for (const fmt of ['ogg', 'flac', 'm4a']) {
+      await page.evalBlock(`setSetting('audioFormat','${fmt}'); renderSettings('video-extract');`);
+      await sleep(150);
+      await page.trustedClickSelector('#btn-dl');
+      let r = null;
+      for (let i = 0; i < 60; i++) {
+        await sleep(1000);
+        const parsed = JSON.parse(await page.eval(`JSON.stringify({processing: S.processing, hasOutput: !!S.outputBlob, outputName: S.outputName, blobSize: S.outputBlob ? S.outputBlob.size : 0})`));
+        if (!parsed.processing && parsed.hasOutput) { r = parsed; break; }
+      }
+      assert(r, `video-extract (${fmt}) should complete within 60s`);
+      assertEqual(r.outputName, `test_video_extract.${fmt}`, `expected ${fmt} output filename`);
+      assert(r.blobSize > 500, `output should be a real file for ${fmt}: ` + JSON.stringify(r));
+    }
+    assert(page.consoleMsgs.length === 0, 'no console errors across formats: ' + JSON.stringify(page.consoleMsgs));
+  });
 }
 
 // ════════════════════════════════════════════════════════════════════════

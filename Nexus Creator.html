@@ -2297,6 +2297,7 @@ const TOOL_ICONS = {
   sepia:     'M12 2v20M2 12h20M5 5l14 14M19 5L5 19',
   blur:      'M12 2l3 7h7l-5.5 4.5L18 21l-6-4.5L6 21l1.5-7.5L2 9h7z',
   stabilize: 'M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5',
+  tovideo:   'M23 7l-7 5 7 5V7zM14 5H3a2 2 0 00-2 2v10a2 2 0 002 2h11a2 2 0 002-2V7a2 2 0 00-2-2z',
 };
 
 const iconSVG = (name, size = 20) => {
@@ -2320,7 +2321,7 @@ const TOOLS = [
   {id:'video-reverse',   label:'Reverse',      desc:'Play video backwards',          cat:'video', eng:'ffmpeg', icon:'reverse',  group:'Optimization'},
   {id:'video-stabilize', label:'Stabilize',    desc:'Remove camera shake',           cat:'video', eng:'ffmpeg', icon:'stabilize',group:'Optimization'},
   // VIDEO — Audio
-  {id:'video-extract',   label:'Extract Audio',desc:'Pull audio out as MP3',         cat:'video', eng:'ffmpeg', icon:'extract',  group:'Audio'},
+  {id:'video-extract',   label:'Extract Audio',desc:'MP3, WAV, AAC, FLAC, OGG, M4A',  cat:'video', eng:'ffmpeg', icon:'extract',  group:'Audio'},
   {id:'video-noaudio',   label:'Remove Audio', desc:'Strip audio from video',        cat:'video', eng:'ffmpeg', icon:'mute',     group:'Audio'},
   {id:'video-mute',      label:'Mute',         desc:'Silence the audio track',       cat:'video', eng:'ffmpeg', icon:'mute',     group:'Audio'},
   // VIDEO — Effects
@@ -2348,6 +2349,8 @@ const TOOLS = [
   {id:'audio-compress',  label:'Compress',     desc:'Reduce audio file size',        cat:'audio', eng:'ffmpeg', icon:'compress', group:'Optimization'},
   {id:'audio-normalize', label:'Normalize',    desc:'Auto-level loudness',           cat:'audio', eng:'ffmpeg', icon:'normalize',group:'Optimization'},
   {id:'audio-mono',      label:'Mono',         desc:'Stereo to mono mix-down',       cat:'audio', eng:'ffmpeg', icon:'compress', group:'Optimization'},
+  // AUDIO — Export
+  {id:'audio-to-video',  label:'To Video',     desc:'MP4, MOV, WEBM, MKV',           cat:'audio', eng:'ffmpeg', icon:'tovideo',  group:'Export'},
   // AUDIO — Effects
   {id:'audio-speed',     label:'Speed',        desc:'Speed up or slow down',         cat:'audio', eng:'ffmpeg', icon:'speed',    group:'Effects'},
   {id:'audio-reverse',   label:'Reverse',      desc:'Play audio backwards',          cat:'audio', eng:'ffmpeg', icon:'reverse',  group:'Effects'},
@@ -3203,12 +3206,15 @@ const PANELS = {
   'video-extract': () => {
     const cur = S.settings.audioFormat || 'mp3';
     const fmts = [
-      {id:'mp3', label:'MP3', sub:'Lossy · Universal'},
-      {id:'aac', label:'AAC', sub:'Lossy · High quality'},
-      {id:'wav', label:'WAV', sub:'Lossless · Large file'},
+      {id:'mp3',  label:'MP3',  sub:'Lossy · Universal'},
+      {id:'aac',  label:'AAC',  sub:'Lossy · Apple/web'},
+      {id:'ogg',  label:'OGG',  sub:'Lossy · Open-source'},
+      {id:'wav',  label:'WAV',  sub:'Lossless · Uncompressed'},
+      {id:'flac', label:'FLAC', sub:'Lossless · Compressed'},
+      {id:'m4a',  label:'M4A',  sub:'Lossy · iTunes/AAC'},
     ];
     return `
-      <div class="fmt-card-grid" style="grid-template-columns:repeat(3,1fr)">
+      <div class="fmt-card-grid">
         ${fmts.map(f => `
           <button class="fmt-card${cur===f.id?' active':''}"
             onclick="setSetting('audioFormat','${f.id}');renderSettings('video-extract')" aria-label="${f.label}">
@@ -3878,6 +3884,26 @@ const PANELS = {
         ${on ? '▶ Playing in mono right now' : 'Download always applies the downmix, whether or not you preview it'}
       </div>
     </div>`;
+  },
+
+  'audio-to-video': () => {
+    const cur = S.settings.outputFormat || 'mp4';
+    const fmts = [
+      {id:'mp4',  label:'MP4',  sub:'Universal · H.264'},
+      {id:'mov',  label:'MOV',  sub:'Apple / editing'},
+      {id:'webm', label:'WEBM', sub:'Web-native'},
+      {id:'mkv',  label:'MKV',  sub:'Open container'},
+    ];
+    return `
+      <div class="s-label" style="font-size:16px;letter-spacing:1.5px;color:var(--muted);margin-bottom:8px">OUTPUT FORMAT</div>
+      <div class="fmt-card-grid" style="grid-template-columns:repeat(2,1fr)">
+        ${fmts.map(f => `
+          <button class="fmt-card${cur===f.id?' active':''}"
+            onclick="setSetting('outputFormat','${f.id}');renderSettings('audio-to-video')" aria-label="${f.label}">
+            ${f.label}<span class="fmt-card-sub">${f.sub}</span>
+          </button>`).join('')}
+      </div>
+      <p class="s-hint" style="margin-top:10px">Generates a 1280×720 video with a live waveform of your audio, ready for platforms that need a video file. Nothing to preview live — download to see the real result.</p>`;
   },
 };
 
@@ -9889,12 +9915,39 @@ async function processFFmpeg(file, toolId, s) {
       const fmt = s.audioFormat || 'mp3';
       outFile = 'out.' + fmt; outMime = mimes[fmt];
       // Correct codec names for each format
-      const aCodecMap = { mp3: 'libmp3lame', wav: 'pcm_s16le', aac: 'aac' };
+      const aCodecMap = { mp3: 'libmp3lame', wav: 'pcm_s16le', aac: 'aac', flac: 'flac', ogg: 'libvorbis', m4a: 'aac' };
       const acodec = aCodecMap[fmt] || fmt;
+      const lossless = ['wav', 'flac'].includes(fmt);
       const args = ['-i', inFile, '-vn', '-acodec', acodec];
-      if (fmt !== 'wav') args.push('-b:a', '192k'); // bitrate doesn't apply to lossless WAV
+      if (!lossless) args.push('-b:a', '192k'); // bitrate doesn't apply to lossless formats
       args.push(outFile);
       await ff.exec(args);
+
+    } else if (toolId === 'audio-to-video') {
+      const fmt = s.outputFormat || 'mp4';
+      outFile = 'out.' + fmt; outMime = mimes[fmt] || 'video/mp4';
+      const w = 1280, h = 720;
+      // color source needs an explicit finite duration; pad slightly so
+      // -shortest never has a chance to clip the very last audio frame
+      const vidDur = Math.max(1, dur || 10) + 0.5;
+      const vCodecArgs = {
+        mp4:  ['-c:v', 'libx264', '-crf', '23', '-preset', 'fast', '-pix_fmt', 'yuv420p', '-c:a', 'aac',      '-b:a', '192k', '-movflags', '+faststart'],
+        mov:  ['-c:v', 'libx264', '-crf', '23', '-preset', 'fast', '-pix_fmt', 'yuv420p', '-c:a', 'aac',      '-b:a', '192k'],
+        mkv:  ['-c:v', 'libx264', '-crf', '23', '-preset', 'fast', '-pix_fmt', 'yuv420p', '-c:a', 'aac',      '-b:a', '192k'],
+        webm: ['-c:v', 'libvpx',  '-b:v', '1M',                    '-pix_fmt', 'yuv420p', '-c:a', 'libvorbis','-b:a', '192k'],
+      };
+      const cargs = vCodecArgs[fmt] || vCodecArgs.mp4;
+      try {
+        // Real audio-reactive waveform on a dark background, in the app's
+        // own accent color — a genuine video, not just a static card.
+        await ff.exec(['-i', inFile, '-filter_complex',
+          `color=c=0x080808:s=${w}x${h}:d=${vidDur}[bg];[0:a]showwaves=s=${w}x${h}:mode=cline:colors=0xff3b3b:rate=25[wave];[bg][wave]overlay=format=auto:shortest=1[v]`,
+          '-map', '[v]', '-map', '0:a', ...cargs, outFile]);
+      } catch (_) {
+        // showwaves unavailable in this FFmpeg build — fall back to a
+        // plain color card so the tool still produces a real, playable video.
+        await ff.exec(['-f', 'lavfi', '-i', `color=c=0x080808:s=${w}x${h}:d=${vidDur}`, '-i', inFile, ...cargs, '-shortest', outFile]);
+      }
 
     } else if (toolId === 'video-noaudio') {
       outFile = 'out.' + inExt; outMime = file.type;
