@@ -3964,7 +3964,7 @@ const PANELS = {
             ${f.label}<span class="fmt-card-sub">${f.sub}</span>
           </button>`).join('')}
       </div>
-      <p class="s-hint" style="margin-top:10px">Generates an 854×480 video with the same audio-reactive bars used in the preview panes elsewhere in the app, ready for platforms that need a video file. Nothing to preview live here — press Convert, then Download.</p>`;
+      <p class="s-hint" style="margin-top:10px">Generates a 1280×720 video with the exact same audio-reactive bars as the preview panes elsewhere in the app. This records in real time (as long as the audio itself), so a 3-minute track takes about 3 minutes. Nothing to preview live here — press Convert, then Download.</p>`;
   },
 };
 
@@ -10000,39 +10000,6 @@ async function processFFmpeg(file, toolId, s) {
       args.push(outFile);
       await ff.exec(args);
 
-    } else if (toolId === 'audio-to-video') {
-      const fmt = s.outputFormat || 'mp4';
-      outFile = 'out.' + fmt; outMime = mimes[fmt] || 'video/mp4';
-      // 854x480 + ultrafast, not the original 1280x720 + fast + a separate
-      // color-layer/overlay composite: that combination was real, but slow
-      // enough in ffmpeg.wasm's single-threaded software encoder to feel
-      // stuck on anything but a very short clip. showfreqs already renders
-      // on a black background on its own — same visual result as
-      // compositing onto a near-black color layer, one fewer full-frame
-      // filter step, real speed difference in a software encoder.
-      const w = 854, h = 480;
-      const vCodecArgs = {
-        mp4:  ['-c:v', 'libx264', '-crf', '26', '-preset', 'ultrafast', '-pix_fmt', 'yuv420p', '-c:a', 'aac',      '-b:a', '160k', '-movflags', '+faststart'],
-        mov:  ['-c:v', 'libx264', '-crf', '26', '-preset', 'ultrafast', '-pix_fmt', 'yuv420p', '-c:a', 'aac',      '-b:a', '160k'],
-        mkv:  ['-c:v', 'libx264', '-crf', '26', '-preset', 'ultrafast', '-pix_fmt', 'yuv420p', '-c:a', 'aac',      '-b:a', '160k'],
-        webm: ['-c:v', 'libvpx',  '-cpu-used', '8', '-deadline', 'realtime', '-b:v', '900k', '-pix_fmt', 'yuv420p', '-c:a', 'libvorbis', '-b:a', '160k'],
-      };
-      const cargs = vCodecArgs[fmt] || vCodecArgs.mp4;
-      try {
-        // Bar-style frequency spectrum — the same "red audio-reactive bars"
-        // look as the reactor-bar meter already used in the video/audio
-        // preview panes (see nxVinylReactorTick), rendered natively by
-        // FFmpeg's own filter instead of computed frame-by-frame in JS.
-        await ff.exec(['-i', inFile, '-filter_complex',
-          `[0:a]showfreqs=s=${w}x${h}:mode=bar:ascale=log:fscale=log:colors=0xff3b3b|0xff5252[v]`,
-          '-map', '[v]', '-map', '0:a', ...cargs, outFile]);
-      } catch (_) {
-        // showfreqs unavailable in this FFmpeg build — fall back to a
-        // plain color card so the tool still produces a real, playable video.
-        const vidDur = Math.max(1, dur || 10) + 0.5;
-        await ff.exec(['-f', 'lavfi', '-i', `color=c=0x080808:s=${w}x${h}:d=${vidDur}`, '-i', inFile, ...cargs, '-shortest', outFile]);
-      }
-
     } else if (toolId === 'video-noaudio') {
       outFile = 'out.' + inExt; outMime = file.type;
       await ff.exec(['-i', inFile, '-an', '-c:v', 'copy', outFile]);
@@ -10251,6 +10218,173 @@ async function exportMixdown() {
 }
 
 // ════════════════════════════════════════════════════════════════════════════
+// AUDIO → VIDEO — real reactor-bar capture (not an FFmpeg filter)
+// ════════════════════════════════════════════════════════════════════════════
+// FFmpeg's own visualizer filters (showwaves/showfreqs) render a dense,
+// edge-to-edge spectrum — nothing close to this app's actual reactor-bar
+// look (spaced, rounded, gradient, glowing bars — see .reactor-bar and
+// nxVinylReactorTick). Getting that exact visual means drawing it exactly
+// the same way the live preview does, then recording it for real: an
+// AnalyserNode reading the SAME fftSize/smoothing/per-band weighting as
+// nxVinylReactorTick, drawn to a canvas every frame, captured via
+// canvas.captureStream() + the analysed audio's own MediaStreamDestination
+// (same pairing nxExportVideo already uses for the timeline's video
+// export), recorded with MediaRecorder. This runs in real time (bounded by
+// the audio's own duration, not faster), but the recording itself is
+// realtime-cheap — encoding is the browser's own hardware-backed encoder,
+// not ffmpeg.wasm's single-threaded software one.
+async function nxRecordAudioToVideo(file, s) {
+  if (typeof MediaRecorder === 'undefined' || !HTMLCanvasElement.prototype.captureStream) {
+    throw new Error('This browser doesn\'t support MediaRecorder/canvas capture — try Chrome or Edge.');
+  }
+  const fmt = s.outputFormat || 'mp4';
+  const url = URL.createObjectURL(file);
+  const audioEl = new Audio();
+  audioEl.src = url;
+  audioEl.preload = 'auto';
+  try {
+    await new Promise((resolve, reject) => {
+      audioEl.onloadedmetadata = resolve;
+      audioEl.onerror = () => reject(new Error('Could not load audio for recording'));
+      setTimeout(() => reject(new Error('Timed out loading audio')), 15000);
+    });
+  } catch (err) {
+    URL.revokeObjectURL(url);
+    throw err;
+  }
+  const duration = isFinite(audioEl.duration) ? audioEl.duration : (S.file && S.file.duration) || 0;
+  if (!duration) { URL.revokeObjectURL(url); throw new Error('Could not determine audio duration'); }
+
+  const W = 1280, H = 720;
+  const canvas = document.createElement('canvas');
+  canvas.width = W; canvas.height = H;
+  const ctx = canvas.getContext('2d');
+
+  const actx = window._mixerAudioCtx || (window._mixerAudioCtx = new (window.AudioContext || window.webkitAudioContext)());
+  const srcNode = actx.createMediaElementSource(audioEl);
+  const analyser = actx.createAnalyser();
+  analyser.fftSize = 128; // same tuning as nxEnsureVinylAnalyser, so this looks like the real reactor
+  analyser.smoothingTimeConstant = 0.82;
+  const dest = actx.createMediaStreamDestination();
+  srcNode.connect(analyser);
+  analyser.connect(actx.destination); // audible during recording — same convention as nxExportVideo
+  analyser.connect(dest);
+  const data = new Uint8Array(analyser.frequencyBinCount);
+
+  const canvasStream = canvas.captureStream(30);
+  const combined = new MediaStream([...canvasStream.getVideoTracks(), ...dest.stream.getAudioTracks()]);
+  const mimeType = ['video/webm;codecs=vp9,opus', 'video/webm;codecs=vp8,opus', 'video/webm']
+    .find(m => MediaRecorder.isTypeSupported(m)) || 'video/webm';
+  const recorder = new MediaRecorder(combined, { mimeType, videoBitsPerSecond: 2_500_000 });
+  const chunks = [];
+  recorder.ondataavailable = e => { if (e.data.size) chunks.push(e.data); };
+
+  // Bar geometry mirrors .reactor-bar/.audio-reactor: N spaced, rounded,
+  // bottom-anchored bars centered as a group — just computed for a fixed
+  // canvas instead of flexbox.
+  const N = 64;
+  const groupW = W * 0.82;
+  const barGap = 5;
+  const barWidth = Math.max(3, groupW / N - barGap);
+  const startX = (W - (N * (barWidth + barGap) - barGap)) / 2;
+  const baseY = H * 0.82, minH = 8, maxH = H * 0.62;
+
+  function drawFrame() {
+    ctx.fillStyle = '#080808';
+    ctx.fillRect(0, 0, W, H);
+    analyser.getByteFrequencyData(data);
+    for (let i = 0; i < N; i++) {
+      const index = Math.floor((i / N) * data.length);
+      const value = data[index] / 255;
+      // Same low/mid/high banding as nxVinylReactorTick, so this reads as
+      // the identical animation, not just a visually-similar one.
+      const band = i < N / 3 ? 1.15 : i < (2 * N) / 3 ? 1.0 : 0.72;
+      const h = Math.min(maxH, minH + Math.max(0.03, value) * (maxH - minH) * band);
+      const x = startX + i * (barWidth + barGap);
+      const y = baseY - h;
+      const grad = ctx.createLinearGradient(x, baseY, x, y);
+      grad.addColorStop(0, '#ff3b3b');
+      grad.addColorStop(1, '#ff8f80');
+      ctx.save();
+      ctx.shadowBlur = 14;
+      ctx.shadowColor = 'rgba(255,59,59,.4)';
+      ctx.fillStyle = grad;
+      ctx.beginPath();
+      ctx.roundRect(x, y, barWidth, h, Math.min(barWidth / 2, 6));
+      ctx.fill();
+      ctx.restore();
+    }
+  }
+
+  setProgress(0, 'Recording (real-time)…');
+  const doneP = new Promise(resolve => { recorder.onstop = resolve; });
+  recorder.start(250);
+  await audioEl.play().catch(() => {});
+
+  // Stopping is driven by the 'ended' event (+ a setTimeout safety net),
+  // NOT by requestAnimationFrame reaching the end of its own polling —
+  // rAF is throttled to near-zero the instant a tab is backgrounded
+  // (switching tabs during a multi-minute recording is a completely
+  // normal thing for a user to do), which would leave a fully-recorded
+  // clip just sitting there for however long it takes the next throttled
+  // rAF tick to notice and call recorder.stop(). Media element events and
+  // timers aren't subject to that same throttling.
+  let cancelled = false, stopped = false;
+  function stopOnce() {
+    if (stopped) return;
+    stopped = true;
+    recorder.stop();
+  }
+  audioEl.addEventListener('ended', stopOnce);
+  const safetyTimer = setTimeout(stopOnce, (duration + 1.5) * 1000);
+  window._nxExportCancel = () => { cancelled = true; stopOnce(); };
+
+  function tick() {
+    drawFrame();
+    setProgress(Math.min(99, Math.round((audioEl.currentTime / duration) * 100)), `Recording… ${fmtTime(audioEl.currentTime)} / ${fmtTime(duration)}`);
+    if (!stopped) requestAnimationFrame(tick);
+  }
+  requestAnimationFrame(tick);
+
+  await doneP;
+  clearTimeout(safetyTimer);
+  audioEl.removeEventListener('ended', stopOnce);
+  window._nxExportCancel = null;
+  try { analyser.disconnect(); } catch (_) {}
+  try { srcNode.disconnect(); } catch (_) {}
+  audioEl.pause();
+  URL.revokeObjectURL(url);
+
+  if (cancelled) throw new Error('Recording cancelled.');
+  if (!chunks.length) throw new Error('Recording produced no data.');
+  const webmBlob = new Blob(chunks, { type: mimeType });
+  if (fmt === 'webm') return { blob: webmBlob, ext: 'webm' };
+
+  // Requested a different container — the frames are already rendered, so
+  // this is a codec re-encode of an already-compressed video, not building
+  // the visualization from scratch, and stays fast even in ffmpeg.wasm.
+  setProgress(99, 'Converting container…');
+  const ff = await ensureFFmpeg();
+  await ff.writeFile('rec.webm', await UtilModule.fetchFile(webmBlob));
+  const vCodecArgs = {
+    mp4: ['-c:v', 'libx264', '-preset', 'veryfast', '-crf', '23', '-pix_fmt', 'yuv420p', '-c:a', 'aac', '-b:a', '160k', '-movflags', '+faststart'],
+    mov: ['-c:v', 'libx264', '-preset', 'veryfast', '-crf', '23', '-pix_fmt', 'yuv420p', '-c:a', 'aac', '-b:a', '160k'],
+    mkv: ['-c:v', 'libx264', '-preset', 'veryfast', '-crf', '23', '-pix_fmt', 'yuv420p', '-c:a', 'aac', '-b:a', '160k'],
+  };
+  const cargs = vCodecArgs[fmt] || vCodecArgs.mp4;
+  const outFile = 'out.' + fmt;
+  try {
+    await ff.exec(['-i', 'rec.webm', ...cargs, outFile]);
+    const outData = await ff.readFile(outFile);
+    const mimes = { mp4: 'video/mp4', mov: 'video/quicktime', mkv: 'video/x-matroska' };
+    return { blob: new Blob([outData], { type: mimes[fmt] }), ext: fmt };
+  } finally {
+    try { await ff.deleteFile('rec.webm'); } catch (_) {}
+    try { await ff.deleteFile(outFile); } catch (_) {}
+  }
+}
+
+// ════════════════════════════════════════════════════════════════════════════
 // PROCESS HANDLER
 // ════════════════════════════════════════════════════════════════════════════
 async function runProcess() {
@@ -10262,7 +10396,9 @@ async function runProcess() {
   hideStatus();
 
   try {
-    const result = S.tool.eng === 'canvas'
+    const result = S.tool.id === 'audio-to-video'
+      ? await nxRecordAudioToVideo(S.file.file, S.settings)
+      : S.tool.eng === 'canvas'
       ? await processCanvas(S.file.file, S.tool.id, S.settings)
       : await processFFmpeg(S.file.file, S.tool.id, S.settings);
 

@@ -725,7 +725,42 @@ async function runFfmpegToolsTests() {
         return JSON.stringify({ duration: v.duration, width: v.videoWidth, height: v.videoHeight });
       })();
     `, { awaitPromise: true, timeoutMs: 12000 }));
-    assert(meta.duration > 0 && meta.width === 854 && meta.height === 480, 'output should be a genuinely decodable 854x480 video: ' + JSON.stringify(meta));
+    assert(meta.duration > 0 && meta.width === 1280 && meta.height === 720, 'output should be a genuinely decodable 1280x720 video: ' + JSON.stringify(meta));
+    assert(page.consoleMsgs.length === 0, 'no console errors: ' + JSON.stringify(page.consoleMsgs));
+  });
+  await test('audio-to-video draws real reactor bars, not a blank/black frame', async page => {
+    await page.gotoEditor();
+    await page.setFile(AUDIO);
+    await sleep(1500);
+    await page.evalBlock(`selectTool(byId('audio-to-video')); setSetting('outputFormat','webm'); renderSettings('audio-to-video');`);
+    await sleep(300);
+    await page.trustedClickSelector('#btn-convert');
+    for (let i = 0; i < 60; i++) {
+      await sleep(1000);
+      const done = await page.eval(`!S.processing && !!S.outputBlob`);
+      if (done) break;
+    }
+    const pixels = JSON.parse(await page.evalBlock(`
+      return (async () => {
+        const url = URL.createObjectURL(S.outputBlob);
+        const v = document.createElement('video');
+        v.src = url; v.muted = true;
+        await new Promise((res, rej) => { v.onloadedmetadata = res; v.onerror = rej; setTimeout(rej, 8000); });
+        v.currentTime = Math.min(2, v.duration / 2);
+        await new Promise(res => { v.onseeked = res; });
+        const canvas = document.createElement('canvas');
+        canvas.width = v.videoWidth; canvas.height = v.videoHeight;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(v, 0, 0);
+        const data = ctx.getImageData(0, 0, canvas.width, canvas.height).data;
+        let redPixels = 0;
+        for (let i = 0; i < data.length; i += 4) {
+          if (data[i] > 150 && data[i+1] < 120 && data[i+2] < 120) redPixels++;
+        }
+        return JSON.stringify({ redPixels, totalPixels: data.length / 4 });
+      })();
+    `, { awaitPromise: true, timeoutMs: 12000 }));
+    assert(pixels.redPixels > 500, 'output frame should contain real red reactor bars, not be blank: ' + JSON.stringify(pixels));
     assert(page.consoleMsgs.length === 0, 'no console errors: ' + JSON.stringify(page.consoleMsgs));
   });
   await test('video-extract offers all 6 audio formats and each produces real output', async page => {
