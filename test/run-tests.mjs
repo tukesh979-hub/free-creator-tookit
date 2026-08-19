@@ -97,9 +97,10 @@ class Page {
   async evalBlock(body, opts) {
     return this.eval(`(() => { ${body} })()`, opts);
   }
-  async setFile(absPath) {
+  async setFile(absPath) { await this.setFileInto(absPath, '#ed-file-input'); }
+  async setFileInto(absPath, selector) {
     const doc = await this.send('DOM.getDocument', { depth: -1 });
-    const q = await this.send('DOM.querySelector', { nodeId: doc.root.nodeId, selector: '#ed-file-input' });
+    const q = await this.send('DOM.querySelector', { nodeId: doc.root.nodeId, selector });
     await this.send('DOM.setFileInputFiles', { files: [absPath], nodeId: q.nodeId });
   }
   async trustedClickAt(x, y) {
@@ -1306,6 +1307,66 @@ async function runConvertPageTests() {
 }
 
 // ════════════════════════════════════════════════════════════════════════
+// TOOL SELECTION PRESERVATION
+// ════════════════════════════════════════════════════════════════════════
+// Regression coverage for a real bug: onToolPageFile/onToolPageDrop called
+// the async loadFile() without awaiting it, then called selectTool(t) for
+// the specific tool the page was for — but loadFile()'s own "auto-select
+// this category's default tool" logic ran its course AFTER that (its
+// continuation past the internal await lands later, as a microtask),
+// silently overwriting the intended tool. Net effect: clicking straight
+// into any tool other than a category's first (e.g. Crop, not Trim) and
+// then uploading a file landed you on the wrong tool in the editor.
+async function runToolSelectionTests() {
+  console.log('\n=== Tool selection preservation ===');
+  await test('uploading a file on a specific tool\'s own page keeps that tool selected, not the category default', async page => {
+    await page.send('Page.navigate', { url: BASE_URL });
+    await sleep(1000);
+    // video-crop is deliberately NOT the first video tool (video-trim is) —
+    // this only catches the bug if a non-default tool is picked.
+    await page.eval(`openToolPage('video-crop')`);
+    await sleep(300);
+    await page.setFileInto(VIDEO, '#tpg-input');
+    await sleep(2000);
+    const toolId = await page.eval(`S.tool && S.tool.id`);
+    assertEqual(toolId, 'video-crop', 'the tool selected on that tool\'s own page should survive the file upload');
+  });
+  await test('dropping a file on a specific tool\'s own page keeps that tool selected', async page => {
+    await page.send('Page.navigate', { url: BASE_URL });
+    await sleep(1000);
+    await page.eval(`openToolPage('audio-fade')`); // not audio-trim, the category default
+    await sleep(300);
+    // ondrop handlers can't be driven by a real OS drag — call the handler
+    // directly with a synthetic event carrying real File data, same
+    // approach used elsewhere in this suite for drop-based flows.
+    const ok = await page.evalBlock(`
+      return (async () => {
+        const resp = await fetch('test/fixtures/test_audio.m4a');
+        const blob = await resp.blob();
+        const file = new File([blob], 'test_audio.m4a', { type: 'audio/mp4' });
+        const dt = new DataTransfer();
+        dt.items.add(file);
+        await onToolPageDrop({ preventDefault(){}, dataTransfer: dt }, 'audio-fade');
+        return true;
+      })();
+    `, { awaitPromise: true, timeoutMs: 10000 });
+    assert(ok, 'onToolPageDrop should complete without throwing');
+    await sleep(1500);
+    const toolId = await page.eval(`S.tool && S.tool.id`);
+    assertEqual(toolId, 'audio-fade', 'the tool selected on that tool\'s own page should survive a dropped file too');
+  });
+  await test('manually selecting a non-default tool, then dropping a file on the generic editor dropzone, keeps that tool', async page => {
+    await page.gotoEditor();
+    await page.evalBlock(`setCat('video'); selectTool(byId('video-rotate'));`); // not video-trim, the category default
+    await sleep(200);
+    await page.setFile(VIDEO);
+    await sleep(2000);
+    const toolId = await page.eval(`S.tool && S.tool.id`);
+    assertEqual(toolId, 'video-rotate', 'a manually pre-selected tool should survive a generic file drop, not revert to the category default');
+  });
+}
+
+// ════════════════════════════════════════════════════════════════════════
 // RELOAD PERSISTENCE (honest check — this app has no save/load layer)
 // ════════════════════════════════════════════════════════════════════════
 async function runReloadTest() {
@@ -1339,6 +1400,7 @@ async function main() {
   await runClassicAudioLivePreviewTests();
   await runEdgeCaseTests();
   await runConvertPageTests();
+  await runToolSelectionTests();
   await runReloadTest();
 
   const passed = results.filter(r => r.ok).length;

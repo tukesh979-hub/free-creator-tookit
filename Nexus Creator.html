@@ -2722,23 +2722,31 @@ function openToolPage(id) {
   goPage('tool');
 }
 
-function onToolPageFile(e, toolId) {
+async function onToolPageFile(e, toolId) {
   const f = e.target.files[0];
   if (!f) return;
   const t = byId(toolId);
-  loadFile(f);
+  // loadFile() is async (it awaits metadata reads) and — for the category
+  // it lands you in — auto-selects that category's default tool once it
+  // finishes. Without awaiting it here, that default-tool selection landed
+  // AFTER this function's own selectTool(t) call below (loadFile's
+  // continuation runs later, as a microtask), silently overwriting the
+  // specific tool this page is for. This is exactly why clicking straight
+  // into e.g. Trim or Convert then dropping a file used to land you on
+  // whatever tool happens to be first in that category instead.
+  await loadFile(f);
   if (t) selectTool(t);
   goPage('editor');
 }
 
-function onToolPageDrop(e, toolId) {
+async function onToolPageDrop(e, toolId) {
   e.preventDefault();
   const drop = $('tpg-drop');
   if (drop) drop.classList.remove('drag');
   const f = e.dataTransfer.files[0];
   if (!f) return;
   const t = byId(toolId);
-  loadFile(f);
+  await loadFile(f); // see onToolPageFile's comment — must be awaited before selectTool(t)
   if (t) selectTool(t);
   goPage('editor');
 }
@@ -6094,9 +6102,18 @@ async function loadFile(file) {
     const cat = type === 'image' ? 'photo' : type;
     setCat(cat);
 
-    // Auto-select first tool of that category
+    // Auto-select first tool of that category — but only if nothing
+    // appropriate is already selected. Preserves a tool the user picked
+    // for this category before the file finished loading (e.g. dropping a
+    // file onto the editor after manually selecting "Trim" in the
+    // sidebar) instead of silently reverting to the category's default
+    // tool the instant a file appears.
     const tools = byCat(cat);
-    if (tools.length) selectTool(tools[0]);
+    if (S.tool && S.tool.cat === cat) {
+      selectTool(S.tool); // re-run so live preview (gated on S.file) picks up now that a file exists
+    } else if (tools.length) {
+      selectTool(tools[0]);
+    }
 
     // Render preview
     renderPreview();
