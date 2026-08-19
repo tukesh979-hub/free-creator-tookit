@@ -220,6 +220,26 @@ async function runImportTests() {
     const stillFrozen = await page.eval(`window._oldEl.currentTime === ${after.oldElCurrentTimeSnapshot}`);
     assert(stillFrozen, 'old track audio must not still be advancing/playing after replace');
   });
+  await test('a full-length track auto-fits the timeline width on load, not just the first ~20s', async page => {
+    // Regression test: the timeline always opened at a fixed 80px/s zoom
+    // and nxSetZoom had a 20px/s floor, so anything longer than roughly
+    // (panel width)/80 seconds was cut off the right edge and (even after
+    // manually clicking Fit) couldn't be zoomed out far enough to actually
+    // fit — the floor silently clamped it back up. Simulates a 2:49 track
+    // (the reported case) via S.file.duration, since the real fixture is
+    // only 8s and the fit math is purely duration-driven.
+    await page.gotoEditor(); await page.setFile(AUDIO); await sleep(1500);
+    const r = await page.evalBlock(`
+      S.file.duration = 169; // 2:49, matches the reported case
+      S.timeline._seededFor = null; // force a reseed at the new duration
+      mountNxTimeline();
+      const scroll = document.getElementById('nxt-scroll');
+      const contentWidth = nxContentWidth();
+      return JSON.stringify({ fits: contentWidth <= scroll.clientWidth + 2, zoom: S.timeline.zoom, contentWidth, scrollWidth: scroll.clientWidth });
+    `);
+    const parsed = JSON.parse(r);
+    assert(parsed.fits, `a 2:49 track should auto-fit within the visible timeline width without scrolling, got ${JSON.stringify(parsed)}`);
+  });
 }
 
 // ════════════════════════════════════════════════════════════════════════
@@ -952,15 +972,48 @@ async function runClassicAudioLivePreviewTests() {
     const ratio = parsed.elCurrentTime / parsed.playhead;
     assert(ratio > 1.6 && ratio < 2.4, `elCurrentTime/playhead should track speed (~2x), got ${ratio.toFixed(2)} (playhead=${parsed.playhead}, elCurrentTime=${parsed.elCurrentTime})`);
   });
-  await test('mono forces a live channel downmix and reverts cleanly on leaving the tool', async page => {
+  await test('opening audio-mono/audio-normalize/audio-volume/audio-fade does not itself change the audio', async page => {
+    // Regression test: these all used to apply their effect (mono downmix,
+    // loudness pull, a 1.5x volume boost, a 2s fade) the instant the tool
+    // was selected. Now every one of them must be a no-op until the user
+    // actually interacts (a preview toggle button, a preset chip, or the
+    // slider) — same requirement as audio-speed/audio-reverse.
     await page.gotoEditor(); await page.setFile(AUDIO); await sleep(1500);
     await page.evalBlock(`selectTool(byId('audio-mono'));`);
-    await sleep(150); // let the delayed default-apply (this tool has no slider — it only applies via that timeout) actually run
+    await sleep(200);
+    const monoState = await page.evalBlock(`
+      const t = S.timeline.tracks.find(x => x.type === 'audio');
+      return JSON.stringify({ channelCount: t._gain?.channelCount, mode: t._gain?.channelCountMode, previewOn: !!S.settings._monoPreviewOn });
+    `);
+    assertEqual(JSON.parse(monoState), { channelCount: 2, mode: 'max', previewOn: false }, 'opening Mono must not itself downmix the audio');
+
+    await page.evalBlock(`selectTool(byId('audio-normalize'));`);
+    await sleep(200);
+    const normState = await page.evalBlock(`
+      const t = S.timeline.tracks.find(x => x.type === 'audio');
+      return JSON.stringify({ volume: t.clips[0].volume, previewOn: !!S.settings._normalizePreviewOn });
+    `);
+    assertEqual(JSON.parse(normState), { volume: 100, previewOn: false }, 'opening Normalize must not itself change the volume');
+
+    await page.evalBlock(`selectTool(byId('audio-volume'));`);
+    await sleep(200);
+    const volState = await page.evalBlock(`return JSON.stringify({ settingsVolume: S.settings.volume, clipVolume: S.timeline.tracks.find(x=>x.type==='audio').clips[0].volume })`);
+    assertEqual(JSON.parse(volState), { settingsVolume: 1, clipVolume: 100 }, 'opening Volume must default to 1x (100%), not silently boost the audio');
+
+    await page.evalBlock(`selectTool(byId('audio-fade'));`);
+    await sleep(200);
+    const fadeState = await page.evalBlock(`return JSON.stringify({ settingsFadeIn: S.settings.fadeIn, settingsFadeOut: S.settings.fadeOut, clipFadeIn: S.timeline.tracks.find(x=>x.type==='audio').clips[0].fadeIn })`);
+    assertEqual(JSON.parse(fadeState), { settingsFadeIn: 0, settingsFadeOut: 0, clipFadeIn: 0 }, 'opening Fade must default to 0s (no fade), not silently fade the audio');
+  });
+  await test('clicking Preview Mono / Preview Normalized applies the effect and reverts cleanly on leaving the tool', async page => {
+    await page.gotoEditor(); await page.setFile(AUDIO); await sleep(1500);
+    await page.evalBlock(`selectTool(byId('audio-mono')); nxToggleMonoPreview();`);
+    await sleep(150);
     const r1 = await page.evalBlock(`
       const t = S.timeline.tracks.find(x => x.type === 'audio');
       return JSON.stringify({ channelCount: t._gain?.channelCount, mode: t._gain?.channelCountMode });
     `);
-    assertEqual(JSON.parse(r1), { channelCount: 1, mode: 'explicit' }, 'mono tool should force a live 1-channel downmix');
+    assertEqual(JSON.parse(r1), { channelCount: 1, mode: 'explicit' }, 'clicking Preview Mono should force a live 1-channel downmix');
     await page.evalBlock(`selectTool(byId('audio-volume'));`);
     await sleep(150);
     const r2 = await page.evalBlock(`
@@ -968,6 +1021,15 @@ async function runClassicAudioLivePreviewTests() {
       return JSON.stringify({ channelCount: t._gain?.channelCount, mode: t._gain?.channelCountMode });
     `);
     assertEqual(JSON.parse(r2), { channelCount: 2, mode: 'max' }, 'leaving mono must restore normal stereo, or every other tool inherits the downmix');
+
+    await page.evalBlock(`selectTool(byId('audio-normalize')); nxToggleNormalizePreview();`);
+    await sleep(600); // peak analysis
+    const r3 = await page.evalBlock(`return JSON.stringify({ volume: S.timeline.tracks.find(x=>x.type==='audio').clips[0].volume })`);
+    assert(JSON.parse(r3).volume <= 100, 'clicking Preview Normalized should actually change the clip volume: ' + r3);
+    await page.evalBlock(`selectTool(byId('audio-volume'));`);
+    await sleep(150);
+    const r4 = await page.evalBlock(`return JSON.stringify({ volume: S.timeline.tracks.find(x=>x.type==='audio').clips[0].volume })`);
+    assertEqual(JSON.parse(r4), { volume: 100 }, 'leaving normalize must restore full volume, or every other tool inherits the loudness pull');
   });
   await test('opening audio-speed/audio-reverse does not itself change the audio — only an explicit interaction does', async page => {
     // Regression test: both tools used to apply their effect the instant

@@ -2414,6 +2414,7 @@ const S = {
     history:   [],   // undo stack of deep-cloned track arrays
     future:    [],   // redo stack
     _seededFor: null, // S.file.url this timeline was last built from
+    _zoomFitted: false, // whether nxFitZoom() has auto-run for the current seed yet
   },
 };
 
@@ -2849,10 +2850,13 @@ function selectTool(tool) {
   S.settings = {};
   // Tear down live-preview state that must not leak into the NEXT tool —
   // mono forces the shared gain node to 1 channel, reverse points the
-  // shared asset at a reversed blob; both apply to the one real audio
-  // track every classic audio tool previews through (nxClassicAudioTrack),
-  // so every OTHER tool would inherit them if left in place.
-  if (prevToolId === 'audio-mono' || prevToolId === 'audio-reverse') {
+  // shared asset at a reversed blob, normalize scales the shared clip's
+  // volume; all three apply to the one real audio track every classic
+  // audio tool previews through (nxClassicAudioTrack), so every OTHER
+  // tool would inherit them if left in place. Unconditional (not gated on
+  // whether the outgoing tool's preview toggle was ever turned on) — if
+  // it wasn't, reverting to the same default is a harmless no-op.
+  if (prevToolId === 'audio-mono' || prevToolId === 'audio-reverse' || prevToolId === 'audio-normalize') {
     const pt = nxClassicAudioTrack();
     if (pt) {
       if (prevToolId === 'audio-mono' && pt._gain) { pt._gain.channelCount = 2; pt._gain.channelCountMode = 'max'; }
@@ -2863,6 +2867,10 @@ function selectTool(tool) {
           pAsset.url = pAsset._originalUrl;
           if (pt._el) pt._el.src = pAsset.url;
         }
+      }
+      if (prevToolId === 'audio-normalize') {
+        const pc = pt.clips[0];
+        if (pc) { pc.volume = 100; nxReapplyClassicAudioParams(pt, pc); }
       }
     }
   }
@@ -3623,7 +3631,9 @@ const PANELS = {
   },
 
   'audio-volume': () => {
-    const vol = S.settings.volume !== undefined ? +S.settings.volume : 1.5;
+    // Defaults to 1x (no change) — same reasoning as audio-speed: opening
+    // the tool must not itself alter the audio.
+    const vol = S.settings.volume !== undefined ? +S.settings.volume : 1;
     const db  = vol > 0 ? (20 * Math.log10(vol)).toFixed(1) : '−∞';
     const dbStr = vol > 0 ? (db >= 0 ? '+' + db : db) + ' dB' : '−∞ dB';
     return `
@@ -3644,8 +3654,10 @@ const PANELS = {
   'audio-fade': () => {
     const dur    = S.file?.duration || 30;
     const maxFd  = Math.min(10, Math.floor(dur / 2));
-    const defFI  = Math.min(2, maxFd);
-    const defFO  = Math.min(2, maxFd);
+    // Defaults to 0s (no fade, i.e. no change) — opening the tool must not
+    // itself alter the audio, same reasoning as audio-speed/audio-volume.
+    const defFI  = S.settings.fadeIn  !== undefined ? +S.settings.fadeIn  : 0;
+    const defFO  = S.settings.fadeOut !== undefined ? +S.settings.fadeOut : 0;
     const curType = S.settings.fadeType || 'linear';
     return `
       <div class="fx-row">
@@ -3726,6 +3738,11 @@ const PANELS = {
   },
 
   'audio-normalize': () => {
+    // Opening this tool must not itself change the loudness — same
+    // explicit-interaction requirement as audio-reverse/audio-mono. The
+    // LUFS presets/slider only feed the live preview once toggled on;
+    // Download always normalizes regardless.
+    const on = !!S.settings._normalizePreviewOn;
     const presets = [
       { val:-23, label:'Broadcast', hint:'EBU R128' },
       { val:-16, label:'Streaming', hint:'Spotify / Tidal' },
@@ -3735,11 +3752,14 @@ const PANELS = {
     const cur = +(S.settings.targetLufs !== undefined ? S.settings.targetLufs : -16);
     const tp  = S.settings.truePeak !== false; // default true
     return `
+      <button class="btn-outline" style="width:100%;justify-content:center;margin-bottom:12px" onclick="nxToggleNormalizePreview()">
+        ${on ? '⏸ Stop Normalize Preview' : '▶ Preview Normalized'}
+      </button>
       <div class="s-label" style="font-size:16px;letter-spacing:1.5px;color:var(--muted);margin-bottom:8px">TARGET LOUDNESS</div>
       <div class="lufs-grid">
         ${presets.map(p => `
           <button class="lufs-btn${cur===p.val?' active':''}"
-            onclick="setSetting('targetLufs',${p.val});renderSettings('audio-normalize')" aria-label="${p.label}">
+            onclick="setSetting('targetLufs',${p.val});renderSettings('audio-normalize');if(S.settings._normalizePreviewOn)applyLivePreview()" aria-label="${p.label}">
             <div class="lufs-btn-val">${p.val} LUFS</div>
             <div class="lufs-btn-label">${p.label}</div>
             <div style="font-family:var(--mono);font-size:15px;color:var(--dim);margin-top:1px">${p.hint}</div>
@@ -3753,7 +3773,8 @@ const PANELS = {
             onchange="setSetting('truePeak',this.checked)"/>
           Limit to −1.5 dBTP
         </label>
-      </div>`;
+      </div>
+      <p class="s-hint" style="margin-top:6px">${on ? '▶ Previewing normalized loudness right now.' : 'Download always applies normalization, whether or not you preview it'}</p>`;
   },
 
   'audio-speed': () => {
@@ -3828,7 +3849,11 @@ const PANELS = {
       <p class="s-hint" style="margin-top:6px">Live preview isn't available for pitch shifting — it applies when you press Download.</p>`;
   },
 
-  'audio-mono': () => `
+  'audio-mono': () => {
+    // Opening this tool must not itself downmix what's playing — same
+    // explicit-interaction requirement as audio-reverse.
+    const on = !!S.settings._monoPreviewOn;
+    return `
     <div style="display:flex;flex-direction:column;align-items:center;gap:10px;padding:16px 8px">
       <div style="display:flex;gap:6px;align-items:center">
         <div style="width:32px;height:32px;background:var(--bg4);border:1px solid var(--border2);
@@ -3845,11 +3870,15 @@ const PANELS = {
           Mixes both channels to a single mono track.<br>Reduces file size by ~50%.
         </div>
       </div>
+      <button class="btn-outline" style="width:100%;justify-content:center" onclick="nxToggleMonoPreview()">
+        ${on ? '⏸ Stop Mono Preview' : '▶ Preview Mono'}
+      </button>
       <div style="font-family:var(--mono);font-size:15px;color:var(--dim);padding:6px 12px;
         background:var(--bg4);border:1px solid var(--border);border-radius:6px;text-align:center">
-        ▶ Playing in mono right now — press Download when ready
+        ${on ? '▶ Playing in mono right now' : 'Download always applies the downmix, whether or not you preview it'}
       </div>
-    </div>`,
+    </div>`;
+  },
 };
 
 function renderSettings(id) {
@@ -6736,6 +6765,7 @@ function nxEnsureTimeline() {
   S.timeline.history = [];
   S.timeline.future = [];
   S.timeline.playhead = 0;
+  S.timeline._zoomFitted = false; // let mountNxTimeline() auto-fit the zoom for this new file
   const assetId = uid();
   S.timeline.assets[assetId] = { id: assetId, type, name: S.file.name, url: S.file.url, duration: S.file.duration || 0, _owned: false };
   const track = nxMakeTrack(type, type === 'video' ? 'V1' : 'A1');
@@ -6965,7 +6995,7 @@ function nxToolbarHTML() {
     <div class="nxt-spacer"></div>
     <div class="nxt-zoom">
       <button class="nxt-btn" onclick="nxZoomBy(-20)" aria-label="Zoom out">−</button>
-      <input type="range" min="20" max="300" step="5" value="${T.zoom}" oninput="nxSetZoom(+this.value)" aria-label="Timeline zoom"/>
+      <input type="range" min="2" max="300" step="1" value="${T.zoom}" oninput="nxSetZoom(+this.value)" aria-label="Timeline zoom"/>
       <button class="nxt-btn" onclick="nxZoomBy(20)" aria-label="Zoom in">+</button>
       <button class="nxt-btn" onclick="nxFitZoom()" title="Fit Timeline" aria-label="Fit timeline">${NXT_ICON.fit}</button>
     </div>
@@ -7068,6 +7098,17 @@ function mountNxTimeline() {
         </div>
       </div>
     </div>`;
+  // First time this timeline is shown for a newly (re)loaded file, fit the
+  // zoom so the WHOLE track is visible without horizontal scrolling — the
+  // fixed 80px/s default otherwise cuts anything longer than ~20s off the
+  // right edge. Only once per seed (nxEnsureTimeline resets the flag on
+  // reseed): re-fitting on every mount would fight a zoom level the user
+  // deliberately picked afterward (e.g. zooming in to trim precisely).
+  if (!S.timeline._zoomFitted) {
+    S.timeline._zoomFitted = true;
+    nxFitZoom();
+    return;
+  }
   S.timeline.tracks.forEach(t => t.clips.forEach(c => nxDecodeAndDrawClip(t, c)));
   S.timeline.tracks.forEach(t => t.clips.forEach(c => nxInitClipDrag(t, c)));
   nxInitSelectionBox();
@@ -7904,7 +7945,7 @@ function nxApplyNormalizePreview(t, c, targetLufs) {
   const asset = nxAsset(c.sourceAssetId);
   if (!asset) return;
   nxEnsurePeakAnalysis(asset).then(peak => {
-    if (S.tool?.id !== 'audio-normalize' || nxClassicAudioTrack() !== t) return; // user moved on meanwhile
+    if (S.tool?.id !== 'audio-normalize' || !S.settings._normalizePreviewOn || nxClassicAudioTrack() !== t) return; // user moved on / toggled off meanwhile
     // nxApplyClipAudioParams clamps baseVol to unity — this preview can
     // only ever pull loud audio down toward the target, same as it would
     // for any peak already under target (matches the common case; a
@@ -7938,13 +7979,17 @@ function nxApplyClassicAudioPreview(id, s) {
       break;
     }
     case 'audio-mono':
-      // Stereo→mono downmix: forcing channelCount=1 on the shared gain
-      // node sums both channels — standard WebAudio down-mix, no extra
-      // node needed. Reverted in selectTool() when leaving this tool.
-      if (t._gain) { t._gain.channelCount = 1; t._gain.channelCountMode = 'explicit'; }
+      // Only downmixes once the user explicitly clicks "Preview Mono"
+      // (nxToggleMonoPreview) — selecting the tool must not itself change
+      // what's playing. Stereo→mono: forcing channelCount=1 on the shared
+      // gain node sums both channels — standard WebAudio down-mix, no
+      // extra node needed. Reverted in selectTool() when leaving this tool.
+      if (s._monoPreviewOn && t._gain) { t._gain.channelCount = 1; t._gain.channelCountMode = 'explicit'; }
       break;
     case 'audio-normalize':
-      nxApplyNormalizePreview(t, c, +(s.targetLufs !== undefined ? s.targetLufs : -16));
+      // Only pulls the volume toward the target once the user explicitly
+      // clicks "Preview Normalized" (nxToggleNormalizePreview).
+      if (s._normalizePreviewOn) nxApplyNormalizePreview(t, c, +(s.targetLufs !== undefined ? s.targetLufs : -16));
       break;
     case 'audio-reverse': {
       // Only swaps in reversed audio once the user explicitly clicks
@@ -7994,6 +8039,33 @@ function nxToggleReversePreview() {
     }
   }
   renderSettings('audio-reverse');
+}
+// Explicit user action (button click) that starts/stops the mono-downmix
+// live preview — see nxApplyClassicAudioPreview's audio-mono case, which
+// is a no-op until this flag is set.
+function nxToggleMonoPreview() {
+  S.settings._monoPreviewOn = !S.settings._monoPreviewOn;
+  if (S.settings._monoPreviewOn) {
+    nxApplyClassicAudioPreview('audio-mono', S.settings);
+  } else {
+    const t = nxClassicAudioTrack();
+    if (t && t._gain) { t._gain.channelCount = 2; t._gain.channelCountMode = 'max'; }
+  }
+  renderSettings('audio-mono');
+}
+// Explicit user action (button click) that starts/stops the normalize
+// live preview — see nxApplyClassicAudioPreview's audio-normalize case,
+// which is a no-op until this flag is set.
+function nxToggleNormalizePreview() {
+  S.settings._normalizePreviewOn = !S.settings._normalizePreviewOn;
+  if (S.settings._normalizePreviewOn) {
+    nxApplyClassicAudioPreview('audio-normalize', S.settings);
+  } else {
+    const t = nxClassicAudioTrack();
+    const c = t && t.clips[0];
+    if (c) { c.volume = 100; nxReapplyClassicAudioParams(t, c); }
+  }
+  renderSettings('audio-normalize');
 }
 function nxSyncTrackPlaybackToPlayhead(t, time) {
   const clip = nxActiveClipAt(t, time);
@@ -8931,12 +9003,17 @@ async function nxExportVideo() {
 function nxCancelExport() { if (window._nxExportCancel) window._nxExportCancel(); }
 
 // ── Zoom ─────────────────────────────────────────────────────────────────
-function nxSetZoom(v) { S.timeline.zoom = Math.max(20, Math.min(300, v)); mountNxTimeline(); }
+// Floor of 2 (not the old 20) so nxFitZoom can actually shrink enough to
+// fit a several-minutes-long track in view — a fixed 20px/s floor made
+// "fit" silently stop fitting for anything longer than roughly
+// (panel width)/20 seconds, which most real tracks blow past. nxRulerHTML
+// already has tick spacing defined all the way down to this range.
+function nxSetZoom(v) { S.timeline.zoom = Math.max(2, Math.min(300, v)); mountNxTimeline(); }
 function nxZoomBy(d) { nxSetZoom(S.timeline.zoom + d); }
 function nxFitZoom() {
   const scroll = $('nxt-scroll');
   const w = scroll ? Math.max(100, scroll.clientWidth - 60) : 600;
-  nxSetZoom(Math.max(10, Math.min(300, w / nxDuration())));
+  nxSetZoom(Math.max(2, Math.min(300, w / nxDuration())));
 }
 
 // ── Keyboard shortcuts ───────────────────────────────────────────────────
@@ -9352,7 +9429,7 @@ function resetEditor() {
     if (a._owned && a.url) URL.revokeObjectURL(a.url);
     if (a._reversedUrl) URL.revokeObjectURL(a._reversedUrl); // see audio-reverse live preview
   });
-  S.timeline = { assets: {}, tracks: [], zoom: 80, snap: true, ripple: false, playhead: 0, selection: [], markers: [], history: [], future: [], _seededFor: null, _playing: false };
+  S.timeline = { assets: {}, tracks: [], zoom: 80, snap: true, ripple: false, playhead: 0, selection: [], markers: [], history: [], future: [], _seededFor: null, _zoomFitted: false, _playing: false };
   hideNxTimeline();
   nxSetLeftPanelTab('tools');
   if ($('ed-tools-tabs')) $('ed-tools-tabs').style.display = 'none';
