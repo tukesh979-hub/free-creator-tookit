@@ -1752,6 +1752,7 @@ input[type=color].s-input{height:38px;padding:3px;cursor:pointer}
     <button class="nav-btn"        data-page="video"  onclick="goPage('video')"  aria-label="Video tools">Video</button>
     <button class="nav-btn"        data-page="photo"  onclick="goPage('photo')"  aria-label="Photo tools">Photo</button>
     <button class="nav-btn"        data-page="audio"  onclick="goPage('audio')"  aria-label="Audio tools">Audio</button>
+    <button class="nav-btn"        data-page="convert" onclick="goPage('convert')" aria-label="Format converters">Convert</button>
     <button class="nav-btn"        data-page="editor" onclick="goPage('editor')" aria-label="Open editor">Editor</button>
   </div>
   <div class="nav-space"></div>
@@ -2137,6 +2138,21 @@ input[type=color].s-input{height:38px;padding:3px;cursor:pointer}
       <input type="text" class="tp-search-input" id="search-audio" placeholder="Search audio tools..." aria-label="Search audio tools" oninput="filterTools('audio',this.value)"/>
     </div>
     <div id="tp-audio"></div>
+  </div>
+</div>
+
+<div id="page-convert" class="page">
+  <div class="tp-wrap">
+    <div class="tp-hdr">
+      <div class="tp-bar"></div>
+      <h1 class="tp-title">Convert</h1>
+      <div class="tp-div"></div>
+      <span class="tp-cnt" id="cnt-convert"></span>
+    </div>
+    <p style="font-family:var(--mono);font-size:16px;color:var(--muted);text-align:center;max-width:620px;margin:-10px auto 32px;line-height:1.6">
+      Cross-format conversions in one place — audio to video, video to audio, image to other image formats. Everything below runs entirely in your browser.
+    </p>
+    <div id="tp-convert"></div>
   </div>
 </div>
 
@@ -2820,6 +2836,52 @@ function renderToolPage(cat) {
   });
   $('tp-' + cat).innerHTML = html;
   initCategoryBanner(cat);
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+// CONVERT PAGE — a curated cross-format hub, not a real TOOLS category
+// ════════════════════════════════════════════════════════════════════════════
+// These tools stay in their real category ('audio'/'video'/'photo') for the
+// editor sidebar/rail — this page just links to the ones that are actually
+// format conversions (as opposed to trim/crop/effects), gathered in one
+// place because "what can I convert this into" is a different question
+// than "what audio tool do I want."
+const CONVERT_TOOLS = ['audio-to-video', 'video-extract', 'photo-convert'];
+// Real, named gaps — not vague "AI Tools" filler. Both need an actual PDF
+// library (pdf.js to read, something like pdf-lib to write) that isn't
+// part of this app yet; nothing here fakes support for either.
+const CONVERT_COMING_SOON = [
+  { id: 'convert-img-to-pdf', label: 'Image → PDF', desc: 'Combine one or more images into a single PDF' },
+  { id: 'convert-pdf-to-img', label: 'PDF → Images', desc: 'Export each page of a PDF as an image' },
+];
+function fgridConvertSoonCardHTML(t) {
+  return `
+    <button class="fgrid-card" onclick="alert('${t.label} — Coming soon.\\n\\nThis needs a real PDF library (to read and write PDF files) that isn\\'t wired into Nexus Creator yet — not something we want to fake with a placeholder.')" aria-label="${t.label} (coming soon)">
+      <div class="fgrid-visual cat-ai">
+        <span class="fgrid-soon-tag">Soon</span>
+        <div class="fgrid-ico" aria-hidden="true">${iconSVG('convert', 24)}</div>
+      </div>
+      <div class="fgrid-body">
+        <div class="fgrid-name">${t.label}</div>
+        <div class="fgrid-desc">${t.desc}</div>
+      </div>
+    </button>`;
+}
+function renderConvertPage() {
+  const el = $('tp-convert');
+  if (!el) return;
+  const tools = CONVERT_TOOLS.map(byId).filter(Boolean);
+  const cnt = $('cnt-convert');
+  if (cnt) cnt.textContent = (tools.length + CONVERT_COMING_SOON.length) + ' converters';
+  el.innerHTML = `
+    <div class="tp-group">
+      <div class="tp-group-title">Available Now</div>
+      <div class="tp-grid">${tools.map(fgridCardHTML).join('')}</div>
+    </div>
+    <div class="tp-group">
+      <div class="tp-group-title">Coming Soon</div>
+      <div class="tp-grid">${CONVERT_COMING_SOON.map(fgridConvertSoonCardHTML).join('')}</div>
+    </div>`;
 }
 
 function filterTools(cat, query) {
@@ -10888,6 +10950,7 @@ document.addEventListener('DOMContentLoaded', () => {
   renderToolPage('video');
   renderToolPage('photo');
   renderToolPage('audio');
+  renderConvertPage();
   renderToolList();
   initQADial();
   initQAFaders();

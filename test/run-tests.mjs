@@ -1274,6 +1274,38 @@ async function runEdgeCaseTests() {
 }
 
 // ════════════════════════════════════════════════════════════════════════
+// CONVERT PAGE — curated cross-format hub (audio-to-video, video-extract,
+// photo-convert) plus honest "coming soon" cards for PDF conversion
+// ════════════════════════════════════════════════════════════════════════
+async function runConvertPageTests() {
+  console.log('\n=== Convert page ===');
+  await test('Convert page lists the 3 real converters and 2 honest coming-soon cards', async page => {
+    await page.send('Page.navigate', { url: BASE_URL });
+    await sleep(1000);
+    await page.eval(`goPage('convert')`);
+    await sleep(300);
+    const r = JSON.parse(await page.eval(`JSON.stringify({
+      pageActive: document.getElementById('page-convert').classList.contains('active'),
+      navActive: document.querySelector('.nav-btn[data-page="convert"]').classList.contains('active'),
+      realCards: document.querySelectorAll('#tp-convert .tp-group:first-child .fgrid-card').length,
+      soonCards: document.querySelectorAll('#tp-convert .fgrid-soon-tag').length,
+    })`));
+    assertEqual(r, { pageActive: true, navActive: true, realCards: 3, soonCards: 2 }, 'Convert page should show 3 real converters + 2 coming-soon cards');
+    assert(page.consoleMsgs.length === 0, 'no console errors: ' + JSON.stringify(page.consoleMsgs));
+  });
+  await test('clicking a real Convert card opens that tool\'s page; a coming-soon card does not', async page => {
+    await page.send('Page.navigate', { url: BASE_URL });
+    await sleep(1000);
+    await page.eval(`goPage('convert')`);
+    await sleep(300);
+    await page.trustedClickSelector('#tp-convert .tp-group:first-child .fgrid-card');
+    await sleep(300);
+    const onToolPage = await page.eval(`document.getElementById('page-tool').classList.contains('active')`);
+    assertEqual(onToolPage, true, 'clicking a real converter card should navigate to its tool page');
+  });
+}
+
+// ════════════════════════════════════════════════════════════════════════
 // RELOAD PERSISTENCE (honest check — this app has no save/load layer)
 // ════════════════════════════════════════════════════════════════════════
 async function runReloadTest() {
@@ -1306,6 +1338,7 @@ async function main() {
   await runVinylTests();
   await runClassicAudioLivePreviewTests();
   await runEdgeCaseTests();
+  await runConvertPageTests();
   await runReloadTest();
 
   const passed = results.filter(r => r.ok).length;
