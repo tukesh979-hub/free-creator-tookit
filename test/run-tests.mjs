@@ -764,6 +764,48 @@ async function runFfmpegToolsTests() {
     assert(pixels.redPixels > 500, 'output frame should contain real red reactor bars, not be blank: ' + JSON.stringify(pixels));
     assert(page.consoleMsgs.length === 0, 'no console errors: ' + JSON.stringify(page.consoleMsgs));
   });
+  await test('audio-to-video draws the full vinyl scene: disc, title/format card, and bars', async page => {
+    await page.gotoEditor();
+    await page.setFile(AUDIO);
+    await sleep(1500);
+    await page.evalBlock(`selectTool(byId('audio-to-video')); setSetting('outputFormat','webm'); renderSettings('audio-to-video');`);
+    await sleep(300);
+    await page.trustedClickSelector('#btn-convert');
+    for (let i = 0; i < 60; i++) {
+      await sleep(1000);
+      const done = await page.eval(`!S.processing && !!S.outputBlob`);
+      if (done) break;
+    }
+    const stats = JSON.parse(await page.evalBlock(`
+      return (async () => {
+        const url = URL.createObjectURL(S.outputBlob);
+        const v = document.createElement('video');
+        v.src = url; v.muted = true;
+        await new Promise((res, rej) => { v.onloadedmetadata = res; v.onerror = rej; setTimeout(rej, 8000); });
+        v.currentTime = Math.min(2, v.duration / 2);
+        await new Promise(res => { v.onseeked = res; });
+        const canvas = document.createElement('canvas');
+        canvas.width = v.videoWidth; canvas.height = v.videoHeight;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(v, 0, 0);
+        // Sample just the top-left quadrant, where the card/disc live at
+        // 16:9 (not the bars, which are lower and centered) — confirms
+        // real rendered content (title text, disc grooves/label) exists
+        // there, not just an empty/solid area.
+        const w = canvas.width, h = canvas.height;
+        const data = ctx.getImageData(0, 0, Math.floor(w * 0.7), Math.floor(h * 0.68)).data;
+        let whitePixels = 0, distinctShades = new Set();
+        for (let i = 0; i < data.length; i += 4) {
+          if (data[i] > 200 && data[i+1] > 200 && data[i+2] > 200) whitePixels++;
+          distinctShades.add(Math.round(data[i]/8) + ',' + Math.round(data[i+1]/8) + ',' + Math.round(data[i+2]/8));
+        }
+        return JSON.stringify({ whitePixels, distinctShades: distinctShades.size });
+      })();
+    `, { awaitPromise: true, timeoutMs: 12000 }));
+    assert(stats.whitePixels > 50, 'title/label text (white/light) should be visible in the card+disc area: ' + JSON.stringify(stats));
+    assert(stats.distinctShades > 30, 'disc gradient/grooves + card gradient should produce real visual variety, not flat color blocks: ' + JSON.stringify(stats));
+    assert(page.consoleMsgs.length === 0, 'no console errors: ' + JSON.stringify(page.consoleMsgs));
+  });
   await test('audio-to-video supports 16:9, 9:16, and 1:1 aspect ratios at the correct resolution', async page => {
     await page.gotoEditor();
     await page.setFile(AUDIO);

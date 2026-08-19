@@ -4048,7 +4048,7 @@ const PANELS = {
             ${f.label}<span class="fmt-card-sub">${f.sub}</span>
           </button>`).join('')}
       </div>
-      <p class="s-hint" style="margin-top:10px">Generates a ${(ars.find(a=>a.id===curAR)||ars[0]).dims} video with the exact same audio-reactive bars as the preview panes elsewhere in the app. This records in real time (as long as the audio itself), so a 3-minute track takes about 3 minutes. Nothing to preview live here — press Convert, then Download.</p>`;
+      <p class="s-hint" style="margin-top:10px">Generates a ${(ars.find(a=>a.id===curAR)||ars[0]).dims} video with the same vinyl player look as the preview panes elsewhere in the app — the spinning record, the title/format card, and the audio-reactive bars. This records in real time (as long as the audio itself), so a 3-minute track takes about 3 minutes. Nothing to preview live here — press Convert, then Download.</p>`;
   },
 };
 
@@ -10311,21 +10311,22 @@ async function exportMixdown() {
 }
 
 // ════════════════════════════════════════════════════════════════════════════
-// AUDIO → VIDEO — real reactor-bar capture (not an FFmpeg filter)
+// AUDIO → VIDEO — real vinyl-player capture (not an FFmpeg filter)
 // ════════════════════════════════════════════════════════════════════════════
 // FFmpeg's own visualizer filters (showwaves/showfreqs) render a dense,
-// edge-to-edge spectrum — nothing close to this app's actual reactor-bar
-// look (spaced, rounded, gradient, glowing bars — see .reactor-bar and
-// nxVinylReactorTick). Getting that exact visual means drawing it exactly
-// the same way the live preview does, then recording it for real: an
+// edge-to-edge spectrum — nothing close to this app's actual preview look:
+// the spinning record, the title/format card, and the reactor bars (see
+// nxRenderVinylPlayer/nxUpdateVinylUI/nxVinylReactorTick). Getting that
+// exact visual means drawing the same scene, then recording it for real: an
 // AnalyserNode reading the SAME fftSize/smoothing/per-band weighting as
-// nxVinylReactorTick, drawn to a canvas every frame, captured via
-// canvas.captureStream() + the analysed audio's own MediaStreamDestination
-// (same pairing nxExportVideo already uses for the timeline's video
-// export), recorded with MediaRecorder. This runs in real time (bounded by
-// the audio's own duration, not faster), but the recording itself is
-// realtime-cheap — encoding is the browser's own hardware-backed encoder,
-// not ffmpeg.wasm's single-threaded software one.
+// nxVinylReactorTick for the bars, the same 33⅓ RPM formula as
+// nxUpdateVinylUI for the disc rotation, drawn to a canvas every frame,
+// captured via canvas.captureStream() + the analysed audio's own
+// MediaStreamDestination (same pairing nxExportVideo already uses for the
+// timeline's video export), recorded with MediaRecorder. This runs in real
+// time (bounded by the audio's own duration, not faster), but the
+// recording itself is realtime-cheap — encoding is the browser's own
+// hardware-backed encoder, not ffmpeg.wasm's single-threaded software one.
 async function nxRecordAudioToVideo(file, s) {
   if (typeof MediaRecorder === 'undefined' || !HTMLCanvasElement.prototype.captureStream) {
     throw new Error('This browser doesn\'t support MediaRecorder/canvas capture — try Chrome or Edge.');
@@ -10354,6 +10355,21 @@ async function nxRecordAudioToVideo(file, s) {
   canvas.width = W; canvas.height = H;
   const ctx = canvas.getContext('2d');
 
+  // Same info the vinyl player card shows (see nxRenderVinylPlayer) — title,
+  // filename, and format chips. Sample rate/channel count need a quick
+  // decode (same technique as nxEnsureAudioAssetMeta); harmless if it fails,
+  // the chips just show fewer items.
+  const title = nxCleanTitle(file.name);
+  const ext = (file.name.split('.').pop() || 'AUDIO').toUpperCase();
+  const chips = [ext];
+  try {
+    const arrBuf = await file.arrayBuffer();
+    const probeCtx = new (window.AudioContext || window.webkitAudioContext)();
+    const decoded = await probeCtx.decodeAudioData(arrBuf.slice(0));
+    chips.push(Math.round(decoded.sampleRate / 1000) + ' kHz', decoded.numberOfChannels >= 2 ? 'Stereo' : 'Mono');
+    probeCtx.close();
+  } catch (_) {}
+
   const actx = window._mixerAudioCtx || (window._mixerAudioCtx = new (window.AudioContext || window.webkitAudioContext)());
   const srcNode = actx.createMediaElementSource(audioEl);
   const analyser = actx.createAnalyser();
@@ -10373,6 +10389,128 @@ async function nxRecordAudioToVideo(file, s) {
   const chunks = [];
   recorder.ondataavailable = e => { if (e.data.size) chunks.push(e.data); };
 
+  // ── Layout ────────────────────────────────────────────────────────────
+  // Mirrors nxRenderVinylPlayer's actual two layouts: side-by-side (sleeve
+  // left half, record right, overlapping) on a wide/landscape canvas — the
+  // same shape as its desktop CSS — and the stacked layout (disc above,
+  // card below) its own @media(max-width:900px) rule switches to, reused
+  // here for the narrower 9:16/1:1 canvases rather than squeezing the
+  // side-by-side version into a portrait frame.
+  const landscape = W > H;
+  // Portrait/square get a shorter stage (0.50 vs 0.68) — the card's text
+  // block is a fixed height regardless of frame size, so at the same
+  // stage-height fraction as landscape it left a dead gap between the
+  // card and the bars below; a shorter stage keeps the card snug under
+  // the disc and gives the bars proportionally more of the frame.
+  const stageH = H * (landscape ? 0.68 : 0.50);
+  const barsY = stageH, barsH = H - stageH;
+  const RED = '#ff3b3b', RED_LIGHT = '#ff8f80';
+
+  let discCenterX, discCenterY, discR, cardX, cardY, cardW, cardH, textAlign;
+  if (landscape) {
+    cardX = 0; cardY = 0; cardW = W * 0.5; cardH = stageH;
+    discCenterX = W * 0.5; discCenterY = stageH * 0.5; discR = W * 0.20;
+    textAlign = 'left';
+  } else {
+    const discSectionH = stageH * 0.56;
+    discCenterX = W * 0.5; discCenterY = discSectionH * 0.5; discR = Math.min(W, discSectionH) * 0.42;
+    cardX = 0; cardY = discSectionH; cardW = W; cardH = stageH - discSectionH;
+    textAlign = 'center';
+  }
+
+  // ── Text helpers ─────────────────────────────────────────────────────
+  function ellipsize(text, maxWidth) {
+    if (ctx.measureText(text).width <= maxWidth) return text;
+    let lo = 0, hi = text.length;
+    while (lo < hi) {
+      const mid = (lo + hi + 1) >> 1;
+      if (ctx.measureText(text.slice(0, mid) + '…').width <= maxWidth) lo = mid; else hi = mid - 1;
+    }
+    return text.slice(0, lo) + '…';
+  }
+  function wrapLines(text, maxWidth, maxLines) {
+    const words = text.split(/\s+/), lines = [];
+    let line = '';
+    for (const w of words) {
+      const test = line ? line + ' ' + w : w;
+      if (ctx.measureText(test).width <= maxWidth) { line = test; continue; }
+      if (line) lines.push(line);
+      line = w;
+      if (lines.length === maxLines - 1) break;
+    }
+    if (line) lines.push(line);
+    if (lines.length > maxLines) lines.length = maxLines;
+    const last = lines.length - 1;
+    if (last >= 0) lines[last] = ellipsize(lines[last], maxWidth);
+    return lines;
+  }
+
+  function drawDisc(rotationDeg) {
+    ctx.save();
+    ctx.translate(discCenterX, discCenterY);
+    ctx.rotate(rotationDeg * Math.PI / 180);
+    const surf = ctx.createRadialGradient(-discR * 0.15, -discR * 0.15, discR * 0.05, 0, 0, discR);
+    surf.addColorStop(0, '#1b1b1b'); surf.addColorStop(0.55, '#0a0a0a'); surf.addColorStop(1, '#030303');
+    ctx.beginPath(); ctx.arc(0, 0, discR, 0, Math.PI * 2); ctx.fillStyle = surf; ctx.fill();
+    ctx.strokeStyle = 'rgba(255,255,255,.06)'; ctx.lineWidth = 1;
+    for (let i = 0; i < 18; i++) {
+      const r = discR * (1 - (0.12 + i * 0.024));
+      if (r <= discR * 0.3) break;
+      ctx.beginPath(); ctx.arc(0, 0, r, 0, Math.PI * 2); ctx.stroke();
+    }
+    const labelR = discR * 0.32;
+    const lab = ctx.createRadialGradient(0, 0, 0, 0, 0, labelR);
+    lab.addColorStop(0, '#1c1c1c'); lab.addColorStop(1, '#0d0d0d');
+    ctx.beginPath(); ctx.arc(0, 0, labelR, 0, Math.PI * 2); ctx.fillStyle = lab; ctx.fill();
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillStyle = RED;
+    ctx.font = `800 ${Math.round(labelR * 0.55)}px Inter, sans-serif`;
+    ctx.fillText('N', 0, -labelR * 0.32);
+    ctx.fillStyle = '#fff';
+    ctx.font = `700 ${Math.round(labelR * 0.18)}px Inter, sans-serif`;
+    ctx.fillText('NEXUS', 0, labelR * 0.06);
+    ctx.fillStyle = 'rgba(255,255,255,.55)';
+    ctx.font = `${Math.round(labelR * 0.14)}px Inter, sans-serif`;
+    ctx.fillText(ellipsize(title, labelR * 1.5), 0, labelR * 0.34);
+    ctx.beginPath(); ctx.arc(0, 0, Math.max(2, discR * 0.025), 0, Math.PI * 2); ctx.fillStyle = '#020202'; ctx.fill();
+    ctx.restore();
+  }
+
+  function drawCard() {
+    const grad = landscape
+      ? ctx.createLinearGradient(cardX, cardY, cardX + cardW, cardY + cardH)
+      : ctx.createLinearGradient(cardX, cardY, cardX, cardY + cardH);
+    grad.addColorStop(0, '#1a1212'); grad.addColorStop(0.55, '#0d0d0d'); grad.addColorStop(1, '#080808');
+    ctx.fillStyle = grad;
+    ctx.fillRect(cardX, cardY, cardW, cardH);
+
+    const pad = W * 0.028;
+    const textX = textAlign === 'center' ? cardX + cardW / 2 : cardX + pad;
+    const maxTextW = cardW - pad * 2;
+    ctx.textAlign = textAlign; ctx.textBaseline = 'alphabetic';
+    let ty = cardY + cardH * 0.32;
+
+    ctx.fillStyle = RED;
+    ctx.font = `700 ${Math.round(W * 0.011)}px "JetBrains Mono", monospace`;
+    ctx.fillText('AUDIO FILE', textX, ty);
+
+    ty += W * 0.034;
+    ctx.fillStyle = '#f5f5f5';
+    const titleSize = Math.round(W * 0.026);
+    ctx.font = `800 ${titleSize}px Inter, sans-serif`;
+    for (const line of wrapLines(title, maxTextW, 2)) { ctx.fillText(line, textX, ty); ty += titleSize * 1.15; }
+
+    ty += W * 0.006;
+    ctx.fillStyle = '#626262';
+    ctx.font = `${Math.round(W * 0.012)}px "JetBrains Mono", monospace`;
+    ctx.fillText(ellipsize(file.name, maxTextW), textX, ty);
+
+    ty += W * 0.03;
+    ctx.fillStyle = '#a0a0a0';
+    ctx.font = `${Math.round(W * 0.011)}px "JetBrains Mono", monospace`;
+    ctx.fillText(chips.join('   '), textX, ty);
+  }
+
   // Bar geometry mirrors .reactor-bar/.audio-reactor: spaced, rounded,
   // bottom-anchored bars centered as a group — just computed for a fixed
   // canvas instead of flexbox. Bar count scales with W (64 bars at the
@@ -10385,11 +10523,20 @@ async function nxRecordAudioToVideo(file, s) {
   const groupW = W * 0.82;
   const barWidth = Math.max(3, groupW / N - barGap);
   const startX = (W - (N * (barWidth + barGap) - barGap)) / 2;
-  const baseY = H * 0.82, minH = 8, maxH = H * 0.62;
+  const baseY = barsY + barsH * 0.86, minH = 6, maxH = barsH * 0.72;
+
+  const RPM = 33 + 1 / 3; // same real 33⅓ vinyl speed as nxUpdateVinylUI
+  const degPerSec = (RPM / 60) * 360;
 
   function drawFrame() {
     ctx.fillStyle = '#080808';
     ctx.fillRect(0, 0, W, H);
+
+    // Record drawn first so the sleeve (drawn after, in landscape) can
+    // occlude its left half — same z-order as nxRenderVinylPlayer.
+    drawDisc((audioEl.currentTime * degPerSec) % 360);
+    drawCard();
+
     analyser.getByteFrequencyData(data);
     for (let i = 0; i < N; i++) {
       const index = Math.floor((i / N) * data.length);
@@ -10401,8 +10548,8 @@ async function nxRecordAudioToVideo(file, s) {
       const x = startX + i * (barWidth + barGap);
       const y = baseY - h;
       const grad = ctx.createLinearGradient(x, baseY, x, y);
-      grad.addColorStop(0, '#ff3b3b');
-      grad.addColorStop(1, '#ff8f80');
+      grad.addColorStop(0, RED);
+      grad.addColorStop(1, RED_LIGHT);
       ctx.save();
       ctx.shadowBlur = 14;
       ctx.shadowColor = 'rgba(255,59,59,.4)';
