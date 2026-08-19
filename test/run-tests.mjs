@@ -702,32 +702,41 @@ async function runFfmpegToolsTests() {
     assertEqual(postConvert, { hasOutput: true, dlDisabled: false }, 'Convert alone should produce a result and enable Download, without downloading anything yet');
   });
   await test('audio-to-video produces a real, decodable video in every output format', async page => {
+    // Was mp4-only despite the name (this codec-args table has a distinct
+    // entry per format — mp4/mov/mkv share libx264, webm uses libvpx, and
+    // only mp4/mov/mkv were actually being exercised) — found while
+    // verifying the offline-render rewrite's updated codec args, worth
+    // closing since it's a real coverage gap in exactly the code just changed.
     await page.gotoEditor();
     await page.setFile(AUDIO);
     await sleep(1500);
     await page.evalBlock(`selectTool(byId('audio-to-video'));`);
     await sleep(300);
-    await page.trustedClickSelector('#btn-convert');
-    let r = null;
-    for (let i = 0; i < 90; i++) {
-      await sleep(1000);
-      const parsed = JSON.parse(await page.eval(`JSON.stringify({processing: S.processing, hasOutput: !!S.outputBlob, outputName: S.outputName, blobSize: S.outputBlob ? S.outputBlob.size : 0})`));
-      if (!parsed.processing && parsed.hasOutput) { r = parsed; break; }
+    for (const fmt of ['mp4', 'mov', 'mkv', 'webm']) {
+      await page.evalBlock(`setSetting('outputFormat','${fmt}'); renderSettings('audio-to-video');`);
+      await sleep(150);
+      await page.trustedClickSelector('#btn-convert');
+      let r = null;
+      for (let i = 0; i < 60; i++) {
+        await sleep(1000);
+        const parsed = JSON.parse(await page.eval(`JSON.stringify({processing: S.processing, hasOutput: !!S.outputBlob, outputName: S.outputName, blobSize: S.outputBlob ? S.outputBlob.size : 0})`));
+        if (!parsed.processing && parsed.hasOutput) { r = parsed; break; }
+      }
+      assert(r, `audio-to-video (${fmt}) should complete within 60s, not hang indefinitely`);
+      assertEqual(r.outputName, `test_audio_to-video.${fmt}`, `expected ${fmt} output filename`);
+      assert(r.blobSize > 5000, `output video should be a real, non-trivial file for ${fmt}: ` + JSON.stringify(r));
+      const meta = JSON.parse(await page.evalBlock(`
+        return (async () => {
+          const url = URL.createObjectURL(S.outputBlob);
+          const v = document.createElement('video');
+          v.src = url;
+          await new Promise((res, rej) => { v.onloadedmetadata = res; v.onerror = rej; setTimeout(rej, 8000); });
+          return JSON.stringify({ duration: v.duration, width: v.videoWidth, height: v.videoHeight });
+        })();
+      `, { awaitPromise: true, timeoutMs: 12000 }));
+      assert(meta.duration > 0 && meta.width === 960 && meta.height === 540, `${fmt} output should be a genuinely decodable 960x540 video: ` + JSON.stringify(meta));
     }
-    assert(r, 'audio-to-video should complete within 90s, not hang indefinitely');
-    assertEqual(r.outputName, 'test_audio_to-video.mp4', 'expected output filename');
-    assert(r.blobSize > 5000, 'output video should be a real, non-trivial file: ' + JSON.stringify(r));
-    const meta = JSON.parse(await page.evalBlock(`
-      return (async () => {
-        const url = URL.createObjectURL(S.outputBlob);
-        const v = document.createElement('video');
-        v.src = url;
-        await new Promise((res, rej) => { v.onloadedmetadata = res; v.onerror = rej; setTimeout(rej, 8000); });
-        return JSON.stringify({ duration: v.duration, width: v.videoWidth, height: v.videoHeight });
-      })();
-    `, { awaitPromise: true, timeoutMs: 12000 }));
-    assert(meta.duration > 0 && meta.width === 1280 && meta.height === 720, 'output should be a genuinely decodable 1280x720 video: ' + JSON.stringify(meta));
-    assert(page.consoleMsgs.length === 0, 'no console errors: ' + JSON.stringify(page.consoleMsgs));
+    assert(page.consoleMsgs.length === 0, 'no console errors across formats: ' + JSON.stringify(page.consoleMsgs));
   });
   await test('audio-to-video draws real reactor bars, not a blank/black frame', async page => {
     await page.gotoEditor();
@@ -812,7 +821,7 @@ async function runFfmpegToolsTests() {
     await sleep(1500);
     await page.evalBlock(`selectTool(byId('audio-to-video')); setSetting('outputFormat','webm'); renderSettings('audio-to-video');`);
     await sleep(300);
-    const expected = { '16:9': [1280, 720], '9:16': [720, 1280], '1:1': [720, 720] };
+    const expected = { '16:9': [960, 540], '9:16': [540, 960], '1:1': [540, 540] };
     for (const ar of Object.keys(expected)) {
       await page.evalBlock(`setSetting('aspectRatio','${ar}'); renderSettings('audio-to-video');`);
       await sleep(150);
@@ -836,6 +845,32 @@ async function runFfmpegToolsTests() {
       assertEqual([meta.width, meta.height], expected[ar], `${ar} should produce a ${expected[ar].join('x')} video`);
     }
     assert(page.consoleMsgs.length === 0, 'no console errors across aspect ratios: ' + JSON.stringify(page.consoleMsgs));
+  });
+  await test('audio-to-video renders faster than real time, not bound to the audio\'s own length', async page => {
+    // Regression test for the whole point of the offline-render rewrite:
+    // this used to play the audio back in real time to capture it
+    // (canvas.captureStream + MediaRecorder), so total time was always
+    // >= the audio's own duration. The offline renderer (OfflineAudioContext
+    // suspend/resume for FFT + a canvas/JPEG frame sequence handed to
+    // FFmpeg in one pass) never plays the audio at all, so this should
+    // finish well under the source duration even on a short clip.
+    await page.gotoEditor();
+    await page.setFile(AUDIO);
+    await sleep(1500);
+    const audioDuration = await page.eval(`S.file.duration`);
+    await page.evalBlock(`selectTool(byId('audio-to-video'));`);
+    await sleep(300);
+    const t0 = Date.now();
+    await page.trustedClickSelector('#btn-convert');
+    let done = false;
+    for (let i = 0; i < 60; i++) {
+      await sleep(500);
+      done = await page.eval(`!S.processing && !!S.outputBlob`);
+      if (done) break;
+    }
+    const elapsedSec = (Date.now() - t0) / 1000;
+    assert(done, 'conversion should complete within 30s');
+    assert(elapsedSec < audioDuration, `should render faster than the ${audioDuration.toFixed(1)}s source audio, took ${elapsedSec.toFixed(1)}s`);
   });
   await test('video-extract offers all 6 audio formats and each produces real output', async page => {
     await page.gotoEditor();
