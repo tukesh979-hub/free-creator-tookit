@@ -178,6 +178,40 @@ nav{
 #page-home.active{position:relative}
 #page-home .hero,#page-home>.home-wrap,#page-home>section{position:relative;z-index:1}
 
+/* ═══════════ HOME BACKGROUND — static grid + grain ═══════════
+   Adapted from a requested reference (a moving-grid/noise/vignette combo)
+   but deliberately made fully static: no rAF position loop, no hover
+   layer intercepting clicks through the page's real UI (the reference was
+   built as a stand-alone full-screen takeover, not a backdrop sitting
+   behind clickable content — porting its click-catching hover canvas here
+   would silently break every button/link on the home page). Every layer
+   is position:fixed with a background-position pinned at 0 0, so the grid
+   cannot visually drift on resize, scroll, or re-render — it is redrawn
+   identically every time. Reuses .tech-grid's own 56px cell size (already
+   the card-level grid used on the upload workspace) rather than the
+   reference's 44px, so the whole-page grid and the smaller in-card grid
+   share one raster instead of reading as two unrelated patterns. Tinted
+   with --red instead of the reference's blue — this site's identity is
+   explicitly one accent color, not blue (see DESIGN TOKENS above). */
+#home-bg{position:fixed;inset:0;z-index:0;pointer-events:none;overflow:hidden;background:var(--bg)}
+#home-bg .home-bg-spotlight{
+  position:absolute;inset:0;
+  background:radial-gradient(circle 620px at 50% 220px,rgba(255,59,59,.16),transparent 70%);
+}
+#home-bg .home-bg-grid{
+  position:absolute;inset:0;background-position:0 0;
+  background-image:linear-gradient(rgba(255,255,255,.05) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.05) 1px,transparent 1px);
+  background-size:56px 56px
+}
+:root[data-theme="light"] #home-bg .home-bg-grid{
+  background-image:linear-gradient(rgba(0,0,0,.05) 1px,transparent 1px),linear-gradient(90deg,rgba(0,0,0,.05) 1px,transparent 1px)
+}
+#home-bg-noise{position:absolute;inset:0;width:100%;height:100%;image-rendering:pixelated;opacity:.5}
+#home-bg .home-bg-vignette{
+  position:absolute;inset:0;
+  background:radial-gradient(ellipse at 50% 0%,transparent 45%,var(--bg) 100%);
+}
+
 /* ═══════════ CATEGORY SHOWCASE — 3D INTERACTIVE ICONS ═══════════ */
 .cat-showcase{padding:8px 16px 6px;position:relative;z-index:1}
 .cs-inner{max-width:980px;margin:0 auto}
@@ -1725,6 +1759,12 @@ input[type=color].s-input{height:38px;padding:3px;cursor:pointer}
 
 <!-- ══════════════════ HOME ══════════════════ -->
 <div id="page-home" class="page active">
+  <div id="home-bg" aria-hidden="true">
+    <div class="home-bg-spotlight"></div>
+    <div class="home-bg-grid"></div>
+    <canvas id="home-bg-noise"></canvas>
+    <div class="home-bg-vignette"></div>
+  </div>
   <section class="hero" aria-label="Hero" id="hero">
     <p class="hero-status">Free · No Watermark · No Signup</p>
     <h1>FREE CREATOR<br/><span>TOOLKIT</span></h1>
@@ -10652,6 +10692,7 @@ document.addEventListener('DOMContentLoaded', () => {
   initQADial();
   initQAFaders();
   initAudioWaveHero();
+  initHomeBgNoise();
   initSystemStatus();
   initPanelResizers();
 
@@ -10822,6 +10863,28 @@ function qaFaderInput(input, valId) {
 
 function initQAFaders() {
   document.querySelectorAll('.qa-fader-input').forEach(paintQAFader);
+}
+
+// Home page background grain — a single static noise frame (no rAF loop:
+// see the CSS comment on #home-bg for why this whole background is
+// deliberately non-animated). Drawn once at a fixed 512x512 and stretched
+// to the viewport via CSS, same "generate small, scale up with pixelation"
+// technique the reference used, just without the per-frame regeneration.
+function initHomeBgNoise() {
+  const canvas = $('home-bg-noise');
+  if (!canvas || canvas._drawn) return;
+  const ctx = canvas.getContext('2d', { alpha: true });
+  if (!ctx) return;
+  canvas._drawn = true;
+  const SIZE = 512, ALPHA = 14;
+  canvas.width = SIZE; canvas.height = SIZE;
+  const img = ctx.createImageData(SIZE, SIZE);
+  const d = img.data;
+  for (let i = 0; i < d.length; i += 4) {
+    const v = Math.random() * 255;
+    d[i] = v; d[i + 1] = v; d[i + 2] = v; d[i + 3] = ALPHA;
+  }
+  ctx.putImageData(img, 0, 0);
 }
 
 // Home page audio-section hero waveform — decorative, static heights with a
