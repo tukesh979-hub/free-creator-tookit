@@ -1469,6 +1469,17 @@ input[type=color].s-input{height:38px;padding:3px;cursor:pointer}
 }
 .btn-primary:hover:not(:disabled){background:var(--red2)}
 .btn-primary:disabled{background:var(--border2);color:var(--dim);cursor:not-allowed}
+/* Convert step for the pure format-conversion tools (nothing to preview
+   live, so Download alone can't tell the user "this worked" before it's
+   already downloaded) — same footprint as .btn-primary, outlined instead
+   of filled so it doesn't visually compete with Download as the main action. */
+#btn-convert{
+  background:transparent;border:1px solid var(--border2);color:var(--text);font-size:17px;font-weight:700;letter-spacing:2px;
+  text-transform:uppercase;padding:10px;width:100%;transition:all var(--transition);
+  display:flex;align-items:center;justify-content:center;gap:5px;border-radius:6px
+}
+#btn-convert:hover:not(:disabled){border-color:var(--red);color:var(--red)}
+#btn-convert:disabled{color:var(--dim);border-color:var(--border);cursor:not-allowed}
 .btn-newfile{
   background:transparent;border:1px solid var(--border);color:var(--dim);
   font-family:var(--mono);font-size:15px;letter-spacing:1px;text-transform:uppercase;
@@ -2254,10 +2265,15 @@ input[type=color].s-input{height:38px;padding:3px;cursor:pointer}
     <div class="er-foot">
       <!-- Every tool previews live now (see applyLivePreview/applyVideoPreview/
            applyAudioPreview) — there's nothing left for a separate "Process"
-           step to do that isn't already visible/audible, so this one button
-           just runs the real export and downloads it (runProcess() already
-           calls doDownload() internally). -->
-      <button class="btn-primary" id="btn-dl" disabled onclick="runProcess()" aria-label="Download result">⬇ Download</button>
+           step to do that isn't already visible/audible, so for most tools
+           this one button just runs the real export and downloads it
+           (runProcess() calls doDownload() internally). The pure format
+           conversions (audio-to-video, video-extract) have nothing to
+           preview live at all — see TWO_STEP_TOOLS — so those get an
+           explicit Convert step before Download instead, via
+           handleDownloadClick()'s per-tool branch. -->
+      <button id="btn-convert" disabled onclick="runProcess()" aria-label="Convert file" style="display:none">⚙ Convert</button>
+      <button class="btn-primary" id="btn-dl" disabled onclick="handleDownloadClick()" aria-label="Download result">⬇ Download</button>
       <button class="btn-newfile" id="btn-newfile" onclick="confirmNewFile()" aria-label="Start with new file">← New File</button>
     </div>
     <div class="er-status" aria-label="System status">
@@ -2891,6 +2907,11 @@ function selectTool(tool) {
   const prevToolId = S.tool && S.tool.id;
   S.tool = tool;
   S.settings = {};
+  // A converted-but-not-yet-downloaded blob belongs to the tool that made
+  // it (see TWO_STEP_TOOLS) — carrying it over to a newly selected tool
+  // would let Download hand out a stale result before this tool has
+  // actually run Convert for itself.
+  S.outputBlob = null;
   // Tear down live-preview state that must not leak into the NEXT tool —
   // mono forces the shared gain node to 1 channel, reverse points the
   // shared asset at a reversed blob, normalize scales the shared clip's
@@ -3261,7 +3282,7 @@ const PANELS = {
             ${f.label}<span class="fmt-card-sub">${f.sub}</span>
           </button>`).join('')}
       </div>
-      <div class="fmt-info-line" style="margin-top:8px">Extracts audio track at original quality</div>`;
+      <div class="fmt-info-line" style="margin-top:8px">Extracts audio track at original quality — press Convert, then Download</div>`;
   },
 
   'video-noaudio': () => `
@@ -3943,7 +3964,7 @@ const PANELS = {
             ${f.label}<span class="fmt-card-sub">${f.sub}</span>
           </button>`).join('')}
       </div>
-      <p class="s-hint" style="margin-top:10px">Generates a 1280×720 video with a live waveform of your audio, ready for platforms that need a video file. Nothing to preview live — download to see the real result.</p>`;
+      <p class="s-hint" style="margin-top:10px">Generates an 854×480 video with the same audio-reactive bars used in the preview panes elsewhere in the app, ready for platforms that need a video file. Nothing to preview live here — press Convert, then Download.</p>`;
   },
 };
 
@@ -9512,8 +9533,24 @@ function resetEditor() {
   if (S.tool) renderSettings(S.tool.id);
 }
 
+// Pure format-conversion tools have nothing to preview live (see each
+// panel's own "nothing to preview live" hint) — clicking one button that
+// silently processes AND immediately downloads gives no confirmation the
+// conversion actually worked before a file lands in Downloads. These get
+// an explicit Convert step first; Download only grabs the result once one
+// exists for the tool that's currently selected.
+const TWO_STEP_TOOLS = ['audio-to-video', 'video-extract'];
+function isTwoStepTool(id) { return TWO_STEP_TOOLS.includes(id); }
+function handleDownloadClick() {
+  if (isTwoStepTool(S.tool && S.tool.id)) doDownload();
+  else runProcess();
+}
 function updateDownloadBtn() {
-  $('btn-dl').disabled = !S.file || !S.tool || S.processing;
+  const twoStep = isTwoStepTool(S.tool && S.tool.id);
+  const convertBtn = $('btn-convert');
+  convertBtn.style.display = twoStep ? 'flex' : 'none';
+  convertBtn.disabled = !S.file || !S.tool || S.processing;
+  $('btn-dl').disabled = !S.file || !S.tool || S.processing || (twoStep && !S.outputBlob);
 }
 
 // ════════════════════════════════════════════════════════════════════════════
@@ -9966,26 +10003,33 @@ async function processFFmpeg(file, toolId, s) {
     } else if (toolId === 'audio-to-video') {
       const fmt = s.outputFormat || 'mp4';
       outFile = 'out.' + fmt; outMime = mimes[fmt] || 'video/mp4';
-      const w = 1280, h = 720;
-      // color source needs an explicit finite duration; pad slightly so
-      // -shortest never has a chance to clip the very last audio frame
-      const vidDur = Math.max(1, dur || 10) + 0.5;
+      // 854x480 + ultrafast, not the original 1280x720 + fast + a separate
+      // color-layer/overlay composite: that combination was real, but slow
+      // enough in ffmpeg.wasm's single-threaded software encoder to feel
+      // stuck on anything but a very short clip. showfreqs already renders
+      // on a black background on its own — same visual result as
+      // compositing onto a near-black color layer, one fewer full-frame
+      // filter step, real speed difference in a software encoder.
+      const w = 854, h = 480;
       const vCodecArgs = {
-        mp4:  ['-c:v', 'libx264', '-crf', '23', '-preset', 'fast', '-pix_fmt', 'yuv420p', '-c:a', 'aac',      '-b:a', '192k', '-movflags', '+faststart'],
-        mov:  ['-c:v', 'libx264', '-crf', '23', '-preset', 'fast', '-pix_fmt', 'yuv420p', '-c:a', 'aac',      '-b:a', '192k'],
-        mkv:  ['-c:v', 'libx264', '-crf', '23', '-preset', 'fast', '-pix_fmt', 'yuv420p', '-c:a', 'aac',      '-b:a', '192k'],
-        webm: ['-c:v', 'libvpx',  '-b:v', '1M',                    '-pix_fmt', 'yuv420p', '-c:a', 'libvorbis','-b:a', '192k'],
+        mp4:  ['-c:v', 'libx264', '-crf', '26', '-preset', 'ultrafast', '-pix_fmt', 'yuv420p', '-c:a', 'aac',      '-b:a', '160k', '-movflags', '+faststart'],
+        mov:  ['-c:v', 'libx264', '-crf', '26', '-preset', 'ultrafast', '-pix_fmt', 'yuv420p', '-c:a', 'aac',      '-b:a', '160k'],
+        mkv:  ['-c:v', 'libx264', '-crf', '26', '-preset', 'ultrafast', '-pix_fmt', 'yuv420p', '-c:a', 'aac',      '-b:a', '160k'],
+        webm: ['-c:v', 'libvpx',  '-cpu-used', '8', '-deadline', 'realtime', '-b:v', '900k', '-pix_fmt', 'yuv420p', '-c:a', 'libvorbis', '-b:a', '160k'],
       };
       const cargs = vCodecArgs[fmt] || vCodecArgs.mp4;
       try {
-        // Real audio-reactive waveform on a dark background, in the app's
-        // own accent color — a genuine video, not just a static card.
+        // Bar-style frequency spectrum — the same "red audio-reactive bars"
+        // look as the reactor-bar meter already used in the video/audio
+        // preview panes (see nxVinylReactorTick), rendered natively by
+        // FFmpeg's own filter instead of computed frame-by-frame in JS.
         await ff.exec(['-i', inFile, '-filter_complex',
-          `color=c=0x080808:s=${w}x${h}:d=${vidDur}[bg];[0:a]showwaves=s=${w}x${h}:mode=cline:colors=0xff3b3b:rate=25[wave];[bg][wave]overlay=format=auto:shortest=1[v]`,
+          `[0:a]showfreqs=s=${w}x${h}:mode=bar:ascale=log:fscale=log:colors=0xff3b3b|0xff5252[v]`,
           '-map', '[v]', '-map', '0:a', ...cargs, outFile]);
       } catch (_) {
-        // showwaves unavailable in this FFmpeg build — fall back to a
+        // showfreqs unavailable in this FFmpeg build — fall back to a
         // plain color card so the tool still produces a real, playable video.
+        const vidDur = Math.max(1, dur || 10) + 0.5;
         await ff.exec(['-f', 'lavfi', '-i', `color=c=0x080808:s=${w}x${h}:d=${vidDur}`, '-i', inFile, ...cargs, '-shortest', outFile]);
       }
 
@@ -10228,10 +10272,11 @@ async function runProcess() {
     S.outputName = `${base}_${suffix}.${result.ext}`;
 
     setProgress(100, 'Done!');
+    const twoStep = isTwoStepTool(S.tool.id);
     setTimeout(() => {
       hideOverlay();
-      showStatus('done', `✓ ${S.outputName} ready`);
-      doDownload();
+      showStatus('done', twoStep ? `✓ Converted — ${S.outputName} ready to download` : `✓ ${S.outputName} ready`);
+      if (!twoStep) doDownload();
     }, 300);
 
   } catch (err) {
@@ -10434,7 +10479,7 @@ document.addEventListener('keydown', e => {
   }
   if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
     e.preventDefault();
-    if (!$('btn-dl').disabled) runProcess();
+    if (!$('btn-dl').disabled) handleDownloadClick();
   }
   if ((e.ctrlKey || e.metaKey) && e.key === 's' && S.outputBlob) {
     e.preventDefault();
