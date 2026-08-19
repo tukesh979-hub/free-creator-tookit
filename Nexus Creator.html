@@ -3122,7 +3122,9 @@ const PANELS = {
   },
 
   'video-speed': () => {
-    const cur = +(S.settings.speed !== undefined ? S.settings.speed : 1.5);
+    // Defaults to 1x (no change) — same reasoning as audio-speed: opening
+    // the tool must not itself alter playback speed.
+    const cur = +(S.settings.speed !== undefined ? S.settings.speed : 1);
     const needsChain = cur < 0.5 || cur > 2;
     return `
       ${rangeRow('Speed', 'speed', 0.25, 4, 0.25, 'x', cur)}
@@ -3755,7 +3757,11 @@ const PANELS = {
   },
 
   'audio-speed': () => {
-    const cur = +(S.settings.speed !== undefined ? S.settings.speed : 1.5);
+    // Defaults to 1x (no change) — opening the tool must not itself alter
+    // the audio. Only an explicit click on a preset chip or a slider drag
+    // (both go through setS, which is the only thing that should ever
+    // change what's audible) sets it to something else.
+    const cur = +(S.settings.speed !== undefined ? S.settings.speed : 1);
     const needsChain = cur < 0.5 || cur > 2;
     return `
       ${rangeRow('Speed', 'speed', 0.25, 4, 0.25, 'x', cur)}
@@ -3773,7 +3779,13 @@ const PANELS = {
       </div>`;
   },
 
-  'audio-reverse': () => `
+  'audio-reverse': () => {
+    // Opening this tool must not itself flip the audio — reversal only
+    // starts when the user explicitly clicks Preview below (mirrors the
+    // audio-speed fix: no live-preview effect should fire just from
+    // selecting a tool, only from an actual interaction).
+    const on = !!S.settings._reversePreviewOn;
+    return `
     <div style="display:flex;flex-direction:column;align-items:center;gap:10px;padding:16px 8px">
       <div style="width:40px;height:40px;background:var(--bg4);border:1px solid var(--border2);
         border-radius:50%;display:flex;align-items:center;justify-content:center;
@@ -3784,11 +3796,15 @@ const PANELS = {
           Plays the entire file backwards.<br>Duration stays the same.
         </div>
       </div>
+      <button class="btn-outline" style="width:100%;justify-content:center" onclick="nxToggleReversePreview()">
+        ${on ? '⏸ Stop Reversed Preview' : '▶ Preview Reversed'}
+      </button>
       <div style="font-family:var(--mono);font-size:15px;color:var(--dim);padding:6px 12px;
         background:var(--bg4);border:1px solid var(--border);border-radius:6px;text-align:center">
-        ▶ Playing in reverse right now — press Download when ready
+        ${on ? '▶ Playing in reverse right now' : 'Download always applies the reverse, whether or not you preview it'}
       </div>
-    </div>`,
+    </div>`;
+  },
 
   'audio-pitch': () => {
     const sem = +(S.settings.semitones !== undefined ? S.settings.semitones : 0);
@@ -7931,6 +7947,10 @@ function nxApplyClassicAudioPreview(id, s) {
       nxApplyNormalizePreview(t, c, +(s.targetLufs !== undefined ? s.targetLufs : -16));
       break;
     case 'audio-reverse': {
+      // Only swaps in reversed audio once the user explicitly clicks
+      // "Preview Reversed" (nxToggleReversePreview) — selecting the tool
+      // must not itself flip whatever's playing.
+      if (!s._reversePreviewOn) break;
       const asset = nxAsset(c.sourceAssetId);
       if (!asset) break;
       const swapIn = (url) => {
@@ -7945,12 +7965,35 @@ function nxApplyClassicAudioPreview(id, s) {
       };
       if (asset._reversedUrl) swapIn(asset._reversedUrl);
       else nxGetReversedAssetUrl(asset).then(url => {
-        if (S.tool?.id !== 'audio-reverse' || nxClassicAudioTrack() !== t) return; // user moved on meanwhile
+        if (S.tool?.id !== 'audio-reverse' || !S.settings._reversePreviewOn || nxClassicAudioTrack() !== t) return; // user moved on / toggled off meanwhile
         swapIn(url);
       });
       break;
     }
   }
+}
+// Explicit user action (button click) that starts/stops the reversed-audio
+// live preview — see nxApplyClassicAudioPreview's audio-reverse case,
+// which is a no-op until this flag is set.
+function nxToggleReversePreview() {
+  S.settings._reversePreviewOn = !S.settings._reversePreviewOn;
+  if (S.settings._reversePreviewOn) {
+    nxApplyClassicAudioPreview('audio-reverse', S.settings);
+  } else {
+    const t = nxClassicAudioTrack();
+    const c = t && t.clips[0];
+    const asset = c && nxAsset(c.sourceAssetId);
+    if (asset && asset._originalUrl) {
+      asset.url = asset._originalUrl;
+      if (t._el && t._el.src !== asset.url) {
+        const wasPlaying = !t._el.paused;
+        t._el.src = asset.url;
+        t._el.currentTime = S.timeline.playhead;
+        if (wasPlaying) t._el.play().catch(() => {});
+      }
+    }
+  }
+  renderSettings('audio-reverse');
 }
 function nxSyncTrackPlaybackToPlayhead(t, time) {
   const clip = nxActiveClipAt(t, time);

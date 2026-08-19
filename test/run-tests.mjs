@@ -936,7 +936,7 @@ async function runClassicAudioLivePreviewTests() {
   await test('playhead and el.currentTime stay proportional to speed — no drift-correction seek storm', async page => {
     await page.gotoEditor(); await page.warmUpActivation(); await page.setFile(AUDIO); await sleep(1500);
     await page.evalBlock(`selectTool(byId('audio-speed'));`);
-    await sleep(150); // let selectTool's own delayed default-apply (1.5x) settle before we set 2x, or it wins the race and overwrites us
+    await sleep(150); // let selectTool's own delayed default-apply (1x, a no-op) settle before we set 2x, or it wins the race and overwrites us
     await page.evalBlock(`setS('speed', 2);`);
     await page.eval(`nxTogglePlay();`);
     await sleep(1200);
@@ -969,16 +969,42 @@ async function runClassicAudioLivePreviewTests() {
     `);
     assertEqual(JSON.parse(r2), { channelCount: 2, mode: 'max' }, 'leaving mono must restore normal stereo, or every other tool inherits the downmix');
   });
-  await test('reverse swaps in a genuinely reversed asset and reverts on leaving the tool', async page => {
+  await test('opening audio-speed/audio-reverse does not itself change the audio — only an explicit interaction does', async page => {
+    // Regression test: both tools used to apply their effect the instant
+    // the tool was selected (speed defaulted to 1.5x and applied
+    // immediately; reverse auto-swapped in reversed audio on open). Now
+    // selecting either must be a no-op until the user actually clicks
+    // something (a speed preset/slider, or the Preview Reversed button).
+    await page.gotoEditor(); await page.setFile(AUDIO); await sleep(1500);
+    await page.evalBlock(`selectTool(byId('audio-speed'));`);
+    await sleep(200);
+    const speedState = await page.evalBlock(`
+      const t = S.timeline.tracks.find(x => x.type === 'audio');
+      return JSON.stringify({ settingsSpeed: S.settings.speed, rate: t._el ? t._el.playbackRate : null });
+    `);
+    assertEqual(JSON.parse(speedState), { settingsSpeed: 1, rate: 1 }, 'opening Speed must default to 1x (no change), not silently speed up/slow down the audio');
+
+    await page.evalBlock(`selectTool(byId('audio-reverse'));`);
+    await sleep(600);
+    const reverseState = await page.evalBlock(`
+      const t = S.timeline.tracks.find(x => x.type === 'audio');
+      const asset = S.timeline.assets[t.clips[0].sourceAssetId];
+      return JSON.stringify({ swapped: asset.url === asset._reversedUrl, previewOn: !!S.settings._reversePreviewOn });
+    `);
+    assertEqual(JSON.parse(reverseState), { swapped: false, previewOn: false }, 'opening Reverse must not itself flip the audio backwards');
+  });
+  await test('clicking Preview Reversed swaps in a genuinely reversed asset and reverts on leaving the tool', async page => {
     await page.gotoEditor(); await page.setFile(AUDIO); await sleep(1500);
     await page.evalBlock(`selectTool(byId('audio-reverse'));`);
+    await sleep(200);
+    await page.evalBlock(`nxToggleReversePreview();`); // the explicit click this feature now requires
     await sleep(2000); // decode + reverse the buffer
     const r1 = await page.evalBlock(`
       const t = S.timeline.tracks.find(x => x.type === 'audio');
       const asset = S.timeline.assets[t.clips[0].sourceAssetId];
       return JSON.stringify({ swapped: asset.url === asset._reversedUrl, hasReversed: !!asset._reversedUrl });
     `);
-    assertEqual(JSON.parse(r1), { swapped: true, hasReversed: true }, 'reverse tool should swap the live asset onto a real reversed buffer');
+    assertEqual(JSON.parse(r1), { swapped: true, hasReversed: true }, 'clicking Preview Reversed should swap the live asset onto a real reversed buffer');
     const r2 = await page.evalBlock(`
       selectTool(byId('audio-volume'));
       const t = S.timeline.tracks.find(x => x.type === 'audio');
