@@ -763,6 +763,37 @@ async function runFfmpegToolsTests() {
     assert(pixels.redPixels > 500, 'output frame should contain real red reactor bars, not be blank: ' + JSON.stringify(pixels));
     assert(page.consoleMsgs.length === 0, 'no console errors: ' + JSON.stringify(page.consoleMsgs));
   });
+  await test('audio-to-video supports 16:9, 9:16, and 1:1 aspect ratios at the correct resolution', async page => {
+    await page.gotoEditor();
+    await page.setFile(AUDIO);
+    await sleep(1500);
+    await page.evalBlock(`selectTool(byId('audio-to-video')); setSetting('outputFormat','webm'); renderSettings('audio-to-video');`);
+    await sleep(300);
+    const expected = { '16:9': [1280, 720], '9:16': [720, 1280], '1:1': [720, 720] };
+    for (const ar of Object.keys(expected)) {
+      await page.evalBlock(`setSetting('aspectRatio','${ar}'); renderSettings('audio-to-video');`);
+      await sleep(150);
+      await page.trustedClickSelector('#btn-convert');
+      let done = false;
+      for (let i = 0; i < 60; i++) {
+        await sleep(1000);
+        done = await page.eval(`!S.processing && !!S.outputBlob`);
+        if (done) break;
+      }
+      assert(done, `${ar} conversion should complete within 60s`);
+      const meta = JSON.parse(await page.evalBlock(`
+        return (async () => {
+          const url = URL.createObjectURL(S.outputBlob);
+          const v = document.createElement('video');
+          v.src = url;
+          await new Promise((res, rej) => { v.onloadedmetadata = res; v.onerror = rej; setTimeout(rej, 8000); });
+          return JSON.stringify({ width: v.videoWidth, height: v.videoHeight });
+        })();
+      `, { awaitPromise: true, timeoutMs: 12000 }));
+      assertEqual([meta.width, meta.height], expected[ar], `${ar} should produce a ${expected[ar].join('x')} video`);
+    }
+    assert(page.consoleMsgs.length === 0, 'no console errors across aspect ratios: ' + JSON.stringify(page.consoleMsgs));
+  });
   await test('video-extract offers all 6 audio formats and each produces real output', async page => {
     await page.gotoEditor();
     await page.setFile(VIDEO);

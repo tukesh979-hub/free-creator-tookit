@@ -3955,8 +3955,22 @@ const PANELS = {
       {id:'webm', label:'WEBM', sub:'Web-native'},
       {id:'mkv',  label:'MKV',  sub:'Open container'},
     ];
+    const curAR = S.settings.aspectRatio || '16:9';
+    const ars = [
+      {id:'16:9', label:'16:9', sub:'YouTube · Landscape', dims:'1280×720'},
+      {id:'9:16', label:'9:16', sub:'Reels · Shorts · TikTok', dims:'720×1280'},
+      {id:'1:1',  label:'1:1',  sub:'Instagram · Square', dims:'720×720'},
+    ];
     return `
-      <div class="s-label" style="font-size:16px;letter-spacing:1.5px;color:var(--muted);margin-bottom:8px">OUTPUT FORMAT</div>
+      <div class="s-label" style="font-size:16px;letter-spacing:1.5px;color:var(--muted);margin-bottom:8px">ASPECT RATIO</div>
+      <div class="fmt-card-grid" style="grid-template-columns:repeat(3,1fr)">
+        ${ars.map(a => `
+          <button class="fmt-card${curAR===a.id?' active':''}"
+            onclick="setSetting('aspectRatio','${a.id}');renderSettings('audio-to-video')" aria-label="${a.label}">
+            ${a.label}<span class="fmt-card-sub">${a.sub}</span>
+          </button>`).join('')}
+      </div>
+      <div class="s-label" style="font-size:16px;letter-spacing:1.5px;color:var(--muted);margin:14px 0 8px">OUTPUT FORMAT</div>
       <div class="fmt-card-grid" style="grid-template-columns:repeat(2,1fr)">
         ${fmts.map(f => `
           <button class="fmt-card${cur===f.id?' active':''}"
@@ -3964,7 +3978,7 @@ const PANELS = {
             ${f.label}<span class="fmt-card-sub">${f.sub}</span>
           </button>`).join('')}
       </div>
-      <p class="s-hint" style="margin-top:10px">Generates a 1280×720 video with the exact same audio-reactive bars as the preview panes elsewhere in the app. This records in real time (as long as the audio itself), so a 3-minute track takes about 3 minutes. Nothing to preview live here — press Convert, then Download.</p>`;
+      <p class="s-hint" style="margin-top:10px">Generates a ${(ars.find(a=>a.id===curAR)||ars[0]).dims} video with the exact same audio-reactive bars as the preview panes elsewhere in the app. This records in real time (as long as the audio itself), so a 3-minute track takes about 3 minutes. Nothing to preview live here — press Convert, then Download.</p>`;
   },
 };
 
@@ -10255,7 +10269,8 @@ async function nxRecordAudioToVideo(file, s) {
   const duration = isFinite(audioEl.duration) ? audioEl.duration : (S.file && S.file.duration) || 0;
   if (!duration) { URL.revokeObjectURL(url); throw new Error('Could not determine audio duration'); }
 
-  const W = 1280, H = 720;
+  const DIMS = { '16:9': [1280, 720], '9:16': [720, 1280], '1:1': [720, 720] };
+  const [W, H] = DIMS[s.aspectRatio] || DIMS['16:9'];
   const canvas = document.createElement('canvas');
   canvas.width = W; canvas.height = H;
   const ctx = canvas.getContext('2d');
@@ -10279,12 +10294,16 @@ async function nxRecordAudioToVideo(file, s) {
   const chunks = [];
   recorder.ondataavailable = e => { if (e.data.size) chunks.push(e.data); };
 
-  // Bar geometry mirrors .reactor-bar/.audio-reactor: N spaced, rounded,
+  // Bar geometry mirrors .reactor-bar/.audio-reactor: spaced, rounded,
   // bottom-anchored bars centered as a group — just computed for a fixed
-  // canvas instead of flexbox.
-  const N = 64;
-  const groupW = W * 0.82;
+  // canvas instead of flexbox. Bar count scales with W (64 bars at the
+  // 1280-wide 16:9 reference, proportionally fewer on the narrower 9:16/1:1
+  // canvases) so bar+gap width stays visually consistent across formats
+  // instead of 64 bars getting squeezed thin on a 720px-wide vertical video.
   const barGap = 5;
+  const refCellW = (1280 * 0.82) / 64;
+  const N = Math.max(20, Math.round((W * 0.82) / refCellW));
+  const groupW = W * 0.82;
   const barWidth = Math.max(3, groupW / N - barGap);
   const startX = (W - (N * (barWidth + barGap) - barGap)) / 2;
   const baseY = H * 0.82, minH = 8, maxH = H * 0.62;
