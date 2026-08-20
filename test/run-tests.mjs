@@ -538,7 +538,13 @@ async function runMediaBinTests() {
     assertEqual(JSON.parse(r), { before: 1, after: 2, assetsUnchanged: true }, 'reuse-asset add');
   });
   await test('search and category filters narrow the visible list', async page => {
-    await page.gotoEditor(); await page.setFile(VIDEO); await sleep(3500);
+    await page.gotoEditor();
+    // nxExtractLinkedAudio() only auto-runs when FFmpeg is already warm (see
+    // its own comment) — a cold load would otherwise pay a ~30MB fresh
+    // download + WASM init just for this optional background enhancement,
+    // which is what made every video load feel like it hung the editor.
+    await page.evalBlock(`return ensureFFmpeg();`, { awaitPromise: true, timeoutMs: 45000 });
+    await page.setFile(VIDEO); await sleep(3500);
     const r = await page.evalBlock(`
       nxSetLeftPanelTab('media');
       const all = document.querySelectorAll('.media-bin-item').length;
@@ -589,7 +595,11 @@ async function runMediaBinTests() {
 async function runLinkedAudioTests() {
   console.log('\n=== Linked audio ===');
   await test('extraction succeeds: video audio is demuxed into an independent, editable audio track', async page => {
-    await page.gotoEditor(); await page.setFile(VIDEO); await sleep(6000); // give extraction time to complete
+    await page.gotoEditor();
+    // nxExtractLinkedAudio() only auto-runs when FFmpeg is already warm —
+    // see its own comment for why a cold-start extraction was removed.
+    await page.evalBlock(`return ensureFFmpeg();`, { awaitPromise: true, timeoutMs: 45000 });
+    await page.setFile(VIDEO); await sleep(6000); // give extraction time to complete
     const r = await page.evalBlock(`
       const vid = document.getElementById('preview-vid');
       const audioTracks = S.timeline.tracks.filter(t => t.type === 'audio');
@@ -617,7 +627,13 @@ async function runLinkedAudioTests() {
     // reliably race in a test) so there's a wide, deterministic window to
     // switch files inside — no production code is touched, only this
     // page's own copy of the function.
+    //
+    // nxExtractLinkedAudio() only auto-runs when FFmpeg is already warm, so
+    // warm it for real BEFORE installing the delay wrapper below — that way
+    // the wrapper's artificial 1.5s delay is what creates the race window,
+    // not the (now skipped) cold-start gate.
     await page.gotoEditor();
+    await page.evalBlock(`return ensureFFmpeg();`, { awaitPromise: true, timeoutMs: 45000 });
     await page.evalBlock(`
       const _origEnsureFFmpeg = window.ensureFFmpeg;
       window.ensureFFmpeg = (...args) => new Promise(resolve => {
@@ -641,6 +657,28 @@ async function runLinkedAudioTests() {
     assertEqual(parsed.fileType, 'image', 'the photo should be the active project');
     assertEqual(parsed.panelShowing, false, 'the video/audio timeline panel must never appear while a photo is active');
     assert(page.consoleMsgs.filter(m => /uncaught/i.test(m)).length === 0, 'no uncaught exceptions: ' + JSON.stringify(page.consoleMsgs));
+  });
+  await test('a cold video load never triggers an FFmpeg download — every video load used to feel like it hung the editor', async page => {
+    // Regression test for a real user report: nxExtractLinkedAudio() used to
+    // run unconditionally on every video load, which meant a fresh ~30MB
+    // FFmpeg core download + WASM init on the very first video of a session
+    // — no user interaction requested that, and it made the editor feel
+    // stuck. It now only auto-runs once FFmpeg is already warm (see its own
+    // comment) — this confirms a cold load stays cold.
+    await page.gotoEditor();
+    // ffLoaded/ffmpegInst are top-level `let` bindings, not `window.*`
+    // properties (only `var`/function declarations attach to window) — read
+    // them by bare name.
+    const before = await page.evalBlock(`return JSON.stringify({ffLoaded: !!ffLoaded, ffmpegInst: !!ffmpegInst});`);
+    assertEqual(JSON.parse(before), { ffLoaded: false, ffmpegInst: false }, 'FFmpeg must not be loaded before any video is opened');
+    await page.setFile(VIDEO);
+    await sleep(2000); // nxExtractLinkedAudio fires (or doesn't) well within this window
+    const after = await page.evalBlock(`return JSON.stringify({
+      ffLoaded: !!ffLoaded,
+      ffmpegInst: !!ffmpegInst,
+      audioTrackCount: S.timeline.tracks.filter(t => t.type === 'audio').length,
+    });`);
+    assertEqual(JSON.parse(after), { ffLoaded: false, ffmpegInst: false, audioTrackCount: 0 }, 'a cold video load must not load FFmpeg or create a linked audio track');
   });
   // Graceful degradation (no audio stream in the source, or FFmpeg
   // unavailable) is handled by nxExtractLinkedAudio's own try/catch and the

@@ -7073,8 +7073,19 @@ function nxEnsureTimeline() {
 // on a plain static host without COOP/COEP headers) or the source has no
 // audio stream, the video simply keeps playing its own embedded audio —
 // never silent, never broken, just not independently editable.
+//
+// Only runs if FFmpeg is ALREADY loaded (warm) this session. Loading it
+// cold means a fresh ~30MB core download plus WASM init, which made
+// EVERY video load — even for someone who only wants to trim/crop and
+// never touches audio — feel like the editor hung. This is a nice-to-have
+// enhancement, not a required feature (see the graceful-fallback note
+// above), so it isn't worth paying that cost up front on a guess; once
+// the user has actually used an FFmpeg-backed tool this session, it's
+// warm and effectively free, and this kicks in automatically for the
+// next video they load.
 async function nxExtractLinkedAudio(videoClip) {
   if (!S.file || !S.file.file) return;
+  if (!ffLoaded || !ffmpegInst) return;
   const asset = nxAsset(videoClip.sourceAssetId);
   if (!asset) return;
   // All captured up front, together: this async work always processes the
