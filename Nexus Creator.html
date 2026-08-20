@@ -2400,6 +2400,7 @@ const TOOLS = [
   {id:'video-adjust',    label:'Adjust',       desc:'Brightness & contrast',         cat:'video', eng:'ffmpeg', icon:'brightness',group:'Effects'},
   {id:'video-vertical',  label:'To Vertical',  desc:'9:16 for TikTok/Reels',         cat:'video', eng:'ffmpeg', icon:'vertical', group:'Effects'},
   {id:'video-watermark', label:'Watermark',    desc:'Add text overlay',              cat:'video', eng:'ffmpeg', icon:'watermark',group:'Effects'},
+  {id:'video-watermark-remove', label:'Remove Watermark', desc:"Erase Gemini/Veo AI's logo watermark", cat:'video', eng:'ffmpeg', icon:'remove', group:'Effects'},
 
   // PHOTO — Basic
   {id:'photo-crop',      label:'Crop',         desc:'Trim to perfect frame',         cat:'photo', eng:'canvas', icon:'crop',     group:'Basic'},
@@ -2430,11 +2431,17 @@ const TOOLS = [
   {id:'audio-pitch',     label:'Pitch',        desc:'Shift pitch ±12 semitones',     cat:'audio', eng:'ffmpeg', icon:'speed',    group:'Effects'},
 ];
 
+// Entries with `linkId` are real, working tools (not Transformers.js
+// placeholders) that just happen to be AI-adjacent — they render without the
+// "Soon" badge and open the real tool (see fgridAICardHTML/renderToolList),
+// unlike the rest of this list, which is genuinely Phase 2/unbuilt.
 const AI_TOOLS = [
   {id:'ai-removebg',  label:'Remove BG',     desc:'AI background removal'},
   {id:'ai-upscale',   label:'Upscale 4×',    desc:'AI resolution boost'},
   {id:'ai-subtitle',  label:'Auto Subtitle', desc:'Generate accurate subtitles'},
   {id:'ai-denoise',   label:'Noise Removal', desc:'Remove background noise'},
+  {id:'ai-watermark-photo', label:'Remove Watermark (Photo)', desc:"Erase Gemini's logo from AI images", linkId:'photo-watermark-remove', icon:'remove'},
+  {id:'ai-watermark-video', label:'Remove Watermark (Video)', desc:"Erase Gemini/Veo's logo from AI video", linkId:'video-watermark-remove', icon:'remove'},
 ];
 
 // Per-tool custom icon overrides, keyed by tool id, as data: URIs — filled
@@ -2805,6 +2812,21 @@ function fgridCardHTML(t) {
 }
 
 function fgridAICardHTML(t) {
+  if (t.linkId) {
+    // Real, working tool surfaced here too — no "Soon" badge, opens the
+    // actual tool page directly (same action as its home-category card).
+    return `
+      <button class="fgrid-card" onclick="openToolPage('${t.linkId}')" data-name="${t.label.toLowerCase()}" data-desc="${t.desc.toLowerCase()}" aria-label="${t.label}">
+        <div class="fgrid-visual cat-ai">
+          <span class="fgrid-cat-tag">AI</span>
+          <div class="fgrid-ico" aria-hidden="true">${toolIconHTML(t.id, t.icon || 'ai', 24)}</div>
+        </div>
+        <div class="fgrid-body">
+          <div class="fgrid-name">${t.label}</div>
+          <div class="fgrid-desc">${t.desc}</div>
+        </div>
+      </button>`;
+  }
   return `
     <button class="fgrid-card" onclick="alert('${t.label} — Coming in Phase 2!\\n\\nThis will run entirely in your browser using Transformers.js — no server, no API keys.')" aria-label="${t.label} (coming soon)">
       <div class="fgrid-visual cat-ai">
@@ -2951,10 +2973,13 @@ function setCat(cat) {
 function renderToolList() {
   $('ed-tools-lbl').textContent = S.cat[0].toUpperCase() + S.cat.slice(1) + ' Tools';
   if (S.cat === 'ai') {
-    // AI tools are real placeholders (Transformers.js, Phase 2), same honest
-    // "Coming Soon" treatment as the home page — not a fake working list.
-    $('ed-tool-list').innerHTML = AI_TOOLS.map(t => `
-      <button class="tool-btn ai-soon" role="listitem" disabled aria-label="${t.label} (coming soon)">
+    // Most AI tools are real placeholders (Transformers.js, Phase 2), same
+    // honest "Coming Soon" treatment as the home page — not a fake working
+    // list. Entries with `linkId` are real, already-working tools (see
+    // AI_TOOLS) and open their actual tool page instead of staying disabled.
+    $('ed-tool-list').innerHTML = AI_TOOLS.map(t => t.linkId
+      ? `<button class="tool-btn" role="listitem" onclick="openToolPage('${t.linkId}')" aria-label="${t.label}">${t.label}</button>`
+      : `<button class="tool-btn ai-soon" role="listitem" disabled aria-label="${t.label} (coming soon)">
         ${t.label} <span class="tool-btn-soon">Soon</span>
       </button>`).join('');
     return;
@@ -3019,6 +3044,9 @@ function selectTool(tool) {
   // Reset video live-preview effects (filter, transform, playbackRate, overlay)
   const _vid = document.getElementById('preview-vid');
   if (_vid) { _vid.style.filter=''; _vid.style.transform=''; _vid.playbackRate=1; }
+  // Tear down the watermark-remove live-preview's 'timeupdate' listener —
+  // otherwise it keeps firing (and re-adding itself) on every future tool.
+  if (_vid && window._vwrTickHandler) { _vid.removeEventListener('timeupdate', window._vwrTickHandler); window._vwrTickHandler = null; }
   // Tear down the interactive video-crop drag overlay before it's wiped below —
   // otherwise its pointer listeners on #vid-overlay would leak across tools.
   clearTimeout(window._vcropInitTimer); window._vcropInitTimer = null;
@@ -3414,6 +3442,26 @@ const PANELS = {
       </div>
       ${rangeRow('Font Size', 'wFontSize', 16, 96, 4, 'px', 32)}
       ${rangeRow('Opacity',   'wOpacity',  10, 100, 5, '%',  60)}`;
+  },
+
+  'video-watermark-remove': () => {
+    if (S.settings.gwVariant === undefined) S.settings.gwVariant = 'auto';
+    if (S.settings.gwIntensity === undefined) S.settings.gwIntensity = 100;
+    const variantOpts = [['auto','Auto-detect'],['standard','Standard margin'],['inset','Inset margin']];
+    return `
+      <p class="s-hint" id="gwr-video-detect-info" style="margin:-2px 0 12px">Detecting watermark…</p>
+      <div class="s-row">
+        <label class="s-lbl">Detection</label>
+        <div class="s-select-wrap">
+          <select class="s-input" aria-label="Detection" onchange="setS('gwVariant',this.value)">
+            ${variantOpts.map(([v,l])=>`<option value="${v}" ${S.settings.gwVariant===v?'selected':''}>${l}</option>`).join('')}
+          </select>
+        </div>
+      </div>
+      ${rangeRow('Intensity', 'gwIntensity', 50, 150, 5, '%', 100)}
+      <div class="s-divider"></div>
+      <p class="s-hint info">Works best on unedited AI-generated video at its original resolution. This re-encodes the whole clip frame by frame, so it takes real processing time proportional to length — same as Compress/Convert. Detection is a best-effort default; if the correction lands in the wrong spot, try Standard vs Inset margin above. Ports the reverse alpha-blend math and watermark data from the open-source <b>gemini-watermark-remover</b> project (MIT license).</p>
+      <p class="s-hint" style="margin-top:8px">↻ Live preview updates in the corner as the video plays</p>`;
   },
 
   // PHOTO — combined Crop + Resize panel
@@ -4721,6 +4769,15 @@ function applyVideoPreview(id, s) {
       };
       el.style.cssText += ';' + (posCSS[pos] || posCSS.br);
       ov.appendChild(el);
+      break;
+    }
+
+    case 'video-watermark-remove': {
+      if (!ov) break;
+      nxVideoWatermarkRemoveTick();
+      if (window._vwrTickHandler) vid.removeEventListener('timeupdate', window._vwrTickHandler);
+      window._vwrTickHandler = () => nxVideoWatermarkRemoveTick();
+      vid.addEventListener('timeupdate', window._vwrTickHandler);
       break;
     }
 
@@ -9898,6 +9955,230 @@ function drawWatermarkRemovePreview() {
   }
 }
 
+// ── GEMINI/VEO VIDEO WATERMARK REMOVAL ──────────────────────────────────────
+// Google's video model (Veo) stamps the same style of logo watermark as the
+// image model, but at its own size/margin and against a 1920x1080 reference
+// frame that scales proportionally to the video's actual resolution — ported
+// from src/video/videoWatermarkCatalog.js. There's no separate captured
+// alpha mask for video: upstream (src/video/videoWatermarkDetector.js)
+// resizes the same 96px image alpha mask to the target logo size, which is
+// what NX_GEMINI_VIDEO_ALPHA below does too (bilinear resize, ported from
+// their adaptiveDetector.js interpolateAlphaMap).
+// Multiple plausible watermark geometries exist per resolution (upstream
+// disambiguates with adaptive scoring, not ported here) — NX_GEMINI_VIDEO_EXACT
+// picks their top-priority candidate for the 3 documented exact video sizes;
+// everything else uses the projected "standard" margin, with a manual
+// Standard/Inset override exposed in the panel as an escape hatch.
+const NX_GEMINI_VIDEO_REF_W = 1920, NX_GEMINI_VIDEO_REF_H = 1080;
+const NX_GEMINI_VIDEO_BASE = { standard: {size:72, margin:108}, inset: {size:72, margin:144} };
+const NX_GEMINI_VIDEO_EXACT = {
+  '1280x720':  {logoSize:48, marginRight:96,  marginBottom:96},
+  '1080x1920': {logoSize:72, marginRight:108, marginBottom:108},
+  '720x1280':  {logoSize:48, marginRight:96,  marginBottom:96},
+};
+
+function nxGeminiVideoWatermarkConfig(imageWidth, imageHeight, variant) {
+  const v = variant === 'inset' || variant === 'standard' ? variant : 'auto';
+  if (v === 'auto') {
+    const exact = NX_GEMINI_VIDEO_EXACT[imageWidth + 'x' + imageHeight];
+    if (exact) return exact;
+  }
+  const base = NX_GEMINI_VIDEO_BASE[v === 'auto' ? 'standard' : v];
+  const scale = Math.min(imageWidth / NX_GEMINI_VIDEO_REF_W, imageHeight / NX_GEMINI_VIDEO_REF_H);
+  const shortSide = Math.min(imageWidth, imageHeight);
+  const logoSize = Math.max(24, Math.min(shortSide, Math.round(base.size * scale)));
+  const marginRight  = Math.max(0, Math.min(imageWidth  - logoSize, Math.round(base.margin * scale)));
+  const marginBottom = Math.max(0, Math.min(imageHeight - logoSize, Math.round(base.margin * scale)));
+  return { logoSize, marginRight, marginBottom };
+}
+
+// Bilinear resize — verbatim port of adaptiveDetector.js interpolateAlphaMap().
+function nxGeminiInterpolateAlphaMap(sourceAlpha, sourceSize, targetSize) {
+  if (targetSize === sourceSize) return new Float32Array(sourceAlpha);
+  const out = new Float32Array(targetSize * targetSize);
+  const scale = (sourceSize - 1) / Math.max(1, targetSize - 1);
+  for (let y = 0; y < targetSize; y++) {
+    const sy = y * scale, y0 = Math.floor(sy), y1 = Math.min(sourceSize - 1, y0 + 1), fy = sy - y0;
+    for (let x = 0; x < targetSize; x++) {
+      const sx = x * scale, x0 = Math.floor(sx), x1 = Math.min(sourceSize - 1, x0 + 1), fx = sx - x0;
+      const p00 = sourceAlpha[y0*sourceSize+x0], p10 = sourceAlpha[y0*sourceSize+x1];
+      const p01 = sourceAlpha[y1*sourceSize+x0], p11 = sourceAlpha[y1*sourceSize+x1];
+      const top = p00 + (p10-p00)*fx, bottom = p01 + (p11-p01)*fx;
+      out[y*targetSize+x] = top + (bottom-top)*fy;
+    }
+  }
+  return out;
+}
+
+const _nxGeminiVideoAlphaCache = {};
+function nxGeminiVideoAlphaMap(size) {
+  if (_nxGeminiVideoAlphaCache[size]) return _nxGeminiVideoAlphaCache[size];
+  const base96 = nxGeminiDecodeAlphaMap(96);
+  const map = size === 96 ? base96 : nxGeminiInterpolateAlphaMap(base96, 96, size);
+  _nxGeminiVideoAlphaCache[size] = map;
+  return map;
+}
+
+// Live preview: redraws a small corrected patch over the watermark's
+// on-screen position inside #vid-overlay, positioned by percentage the same
+// way the video-crop overlay positions its box (both assume #vid-overlay's
+// own box exactly matches the <video> element's rendered content box).
+function nxVideoWatermarkRemoveTick() {
+  if (S.tool?.id !== 'video-watermark-remove') return;
+  const vid = document.getElementById('preview-vid');
+  const ov  = document.getElementById('vid-overlay');
+  if (!vid || !ov || !vid.videoWidth) return;
+  const W = vid.videoWidth, H = vid.videoHeight;
+  const config = nxGeminiVideoWatermarkConfig(W, H, S.settings.gwVariant);
+  const position = nxGeminiWatermarkPosition(W, H, config);
+  const inBounds = position.x >= 0 && position.y >= 0 &&
+    position.x + position.width <= W && position.y + position.height <= H;
+
+  const info = document.getElementById('gwr-video-detect-info');
+  if (info) {
+    info.textContent = inBounds
+      ? `Detected ${position.width}×${position.height}px watermark near (${position.x}, ${position.y})`
+      : 'No watermark region detected at this resolution — try Standard/Inset below.';
+  }
+
+  let cv = ov.querySelector('#vwr-preview-canvas');
+  if (!inBounds) { if (cv) cv.remove(); return; }
+  if (!cv) {
+    cv = document.createElement('canvas');
+    cv.id = 'vwr-preview-canvas';
+    cv.style.cssText = 'position:absolute;pointer-events:none;';
+    ov.appendChild(cv);
+  }
+  cv.width = position.width; cv.height = position.height;
+  cv.style.left   = (position.x / W * 100) + '%';
+  cv.style.top    = (position.y / H * 100) + '%';
+  cv.style.width  = (position.width / W * 100) + '%';
+  cv.style.height = (position.height / H * 100) + '%';
+
+  const alphaMap = nxGeminiVideoAlphaMap(config.logoSize);
+  const alphaGain = (+S.settings.gwIntensity || 100) / 100;
+  const ctx = cv.getContext('2d');
+  ctx.drawImage(vid, position.x, position.y, position.width, position.height, 0, 0, position.width, position.height);
+  const region = ctx.getImageData(0, 0, position.width, position.height);
+  nxGeminiRemoveWatermark(region, alphaMap, {x:0, y:0, width:position.width, height:position.height}, {alphaGain});
+  ctx.putImageData(region, 0, 0);
+}
+
+// Reads fps from FFmpeg's own stream-info log line (the standard trick to
+// probe a file with FFmpeg without decoding it: `-i input` with no output
+// prints full stream info to stderr, then exits non-zero for "no output
+// specified" — the log line is what we're after, the throw is expected and
+// swallowed). _nxFFmpegLog is a small ring buffer appended to by a
+// persistent log listener registered once in ensureFFmpeg().
+async function nxProbeVideoFps(ff, inFile) {
+  const startLen = _nxFFmpegLog.length;
+  try { await ff.exec(['-i', inFile]); } catch (_) { /* expected — no output specified */ }
+  const lines = _nxFFmpegLog.slice(startLen).join('\n');
+  const m = lines.match(/, ([\d.]+) fps,/);
+  const fps = m ? parseFloat(m[1]) : NaN;
+  return Number.isFinite(fps) && fps > 0 ? fps : 30;
+}
+
+function nxSeekVideoFrame(vid, t) {
+  return new Promise((resolve) => {
+    let done = false;
+    const finish = () => {
+      if (done) return;
+      done = true;
+      vid.removeEventListener('seeked', onSeeked);
+      clearTimeout(timer);
+      resolve();
+    };
+    const onSeeked = () => finish();
+    vid.addEventListener('seeked', onSeeked);
+    // Safety net — some codecs/browsers occasionally miss firing 'seeked'
+    // for a given timestamp; without this the export would hang forever.
+    const timer = setTimeout(finish, 2000);
+    try { vid.currentTime = t; } catch (_) { finish(); }
+  });
+}
+
+// Frame-by-frame removal: decodes the source video via a hidden <video>
+// (same seek-and-draw technique already used by this file's filmstrip
+// generator), corrects only the small watermark region per frame (cheap —
+// this isn't a full-frame effect), encodes each corrected frame as JPEG,
+// then muxes the image sequence back together with FFmpeg, remapping the
+// ORIGINAL audio track in unchanged (re-encoded to match the output
+// container, since we can't `-c:a copy` across an arbitrary source codec).
+// This is a full re-encode, same cost class as Compress/Convert — no
+// realtime-speed concern here, unlike the from-scratch Audio→Video renderer.
+async function nxRemoveVideoWatermark(ff, inFile, outFile, s, file) {
+  const W = S.file?.width || 0, H = S.file?.height || 0, duration = S.file?.duration || 0;
+  if (!W || !H || !duration) throw new Error('Could not read video dimensions/duration.');
+
+  setProgress(28, 'Reading video info…');
+  const fps = Math.max(1, Math.min(60, await nxProbeVideoFps(ff, inFile)));
+  const frameCount = Math.max(1, Math.round(duration * fps));
+
+  const config = nxGeminiVideoWatermarkConfig(W, H, s.gwVariant);
+  const position = nxGeminiWatermarkPosition(W, H, config);
+  const inBounds = position.x >= 0 && position.y >= 0 &&
+    position.x + position.width <= W && position.y + position.height <= H;
+  const alphaMap = inBounds ? nxGeminiVideoAlphaMap(config.logoSize) : null;
+  const alphaGain = (+s.gwIntensity || 100) / 100;
+
+  const vid = document.createElement('video');
+  vid.muted = true; vid.playsInline = true; vid.preload = 'auto';
+  vid.style.cssText = 'position:fixed;left:-9999px;top:-9999px;width:1px;height:1px';
+  document.body.appendChild(vid);
+  const vidUrl = URL.createObjectURL(file);
+  vid.src = vidUrl;
+  await new Promise((res, rej) => {
+    vid.addEventListener('loadedmetadata', res, { once: true });
+    vid.addEventListener('error', () => rej(new Error('Could not decode source video.')), { once: true });
+  });
+
+  const canvas = document.createElement('canvas');
+  canvas.width = W; canvas.height = H;
+  const ctx = canvas.getContext('2d', { willReadFrequently: true });
+
+  const framePrefix = 'vwr_';
+  let cancelled = false;
+  window._nxExportCancel = () => { cancelled = true; };
+
+  try {
+    for (let i = 0; i < frameCount; i++) {
+      if (cancelled) throw new Error('Cancelled');
+      const t = Math.min(Math.max(0, duration - 1 / fps / 2), i / fps);
+      await nxSeekVideoFrame(vid, t);
+      ctx.drawImage(vid, 0, 0, W, H);
+      if (inBounds && alphaMap) {
+        const region = ctx.getImageData(position.x, position.y, position.width, position.height);
+        nxGeminiRemoveWatermark(region, alphaMap, {x:0, y:0, width:position.width, height:position.height}, {alphaGain});
+        ctx.putImageData(region, position.x, position.y);
+      }
+      const blob = await new Promise(res => canvas.toBlob(res, 'image/jpeg', 0.9));
+      await ff.writeFile(framePrefix + String(i).padStart(6, '0') + '.jpg', new Uint8Array(await blob.arrayBuffer()));
+      if (i % 5 === 0 || i === frameCount - 1) {
+        setProgress(30, `Removing watermark… frame ${i + 1}/${frameCount}`);
+      }
+    }
+
+    const outExt = outFile.split('.').pop();
+    const vCodecArgs = {
+      mp4:  ['-c:v','libx264','-crf','20','-preset','veryfast','-c:a','aac','-b:a','128k','-movflags','+faststart'],
+      mov:  ['-c:v','libx264','-crf','20','-preset','veryfast','-c:a','aac','-b:a','128k'],
+      mkv:  ['-c:v','libx264','-crf','20','-preset','veryfast','-c:a','aac','-b:a','128k'],
+      webm: ['-c:v','libvpx','-b:v','1.5M','-c:a','libvorbis','-b:a','128k'],
+    };
+    const cargs = vCodecArgs[outExt] || vCodecArgs.mp4;
+    await ff.exec(['-framerate', String(fps), '-i', framePrefix + '%06d.jpg', '-i', inFile,
+      '-map', '0:v', '-map', '1:a?', ...cargs, '-shortest', outFile]);
+  } finally {
+    window._nxExportCancel = null;
+    URL.revokeObjectURL(vidUrl);
+    try { vid.pause(); vid.removeAttribute('src'); vid.load(); vid.remove(); } catch (_) {}
+    for (let i = 0; i < frameCount; i++) {
+      try { await ff.deleteFile(framePrefix + String(i).padStart(6, '0') + '.jpg'); } catch (_) {}
+    }
+  }
+}
+
 async function processCanvas(file, toolId, s) {
   setProgress(20, 'Loading image…');
   const _procUrl = URL.createObjectURL(file);
@@ -10082,6 +10363,10 @@ async function processCanvas(file, toolId, s) {
 // FFMPEG.WASM
 // ════════════════════════════════════════════════════════════════════════════
 let FFmpegModule = null, UtilModule = null, ffmpegInst = null, ffLoaded = false;
+// Ring buffer of FFmpeg's own stderr log lines — used by nxProbeVideoFps()
+// to read a video's real frame rate straight from FFmpeg's stream-info
+// banner instead of re-implementing a container parser.
+const _nxFFmpegLog = [];
 
 async function ensureFFmpeg() {
   if (ffLoaded && ffmpegInst) return ffmpegInst;
@@ -10105,6 +10390,10 @@ async function ensureFFmpeg() {
     ffmpegInst.on('progress', ({ progress }) => {
       const p = Math.round(Math.min(progress, 1) * 100);
       setProgress(30 + Math.round(p * 0.6), `Processing… ${p}%`);
+    });
+    ffmpegInst.on('log', ({ message }) => {
+      _nxFFmpegLog.push(message);
+      if (_nxFFmpegLog.length > 300) _nxFFmpegLog.shift();
     });
   }
 
@@ -10343,6 +10632,12 @@ async function processFFmpeg(file, toolId, s) {
       await ff.exec(['-i', inFile,
         '-vf', `drawtext=text='${text}':fontcolor=white@${op}:fontsize=${fontSize}:box=1:boxcolor=black@0.3:boxborderw=4:${posMap[pos]||posMap.br}`,
         '-c:a', 'copy', outFile]);
+
+    } else if (toolId === 'video-watermark-remove') {
+      const outExt = ['mp4','mov','mkv','webm'].includes(inExt) ? inExt : 'mp4';
+      outFile = 'out.' + outExt;
+      outMime = mimes[outExt] || file.type;
+      await nxRemoveVideoWatermark(ff, inFile, outFile, s, file);
 
     } else if (toolId === 'audio-volume') {
       // Support multiplier — dB conversion handled in the UI label only
