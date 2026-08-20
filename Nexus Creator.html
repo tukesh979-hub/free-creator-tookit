@@ -3001,6 +3001,10 @@ function renderToolList() {
 function selectTool(tool) {
   if (!tool) return;
   const prevToolId = S.tool && S.tool.id;
+  // A shown watermark-remove result (swapped-in img/video src) belongs to
+  // whichever tool produced it — leaving that tool must restore the
+  // original, otherwise the NEXT tool would inherit stale processed media.
+  if (window._gwActiveToolId) nxGwResetToOriginal();
   S.tool = tool;
   S.settings = {};
   // A converted-but-not-yet-downloaded blob belongs to the tool that made
@@ -3044,9 +3048,6 @@ function selectTool(tool) {
   // Reset video live-preview effects (filter, transform, playbackRate, overlay)
   const _vid = document.getElementById('preview-vid');
   if (_vid) { _vid.style.filter=''; _vid.style.transform=''; _vid.playbackRate=1; }
-  // Tear down the watermark-remove live-preview's 'timeupdate' listener —
-  // otherwise it keeps firing (and re-adding itself) on every future tool.
-  if (_vid && window._vwrTickHandler) { _vid.removeEventListener('timeupdate', window._vwrTickHandler); window._vwrTickHandler = null; }
   // Tear down the interactive video-crop drag overlay before it's wiped below —
   // otherwise its pointer listeners on #vid-overlay would leak across tools.
   clearTimeout(window._vcropInitTimer); window._vcropInitTimer = null;
@@ -3130,6 +3131,13 @@ function selectTool(tool) {
 // ════════════════════════════════════════════════════════════════════════════
 function setS(k, v) {
   S.settings[k] = v;
+  // A shown watermark-remove result was rendered under the OLD settings —
+  // changing Size/Variant/Intensity means it no longer matches, so drop it
+  // back to the original rather than silently leaving a stale result on
+  // screen. The user re-runs Remove Watermark to see the new settings applied.
+  if (window._gwActiveToolId === S.tool?.id && (k === 'gwSize' || k === 'gwVariant' || k === 'gwIntensity')) {
+    nxGwResetToOriginal();
+  }
   applyLivePreview();
 }
 // alias used by audio panels that re-render after a setting changes
@@ -3461,7 +3469,7 @@ const PANELS = {
       ${rangeRow('Intensity', 'gwIntensity', 50, 150, 5, '%', 100)}
       <div class="s-divider"></div>
       <p class="s-hint info">Works best on unedited AI-generated video at its original resolution. This re-encodes the whole clip frame by frame, so it takes real processing time proportional to length — same as Compress/Convert. Detection is a best-effort default; if the correction lands in the wrong spot, try Standard vs Inset margin above — a generous padding around the detected area is reconstructed either way, so small misses still get covered. Position detection is ported from the open-source <b>gemini-watermark-remover</b> project (MIT license); the removal itself is a local content-aware fill.</p>
-      <p class="s-hint" style="margin-top:8px">↻ Live preview updates in the corner as the video plays</p>`;
+      <p class="s-hint" style="margin-top:8px">↻ Click <b>Remove Watermark</b> below to process — the result plays right here, with a Before/After toggle on the player</p>`;
   },
 
   // PHOTO — combined Crop + Resize panel
@@ -3806,7 +3814,7 @@ const PANELS = {
       </div>
       <div class="s-divider"></div>
       <p class="s-hint info">Works best on unedited images straight out of Gemini, at one of its standard output sizes. Auto-detect covers Gemini's known output sizes; use Force 48px/96px if the wrong region gets picked — a generous padding around the detected area is reconstructed either way, so small misses still get covered. Cropped, resized, or heavily edited images may land the detection off entirely. Position detection is ported from the open-source <b>gemini-watermark-remover</b> project (MIT license); the removal itself is a local content-aware fill.</p>
-      <p class="s-hint" style="margin-top:8px">↻ Live preview updates as you type</p>`;
+      <p class="s-hint" style="margin-top:8px">↻ Click <b>Remove Watermark</b> below to process — the result appears right here, with a Before/After compare available</p>`;
   },
 
   // AUDIO
@@ -4773,11 +4781,13 @@ function applyVideoPreview(id, s) {
     }
 
     case 'video-watermark-remove': {
-      if (!ov) break;
+      // Detection is static for the whole video (one position, not per-frame),
+      // so a single call is enough — no 'timeupdate' listener needed.
       nxVideoWatermarkRemoveTick();
-      if (window._vwrTickHandler) vid.removeEventListener('timeupdate', window._vwrTickHandler);
-      window._vwrTickHandler = () => nxVideoWatermarkRemoveTick();
-      vid.addEventListener('timeupdate', window._vwrTickHandler);
+      // The preamble above just wiped #vid-overlay — re-add the Before/After
+      // pills if a result is currently showing, or they'd silently vanish
+      // on the next unrelated live-preview call (e.g. a resize).
+      nxGwRenderCompareControls();
       break;
     }
 
@@ -9723,17 +9733,20 @@ function resetEditor() {
 // conversion actually worked before a file lands in Downloads. These get
 // an explicit Convert step first; Download only grabs the result once one
 // exists for the tool that's currently selected.
-const TWO_STEP_TOOLS = ['audio-to-video', 'video-extract'];
+const TWO_STEP_TOOLS = ['audio-to-video', 'video-extract', 'photo-watermark-remove', 'video-watermark-remove'];
 function isTwoStepTool(id) { return TWO_STEP_TOOLS.includes(id); }
 function handleDownloadClick() {
   if (isTwoStepTool(S.tool && S.tool.id)) doDownload();
   else runProcess();
 }
 function updateDownloadBtn() {
-  const twoStep = isTwoStepTool(S.tool && S.tool.id);
+  const id = S.tool && S.tool.id;
+  const twoStep = isTwoStepTool(id);
   const convertBtn = $('btn-convert');
   convertBtn.style.display = twoStep ? 'flex' : 'none';
   convertBtn.disabled = !S.file || !S.tool || S.processing;
+  convertBtn.innerHTML = (id === 'photo-watermark-remove' || id === 'video-watermark-remove')
+    ? '⚙ Remove Watermark' : '⚙ Convert';
   $('btn-dl').disabled = !S.file || !S.tool || S.processing || (twoStep && !S.outputBlob);
 }
 
@@ -9867,6 +9880,36 @@ function nxGeminiInpaintFill(imageData, x, y, w, h, iterations) {
       }
     }
   }
+
+  // Texture restoration: pure diffusion converges to a perfectly flat/
+  // smooth fill, which reads as an obvious blur patch on any background
+  // with real grain or fine texture (concrete, fabric, camera noise) even
+  // though the color/gradient match is exact. Measure local roughness
+  // (mean pixel-to-pixel difference) along the hole's real boundary and
+  // inject matching-amplitude random noise across the fill — skipped
+  // automatically on genuinely flat backgrounds, where roughness is ~0.
+  for (let c = 0; c < 3; c++) {
+    let roughSum = 0, roughN = 0;
+    for (let px = x; px < x + w - 1; px++) {
+      roughSum += Math.abs(get(px, by0, c) - get(px + 1, by0, c));
+      roughSum += Math.abs(get(px, by1, c) - get(px + 1, by1, c));
+      roughN += 2;
+    }
+    for (let py = y; py < y + h - 1; py++) {
+      roughSum += Math.abs(get(bx0, py, c) - get(bx0, py + 1, c));
+      roughSum += Math.abs(get(bx1, py, c) - get(bx1, py + 1, c));
+      roughN += 2;
+    }
+    const roughness = roughN ? roughSum / roughN : 0;
+    if (roughness < 0.5) continue;
+    const noiseAmp = Math.min(10, roughness * 0.8);
+    for (let py = y; py < y + h; py++) {
+      for (let px = x; px < x + w; px++) {
+        const v = get(px, py, c) + (Math.random() - 0.5) * noiseAmp;
+        set(px, py, c, Math.max(0, Math.min(255, v)));
+      }
+    }
+  }
 }
 
 // Inpaints a padded, feathered box around `position` on the given 2D
@@ -9932,36 +9975,24 @@ function nxGeminiBuildRemovedCanvas(img, s) {
   return {canvas, position, config, inBounds};
 }
 
+// Detection-only — no auto-correction overlay. Removal now runs once, on
+// demand, via the Remove Watermark button (see runProcess/TWO_STEP_TOOLS),
+// which shows the real processed result in the preview instead of a small
+// live-updating patch — see nxGwShowResult below.
 function drawWatermarkRemovePreview() {
   const img = $('ed-preview').querySelector('#preview-img');
   if (!img || !img.complete) return;
-  let wcanvas = $('gwr-preview-canvas');
-  if (!wcanvas) {
-    wcanvas = document.createElement('canvas');
-    wcanvas.id = 'gwr-preview-canvas';
-    wcanvas.style.cssText = 'position:absolute;top:0;left:0;pointer-events:none;z-index:4;max-width:100%;max-height:100%;';
-    $('ed-preview').style.position = 'relative';
-    const wrap = img.parentNode;
-    img.style.position = 'relative';
-    wrap.style.position = 'relative';
-    wrap.insertBefore(wcanvas, img.nextSibling);
-  }
-  const iw = img.offsetWidth, ih = img.offsetHeight;
-  if (!iw || !ih) return;
-  wcanvas.width = iw; wcanvas.height = ih;
-  wcanvas.style.width = iw + 'px'; wcanvas.style.height = ih + 'px';
-  wcanvas.style.left = img.offsetLeft + 'px';
-  wcanvas.style.top  = img.offsetTop  + 'px';
-
-  const {canvas, position, inBounds} = nxGeminiBuildRemovedCanvas(img, S.settings);
-  const ctx = wcanvas.getContext('2d');
-  ctx.clearRect(0, 0, iw, ih);
-  ctx.drawImage(canvas, 0, 0, iw, ih);
+  const W = img.naturalWidth, H = img.naturalHeight;
+  const forceSize = S.settings.gwSize === '48' ? 48 : (S.settings.gwSize === '96' ? 96 : null);
+  const config = nxGeminiDetectWatermarkConfig(W, H, forceSize);
+  const position = nxGeminiWatermarkPosition(W, H, config);
+  const inBounds = position.x >= 0 && position.y >= 0 &&
+    position.x + position.width <= W && position.y + position.height <= H;
 
   const info = $('gwr-detect-info');
   if (info) {
     info.textContent = inBounds
-      ? `Detected ${position.width}×${position.height}px watermark near (${position.x}, ${position.y})`
+      ? `Detected ${position.width}×${position.height}px watermark near (${position.x}, ${position.y}) — click Remove Watermark to apply`
       : 'No watermark region detected at this image size — try forcing 48px or 96px below.';
   }
 }
@@ -10007,11 +10038,14 @@ function nxGeminiVideoWatermarkConfig(imageWidth, imageHeight, variant) {
 // on-screen position inside #vid-overlay, positioned by percentage the same
 // way the video-crop overlay positions its box (both assume #vid-overlay's
 // own box exactly matches the <video> element's rendered content box).
+// Detection-only — no auto-correction overlay. Removal now runs once, on
+// demand, via the Remove Watermark button (see runProcess/TWO_STEP_TOOLS),
+// which loads the real processed video into the player instead of drawing
+// a small live-updating patch — see nxGwShowResult below.
 function nxVideoWatermarkRemoveTick() {
   if (S.tool?.id !== 'video-watermark-remove') return;
   const vid = document.getElementById('preview-vid');
-  const ov  = document.getElementById('vid-overlay');
-  if (!vid || !ov || !vid.videoWidth) return;
+  if (!vid || !vid.videoWidth) return;
   const W = vid.videoWidth, H = vid.videoHeight;
   const config = nxGeminiVideoWatermarkConfig(W, H, S.settings.gwVariant);
   const position = nxGeminiWatermarkPosition(W, H, config);
@@ -10021,41 +10055,12 @@ function nxVideoWatermarkRemoveTick() {
   const info = document.getElementById('gwr-video-detect-info');
   if (info) {
     info.textContent = inBounds
-      ? `Detected ${position.width}×${position.height}px watermark near (${position.x}, ${position.y})`
+      ? `Detected ${position.width}×${position.height}px watermark near (${position.x}, ${position.y}) — click Remove Watermark to apply`
       : 'No watermark region detected at this resolution — try Standard/Inset below.';
   }
-
-  let cv = ov.querySelector('#vwr-preview-canvas');
-  if (!inBounds) { if (cv) cv.remove(); return; }
-
-  // Draw a padded crop (not just the tight box) so the inpaint below has
-  // real surrounding pixels to diffuse in from.
-  const padX = Math.max(2, Math.round(position.width  * 0.35));
-  const padY = Math.max(2, Math.round(position.height * 0.35));
-  const px = Math.max(0, position.x - padX);
-  const py = Math.max(0, position.y - padY);
-  const pw = Math.min(W - px, position.width  + (position.x - px) + padX);
-  const ph = Math.min(H - py, position.height + (position.y - py) + padY);
-
-  if (!cv) {
-    cv = document.createElement('canvas');
-    cv.id = 'vwr-preview-canvas';
-    cv.style.cssText = 'position:absolute;pointer-events:none;';
-    ov.appendChild(cv);
-  }
-  cv.width = pw; cv.height = ph;
-  cv.style.left   = (px / W * 100) + '%';
-  cv.style.top    = (py / H * 100) + '%';
-  cv.style.width  = (pw / W * 100) + '%';
-  cv.style.height = (ph / H * 100) + '%';
-
-  const ctx = cv.getContext('2d');
-  ctx.drawImage(vid, px, py, pw, ph, 0, 0, pw, ph);
-  const intensity = (+S.settings.gwIntensity || 100) / 100;
-  nxGeminiFixWatermarkRegion(ctx, {x: position.x - px, y: position.y - py, width: position.width, height: position.height}, intensity);
 }
 
-// Reads fps from FFmpeg's own stream-info log line// Reads fps from FFmpeg's own stream-info log line (the standard trick to
+// Reads fps from FFmpeg's own stream-info log line (the standard trick to
 // probe a file with FFmpeg without decoding it: `-i input` with no output
 // prints full stream info to stderr, then exits non-zero for "no output
 // specified" — the log line is what we're after, the throw is expected and
@@ -11168,11 +11173,14 @@ async function runProcess() {
     S.outputBlob = result.blob;
     S.outputName = `${base}_${suffix}.${result.ext}`;
 
+    const isWatermarkRemove = S.tool.id === 'photo-watermark-remove' || S.tool.id === 'video-watermark-remove';
+    if (isWatermarkRemove) nxGwShowResult(result.blob, S.tool.id);
+
     setProgress(100, 'Done!');
     const twoStep = isTwoStepTool(S.tool.id);
     setTimeout(() => {
       hideOverlay();
-      showStatus('done', twoStep ? `✓ Converted — ${S.outputName} ready to download` : `✓ ${S.outputName} ready`);
+      showStatus('done', isWatermarkRemove ? `✓ Watermark removed — showing result` : twoStep ? `✓ Converted — ${S.outputName} ready to download` : `✓ ${S.outputName} ready`);
       if (!twoStep) doDownload();
     }, 300);
 
@@ -11183,6 +11191,123 @@ async function runProcess() {
   } finally {
     S.processing = false;
     updateDownloadBtn();
+  }
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+// WATERMARK REMOVAL — result display + before/after
+// ════════════════════════════════════════════════════════════════════════════
+// Loads the just-processed result into the actual preview player (swaps
+// #preview-img/#preview-vid's src), so "Remove Watermark" shows the real
+// output instead of a small live-updating patch. The original URL is
+// stashed on the element itself (data-gw-original) so it survives even if
+// this runs twice in a row, and Before/After compare can get back to it.
+function nxGwShowResult(blob, toolId) {
+  const url = URL.createObjectURL(blob);
+  if (window._gwResultUrl) URL.revokeObjectURL(window._gwResultUrl);
+  window._gwResultUrl = url;
+  window._gwActiveToolId = toolId;
+  window._gwShowingAfter = true;
+
+  if (toolId === 'photo-watermark-remove') {
+    const img = $('ed-preview')?.querySelector('#preview-img');
+    if (img) {
+      if (!img.dataset.gwOriginal) img.dataset.gwOriginal = img.src;
+      img.src = url;
+    }
+  } else if (toolId === 'video-watermark-remove') {
+    const vid = document.getElementById('preview-vid');
+    if (vid) {
+      if (!vid.dataset.gwOriginal) vid.dataset.gwOriginal = vid.src;
+      const t = vid.currentTime;
+      vid.src = url;
+      vid.addEventListener('loadedmetadata', () => { vid.currentTime = t; }, { once: true });
+    }
+  }
+  nxGwRenderCompareControls();
+}
+
+// Reverts the preview back to the original file and drops the cached
+// result — used when leaving the tool, or when a setting changes and the
+// shown result would otherwise no longer match it.
+function nxGwResetToOriginal() {
+  const toolId = window._gwActiveToolId;
+  if (!toolId) return;
+
+  if (toolId === 'photo-watermark-remove') {
+    const img = $('ed-preview')?.querySelector('#preview-img');
+    if (img && img.dataset.gwOriginal) { img.src = img.dataset.gwOriginal; delete img.dataset.gwOriginal; }
+  } else if (toolId === 'video-watermark-remove') {
+    const vid = document.getElementById('preview-vid');
+    if (vid && vid.dataset.gwOriginal) {
+      const t = vid.currentTime;
+      vid.src = vid.dataset.gwOriginal;
+      delete vid.dataset.gwOriginal;
+      vid.addEventListener('loadedmetadata', () => { vid.currentTime = t; }, { once: true });
+    }
+  }
+  if (window._gwResultUrl) { URL.revokeObjectURL(window._gwResultUrl); window._gwResultUrl = null; }
+  window._gwActiveToolId = null;
+  window._gwShowingAfter = false;
+  if (S.tool?.id === toolId) S.outputBlob = null;
+  nxGwRenderCompareControls();
+  updateDownloadBtn();
+}
+
+// Video Before/After: simple source swap (preserves currentTime/play
+// state), shown as two pill buttons once a result exists. A drag-wipe
+// compare (like the photo one below) would need to keep two <video>
+// elements in perfect sync, which is a lot more moving parts for the
+// same "see before vs after" outcome — a toggle gets there more simply.
+function nxGwSwapVideo(showAfter) {
+  const vid = document.getElementById('preview-vid');
+  if (!vid || !window._gwResultUrl) return;
+  const targetUrl = showAfter ? window._gwResultUrl : vid.dataset.gwOriginal;
+  if (!targetUrl) return;
+  const t = vid.currentTime, wasPlaying = !vid.paused;
+  vid.src = targetUrl;
+  vid.addEventListener('loadedmetadata', () => {
+    vid.currentTime = t;
+    if (wasPlaying) vid.play().catch(() => {});
+  }, { once: true });
+  window._gwShowingAfter = showAfter;
+  nxGwRenderCompareControls();
+}
+
+// Renders whichever compare control fits the active tool: the photo
+// compare-bar (drag-wipe, extended below to swap image src instead of a
+// CSS filter) or the video Before/After pill pair. Hidden entirely until
+// a result actually exists.
+function nxGwRenderCompareControls() {
+  const bar = $('compare-bar');
+  const isPhoto = window._gwActiveToolId === 'photo-watermark-remove';
+  if (bar) bar.classList.toggle('show', isPhoto && !!window._gwResultUrl);
+  if (!isPhoto && _compareActive) destroyCompare();
+
+  let pills = $('gwr-video-compare');
+  const isVideo = window._gwActiveToolId === 'video-watermark-remove';
+  if (isVideo && window._gwResultUrl) {
+    if (!pills) {
+      pills = document.createElement('div');
+      pills.id = 'gwr-video-compare';
+      // #vid-overlay is already exactly positioned over the video (see
+      // video-crop's percentage math) — anchor here rather than
+      // #vid-preview-wrap, which has no explicit position of its own.
+      // pointer-events:auto overrides the overlay's own none so the
+      // buttons stay clickable.
+      pills.style.cssText = 'position:absolute;top:10px;left:10px;z-index:6;display:flex;gap:0;border:1px solid var(--border2);border-radius:6px;overflow:hidden;pointer-events:auto;';
+      const ov = document.getElementById('vid-overlay');
+      if (ov) ov.appendChild(pills);
+    }
+    if (pills) {
+      const btnCss = 'font-family:var(--mono);font-size:12px;font-weight:700;letter-spacing:.5px;padding:5px 10px;border:none;cursor:pointer;';
+      const afterLit = window._gwShowingAfter;
+      pills.innerHTML = `
+        <button style="${btnCss}background:${afterLit?'var(--bg4)':'var(--red)'};color:${afterLit?'var(--muted)':'#fff'}" onclick="nxGwSwapVideo(false)">BEFORE</button>
+        <button style="${btnCss}background:${afterLit?'var(--red)':'var(--bg4)'};color:${afterLit?'#fff':'var(--muted)'}" onclick="nxGwSwapVideo(true)">AFTER</button>`;
+    }
+  } else if (pills) {
+    pills.remove();
   }
 }
 
@@ -11205,12 +11330,18 @@ function destroyCompare() {
   // Update compare bar button
   const btn = $('compare-btn');
   if (btn) { btn.innerHTML = '<svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M9 3H5a2 2 0 00-2 2v4M9 3h6M9 3v18m6-18h4a2 2 0 012 2v4m-6-6v18m6-12v4M3 9v6m18-6v6M3 15v4a2 2 0 002 2h4m10 0h4a2 2 0 002-2v-4"/></svg> Before / After'; btn.classList.remove('active'); }
-  // Restore image filter from saved attribute
+  // Restore the base image — for watermark-remove that means back to the
+  // processed result (compare is just a temporary before/after peek, not a
+  // way to discard the result); for everything else, restore the CSS filter.
   const img = $('ed-preview')?.querySelector('#preview-img');
   if (img) {
-    const saved = img.getAttribute('data-compare-filter');
-    if (saved !== null) img.style.filter = saved;
-    img.removeAttribute('data-compare-filter');
+    if (S.tool?.id === 'photo-watermark-remove') {
+      if (window._gwResultUrl) img.src = window._gwResultUrl;
+    } else {
+      const saved = img.getAttribute('data-compare-filter');
+      if (saved !== null) img.style.filter = saved;
+      img.removeAttribute('data-compare-filter');
+    }
   }
   // Re-apply vignette if effects active
   if (S.tool?.id === 'photo-effects') updateVignette(S.settings.vignette||0);
@@ -11229,10 +11360,19 @@ function buildCompareUI() {
 
   preview.style.position = 'relative';
 
-  // Save the current "after" filter so we can show before (no filter) behind the overlay
-  const currentFilter = img.getAttribute('data-compare-filter') || img.style.filter || 'none';
-  img.setAttribute('data-compare-filter', currentFilter);
-  img.style.filter = 'none';  // background image shows "before" (unfiltered)
+  // Watermark-remove: the base img currently shows the PROCESSED result
+  // (set by nxGwShowResult) — swap it to the original for the "before"
+  // side, and let the overlay img show the real result. Every other tool
+  // (photo-effects) keeps the filter-based before/after it already had.
+  const isWatermarkRemove = S.tool?.id === 'photo-watermark-remove';
+  let currentFilter = 'none';
+  if (isWatermarkRemove) {
+    if (img.dataset.gwOriginal) img.src = img.dataset.gwOriginal;
+  } else {
+    currentFilter = img.getAttribute('data-compare-filter') || img.style.filter || 'none';
+    img.setAttribute('data-compare-filter', currentFilter);
+    img.style.filter = 'none';  // background image shows "before" (unfiltered)
+  }
 
   // Use getBoundingClientRect for pixel-perfect placement
   const iRect = img.getBoundingClientRect();
@@ -11247,7 +11387,7 @@ function buildCompareUI() {
   wrap.id = 'compare-wrap';
   wrap.style.cssText = `position:absolute;left:${iL}px;top:${iT}px;width:${iW}px;height:${iH}px;z-index:8;pointer-events:all;overflow:hidden;border-radius:6px;cursor:ew-resize;`;
 
-  // "After" half (filtered) — visible on the RIGHT side of the divider
+  // "After" half — visible on the RIGHT side of the divider
   // clip-path: inset(0 0 0 pct%) means clip from the left, so right side is visible
   const afterDiv = document.createElement('div');
   afterDiv.id = 'compare-after-div';
@@ -11255,9 +11395,9 @@ function buildCompareUI() {
 
   const afterImg = document.createElement('img');
   afterImg.id = 'compare-after-img';
-  afterImg.src = img.src;
+  afterImg.src = isWatermarkRemove ? (window._gwResultUrl || img.src) : img.src;
   afterImg.alt = '';
-  afterImg.style.cssText = `position:absolute;top:0;left:0;width:100%;height:100%;object-fit:contain;filter:${currentFilter};`;
+  afterImg.style.cssText = `position:absolute;top:0;left:0;width:100%;height:100%;object-fit:contain;${isWatermarkRemove ? '' : 'filter:' + currentFilter + ';'}`;
   afterDiv.appendChild(afterImg);
 
   // Divider line + knob
