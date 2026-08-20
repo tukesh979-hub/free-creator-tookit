@@ -3216,6 +3216,19 @@ function setPreset(key, val, sid) {
   }
 }
 
+// A visible, in-panel CTA for single-action tools (Mute, Remove Audio,
+// Reverse, Stabilize, Vertical…) that otherwise only had descriptive text —
+// the generic bottom Download button already runs+downloads them, but
+// nothing in the panel itself told the user that. Mirrors .btn-primary's
+// weight (same as Download) since clicking it does the real action, not
+// just a preview. runProcess() re-guards on S.processing itself, so a
+// stale (non-live-updating) disabled state here is only a minor cosmetic
+// gap, not a correctness one.
+function inlineActionBtn(label, icon) {
+  const disabled = (!S.file || S.processing) ? 'disabled' : '';
+  return `<button class="btn-primary" style="margin-top:6px" ${disabled} onclick="runProcess()" aria-label="${label}">${icon} ${label}</button>`;
+}
+
 const PANELS = {
   // VIDEO
   'video-trim': () => {
@@ -3364,6 +3377,7 @@ const PANELS = {
           Plays video and audio backwards.<br>Best for short clips under 30s.
         </div>
       </div>
+      ${inlineActionBtn('Reverse Video', '↩')}
       <p class="s-hint warn">⚠ Large files may take a long time or run out of memory</p>
     </div>`,
 
@@ -3377,6 +3391,7 @@ const PANELS = {
           Pass 1 detects camera motion.<br>Pass 2 applies correction.
         </div>
       </div>
+      ${inlineActionBtn('Stabilize Video', '⌖')}
       <p class="s-hint warn">⚠ Slow on large files — best for clips under 2 min</p>
     </div>`,
 
@@ -3408,6 +3423,7 @@ const PANELS = {
       <div style="font-family:var(--mono);font-size:15px;color:var(--muted);text-align:center;line-height:1.6">
         Permanently removes the audio stream.<br>Video stream is copied without re-encoding.
       </div>
+      ${inlineActionBtn('Remove Audio', '🔇')}
     </div>`,
 
   'video-mute': () => `
@@ -3417,6 +3433,7 @@ const PANELS = {
       <div style="font-family:var(--mono);font-size:15px;color:var(--muted);text-align:center;line-height:1.6">
         Keeps the audio track but sets volume to 0.<br>Audio stream remains in the file.
       </div>
+      ${inlineActionBtn('Mute Audio', '🔕')}
     </div>`,
 
   'video-adjust': () => rangeRow('Brightness', 'brightness', -100, 100, 1, '', 0)
@@ -3436,6 +3453,7 @@ const PANELS = {
         Scales video to fill 9:16 frame.<br>Letterboxed with black bars if needed.<br>
         <span style="color:var(--red)">Perfect for TikTok, Reels &amp; Shorts.</span>
       </div>
+      ${inlineActionBtn('Convert to Vertical', '📱')}
     </div>`,
 
   'video-watermark': () => {
