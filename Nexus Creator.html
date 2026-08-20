@@ -11196,7 +11196,6 @@ async function exportMixdown() {
 // 33⅓ RPM it turns ~8.3° per frame at 24fps.
 async function nxRecordAudioToVideo(file, s) {
   const fmt = s.outputFormat || 'mp4';
-  const FPS = 24;
 
   // Decode once — this AudioBuffer feeds both the offline FFT analysis
   // below and the sample-rate/channel-count metadata chips.
@@ -11212,6 +11211,16 @@ async function nxRecordAudioToVideo(file, s) {
   }
   const duration = audioBuffer.duration;
   if (!duration) throw new Error('Could not determine audio duration');
+
+  // Per-frame draw+encode cost is ~constant (measured ~10.2ms/frame at
+  // 960x540 ultrafast: ~6.8ms encode + ~3.4ms draw/JPEG), so total pipeline
+  // time scales with frame COUNT, not clip duration. A fixed FPS is fine
+  // for short clips but blows well past the target on longer ones (a fixed
+  // 24fps took 36.5s on a real 148s track). Scaling FPS down as duration
+  // grows keeps frame count — and therefore wall time — roughly constant
+  // across clip lengths instead of only tuned for one test file.
+  const FRAME_BUDGET = 2400; // ≈ 25s total at the measured per-frame cost, leaving margin under the 30s target
+  const FPS = Math.max(12, Math.min(24, Math.round(FRAME_BUDGET / duration)));
 
   const title = nxCleanTitle(file.name);
   const ext = (file.name.split('.').pop() || 'AUDIO').toUpperCase();
