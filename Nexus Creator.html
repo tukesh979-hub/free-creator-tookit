@@ -178,33 +178,56 @@ nav{
 #page-home.active{position:relative}
 #page-home .hero,#page-home>.home-wrap,#page-home>section{position:relative;z-index:1}
 
-/* ═══════════ HOME BACKGROUND — static grid + grain ═══════════
-   Adapted from a requested reference (a moving-grid/noise/vignette combo)
-   but deliberately made fully static: no rAF position loop, no hover
-   layer intercepting clicks through the page's real UI (the reference was
-   built as a stand-alone full-screen takeover, not a backdrop sitting
-   behind clickable content — porting its click-catching hover canvas here
-   would silently break every button/link on the home page). Every layer
-   is position:fixed with a background-position pinned at 0 0, so the grid
-   cannot visually drift on resize, scroll, or re-render — it is redrawn
-   identically every time. Reuses .tech-grid's own 56px cell size (already
-   the card-level grid used on the upload workspace) rather than the
-   reference's 44px, so the whole-page grid and the smaller in-card grid
-   share one raster instead of reading as two unrelated patterns. Tinted
-   with --red instead of the reference's blue — this site's identity is
-   explicitly one accent color, not blue (see DESIGN TOKENS above). */
+/* ═══════════ HOME BACKGROUND — drifting gradient + grain ═══════════
+   Replaces an earlier static grid-line layer with a slow-moving gradient
+   wash instead. Pure CSS background-position animation on a
+   position:fixed;pointer-events:none layer — no rAF loop, no canvas, no
+   hover layer to intercept clicks through the page's real UI (that was
+   the specific hazard that made the original grid deliberately static —
+   see git history). Animating only background-position is cheap
+   (GPU-composited, no layout/paint per frame), so "moving" doesn't
+   reintroduce the perf/interaction risk the grid was avoiding. Tinted
+   with --red plus small amber/blue accents from the existing palette
+   (DESIGN TOKENS above) rather than inventing new hues — reads as one
+   coherent brand wash, not a rainbow. */
 #home-bg{position:fixed;inset:0;z-index:0;pointer-events:none;overflow:hidden;background:var(--bg)}
 #home-bg .home-bg-spotlight{
   position:absolute;inset:0;
   background:radial-gradient(circle 620px at 50% 220px,rgba(255,59,59,.16),transparent 70%);
 }
-#home-bg .home-bg-grid{
-  position:absolute;inset:0;background-position:0 0;
-  background-image:linear-gradient(rgba(255,255,255,.05) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.05) 1px,transparent 1px);
-  background-size:56px 56px
+#home-bg .home-bg-gradient{
+  position:absolute;inset:-15%;
+  background:
+    radial-gradient(circle at 20% 25%, rgba(255,59,59,.05), transparent 38%),
+    radial-gradient(circle at 82% 18%, rgba(245,158,11,.035), transparent 36%),
+    radial-gradient(circle at 75% 78%, rgba(59,130,246,.03), transparent 40%),
+    radial-gradient(circle at 12% 82%, rgba(255,59,59,.03), transparent 38%);
+  /* Each layer sized well past 100% of the box — background-position has
+     nothing to animate against a gradient sized exactly to its container
+     (there's no "extra" image to slide into view), so this is required
+     for nxBgDrift below to be visible at all, not just a cosmetic size. */
+  background-size:180% 180%;
+  background-repeat:no-repeat;
+  filter:blur(70px);
+  animation:nxBgDrift 40s ease-in-out infinite alternate;
 }
-:root[data-theme="light"] #home-bg .home-bg-grid{
-  background-image:linear-gradient(rgba(0,0,0,.05) 1px,transparent 1px),linear-gradient(90deg,rgba(0,0,0,.05) 1px,transparent 1px)
+@media (prefers-reduced-motion: reduce){
+  #home-bg .home-bg-gradient{animation:none}
+}
+:root[data-theme="light"] #home-bg .home-bg-gradient{
+  background:
+    radial-gradient(circle at 20% 25%, rgba(224,40,31,.045), transparent 38%),
+    radial-gradient(circle at 82% 18%, rgba(217,119,6,.03), transparent 36%),
+    radial-gradient(circle at 75% 78%, rgba(37,99,235,.025), transparent 40%),
+    radial-gradient(circle at 12% 82%, rgba(224,40,31,.02), transparent 38%);
+}
+@keyframes nxBgDrift{
+  0%{
+    background-position:0% 0%, 100% 0%, 100% 100%, 0% 100%;
+  }
+  100%{
+    background-position:12% 10%, 88% 14%, 86% 88%, 8% 92%;
+  }
 }
 #home-bg-noise{position:absolute;inset:0;width:100%;height:100%;image-rendering:pixelated;opacity:.5}
 #home-bg .home-bg-vignette{
@@ -651,17 +674,42 @@ footer{background:var(--bg2);border-top:1px solid var(--border);padding:48px 20p
   width:84px;background:var(--bg2);border-right:1px solid var(--border);
   display:flex;flex-direction:column;align-items:center;padding-top:10px;flex-shrink:0
 }
+/* Retro physical-button treatment: an outer black "bezel" (.cat-btn) around
+   an inset colored "keycap" (.cat-btn-face) — each category gets its own
+   color, derived from the existing --red/--amber/--blue tokens via
+   color-mix() rather than new hardcoded hues, so it's automatically
+   theme-correct and stays visually related instead of arbitrary. Unlike a
+   typical tab (gray until selected), every keycap shows its color all the
+   time — the SELECTED one reads as physically pressed in (scaled down,
+   shadow inverted to inset-only) rather than merely tinted, so the rail
+   looks like a bank of engaged/disengaged mechanical buttons. */
 .cat-btn{
   width:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;
-  gap:5px;padding:14px 4px;border-right:2px solid transparent;color:var(--dim);transition:all var(--transition)
+  padding:0 8px;margin-bottom:8px;border-radius:10px;background:#010101;
+  box-shadow:1px 1px 1px rgba(255,255,255,.06);
+  transition:all var(--transition)
 }
-.cat-btn:hover{color:var(--muted)}
-.cat-btn.active{color:var(--red);border-right-color:var(--red);background:rgba(255,59,59,.04)}
-.cat-btn span{font-size:15px;font-weight:700;letter-spacing:.5px;text-transform:uppercase}
+.cat-btn .cat-btn-face{
+  width:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;
+  padding:11px 4px;border-radius:7px;color:#fff;background:var(--rb-bg);
+  box-shadow:
+    inset 1px 1px 1px var(--rb-light),
+    inset -1px -1px 1px var(--rb-dark),
+    1px 2px 3px rgba(0,0,0,.4);
+  transition:transform .15s cubic-bezier(.2,0,0,1),box-shadow .15s cubic-bezier(.2,0,0,1),filter .15s cubic-bezier(.2,0,0,1)
+}
+.cat-btn:hover .cat-btn-face{filter:brightness(1.08)}
+.cat-btn.active .cat-btn-face{transform:scale(.94);box-shadow:inset 0 0 5px rgba(0,0,0,.65)}
+.cat-btn-face span{font-size:13px;font-weight:700;letter-spacing:.5px;text-transform:uppercase}
+.cat-btn[data-cat="video"]{--rb-bg:var(--red);--rb-light:color-mix(in srgb, var(--red) 45%, white);--rb-dark:color-mix(in srgb, var(--red) 55%, black)}
+.cat-btn[data-cat="photo"]{--rb-bg:var(--amber);--rb-light:color-mix(in srgb, var(--amber) 45%, white);--rb-dark:color-mix(in srgb, var(--amber) 55%, black)}
+.cat-btn[data-cat="audio"]{--rb-bg:var(--blue);--rb-light:color-mix(in srgb, var(--blue) 45%, white);--rb-dark:color-mix(in srgb, var(--blue) 55%, black)}
+.cat-btn[data-cat="ai"]{--rb-bg:#5b5f78;--rb-light:rgba(200,202,220,.4);--rb-dark:rgba(15,15,25,.55)}
 /* A loaded file locks the sidebar to its own category — switching to
    Video mid-way through editing a photo silently desyncs S.cat from
    S.file.type. Disabled rather than hidden so it's clear why. */
-.cat-btn:disabled{opacity:.3;cursor:not-allowed;pointer-events:none}
+.cat-btn:disabled{opacity:.35;cursor:not-allowed;pointer-events:none}
+.cat-btn:disabled .cat-btn-face{filter:grayscale(60%)}
 
 /* ═══════════ PANEL RESIZERS ═══════════
    Thin drag handles between the editor's major regions — replaces what
@@ -1461,24 +1509,40 @@ textarea.s-input{resize:vertical;min-height:64px;font-family:var(--font);line-he
 input[type=color].s-input{height:38px;padding:3px;cursor:pointer}
 
 /* Primary inspector action — every tool previews live, so this is the one
-   button left: run the real export and download it. */
+   button left: run the real export and download it. Retro keycap bevel
+   (inset light/dark pair + drop shadow, pressed state inverts to inset-only
+   and scales down) — same visual language as the .cat-btn rail, ported
+   directly onto this single element since it's plain text (no icon+label
+   pair needing a separate inner "face" layer to bevel independently). */
 .btn-primary{
+  --rb-light:color-mix(in srgb, var(--red) 45%, white);
+  --rb-dark:color-mix(in srgb, var(--red) 55%, black);
   background:var(--red);color:#fff;font-size:17px;font-weight:700;letter-spacing:2px;
-  text-transform:uppercase;padding:11px;width:100%;transition:background var(--transition);
-  display:flex;align-items:center;justify-content:center;gap:5px;border-radius:6px
+  text-transform:uppercase;padding:11px;width:100%;
+  display:flex;align-items:center;justify-content:center;gap:5px;border-radius:8px;
+  box-shadow:
+    inset 1px 1px 1px var(--rb-light),
+    inset -1px -1px 1px var(--rb-dark),
+    1px 2px 3px rgba(0,0,0,.4);
+  transition:background var(--transition),transform .15s cubic-bezier(.2,0,0,1),box-shadow .15s cubic-bezier(.2,0,0,1)
 }
 .btn-primary:hover:not(:disabled){background:var(--red2)}
-.btn-primary:disabled{background:var(--border2);color:var(--dim);cursor:not-allowed}
+.btn-primary:active:not(:disabled){transform:scale(.97);box-shadow:inset 0 0 5px rgba(0,0,0,.55)}
+.btn-primary:disabled{background:var(--border2);color:var(--dim);cursor:not-allowed;box-shadow:none}
 /* Convert step for the pure format-conversion tools (nothing to preview
    live, so Download alone can't tell the user "this worked" before it's
    already downloaded) — same footprint as .btn-primary, outlined instead
-   of filled so it doesn't visually compete with Download as the main action. */
+   of filled so it doesn't visually compete with Download as the main action.
+   Gets the same press-down feedback, minus the filled bevel, to stay
+   tactile without competing for visual weight. */
 #btn-convert{
   background:transparent;border:1px solid var(--border2);color:var(--text);font-size:17px;font-weight:700;letter-spacing:2px;
-  text-transform:uppercase;padding:10px;width:100%;transition:all var(--transition);
-  display:flex;align-items:center;justify-content:center;gap:5px;border-radius:6px
+  text-transform:uppercase;padding:10px;width:100%;
+  display:flex;align-items:center;justify-content:center;gap:5px;border-radius:8px;
+  transition:all var(--transition),transform .15s cubic-bezier(.2,0,0,1)
 }
 #btn-convert:hover:not(:disabled){border-color:var(--red);color:var(--red)}
+#btn-convert:active:not(:disabled){transform:scale(.97)}
 #btn-convert:disabled{color:var(--dim);border-color:var(--border);cursor:not-allowed}
 .btn-newfile{
   background:transparent;border:1px solid var(--border);color:var(--dim);
@@ -1773,7 +1837,7 @@ input[type=color].s-input{height:38px;padding:3px;cursor:pointer}
 <div id="page-home" class="page active">
   <div id="home-bg" aria-hidden="true">
     <div class="home-bg-spotlight"></div>
-    <div class="home-bg-grid"></div>
+    <div class="home-bg-gradient"></div>
     <canvas id="home-bg-noise"></canvas>
     <div class="home-bg-vignette"></div>
   </div>
@@ -2182,20 +2246,28 @@ input[type=color].s-input{height:38px;padding:3px;cursor:pointer}
   <!-- Category sidebar -->
   <div class="ed-cat" role="tablist" aria-label="Tool categories">
     <button class="cat-btn active" data-cat="video" onclick="setCat('video')" role="tab" aria-label="Video tools">
-      <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24" aria-hidden="true"><path d="M15 10l4.553-2.069A1 1 0 0121 8.87v6.26a1 1 0 01-1.447.89L15 14M3 8a2 2 0 012-2h10a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2V8z"/></svg>
-      <span>Video</span>
+      <span class="cat-btn-face">
+        <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24" aria-hidden="true"><path d="M15 10l4.553-2.069A1 1 0 0121 8.87v6.26a1 1 0 01-1.447.89L15 14M3 8a2 2 0 012-2h10a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2V8z"/></svg>
+        <span>Video</span>
+      </span>
     </button>
     <button class="cat-btn" data-cat="photo" onclick="setCat('photo')" role="tab" aria-label="Photo tools">
-      <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>
-      <span>Photo</span>
+      <span class="cat-btn-face">
+        <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>
+        <span>Photo</span>
+      </span>
     </button>
     <button class="cat-btn" data-cat="audio" onclick="setCat('audio')" role="tab" aria-label="Audio tools">
-      <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 18V5l12-2v13M6 21a3 3 0 100-6 3 3 0 000 6z"/></svg>
-      <span>Audio</span>
+      <span class="cat-btn-face">
+        <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 18V5l12-2v13M6 21a3 3 0 100-6 3 3 0 000 6z"/></svg>
+        <span>Audio</span>
+      </span>
     </button>
     <button class="cat-btn" data-cat="ai" onclick="setCat('ai')" role="tab" aria-label="AI tools (coming soon)">
-      <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l1.9 5.3L19 10l-5.1 1.7L12 17l-1.9-5.3L5 10l5.1-1.7L12 3z"/></svg>
-      <span>AI Tools</span>
+      <span class="cat-btn-face">
+        <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l1.9 5.3L19 10l-5.1 1.7L12 17l-1.9-5.3L5 10l5.1-1.7L12 3z"/></svg>
+        <span>AI Tools</span>
+      </span>
     </button>
   </div>
 
@@ -2828,7 +2900,7 @@ function fgridAICardHTML(t) {
       </button>`;
   }
   return `
-    <button class="fgrid-card" onclick="alert('${t.label} — Coming in Phase 2!\\n\\nThis will run entirely in your browser using Transformers.js — no server, no API keys.')" aria-label="${t.label} (coming soon)">
+    <button class="fgrid-card" onclick="showModal('${t.label} — Coming in Phase 2', 'This will run entirely in your browser using Transformers.js — no server, no API keys.', 'Got it', () => {})" aria-label="${t.label} (coming soon)">
       <div class="fgrid-visual cat-ai">
         <span class="fgrid-soon-tag">Soon</span>
         <div class="fgrid-ico" aria-hidden="true">${toolIconHTML(t.id, 'ai', 24)}</div>
@@ -2887,7 +2959,7 @@ const CONVERT_COMING_SOON = [
 ];
 function fgridConvertSoonCardHTML(t) {
   return `
-    <button class="fgrid-card" onclick="alert('${t.label} — Coming soon.\\n\\nThis needs a real PDF library (to read and write PDF files) that isn\\'t wired into Nexus Creator yet — not something we want to fake with a placeholder.')" aria-label="${t.label} (coming soon)">
+    <button class="fgrid-card" onclick="showModal('${t.label} — Coming Soon', 'This needs a real PDF library (to read and write PDF files) that isn\\'t wired into Nexus Creator yet — not something we want to fake with a placeholder.', 'Got it', () => {})" aria-label="${t.label} (coming soon)">
       <div class="fgrid-visual cat-ai">
         <span class="fgrid-soon-tag">Soon</span>
         <div class="fgrid-ico" aria-hidden="true">${iconSVG('convert', 24)}</div>
@@ -3177,13 +3249,24 @@ function textRow(label, key, def) {
   </div>`;
 }
 
-function selectRow(label, key, opts) {
-  S.settings[key] = opts[0];
+function selectRow(label, key, opts, def) {
+  // Unlike rangeRow/numRow/textRow (whose callers always pass the CURRENT
+  // value back in as `def`, making the assignment below a harmless
+  // round-trip), this used to unconditionally set S.settings[key]=opts[0]
+  // with no way to specify or preserve an intended default — silently
+  // resetting the real applied setting (e.g. bitrate) to the first/lowest
+  // option every time this panel re-rendered, while sibling UI (preset
+  // highlights, size estimates) kept showing the value the caller actually
+  // intended. Only fall back to `def`/opts[0] if nothing valid is set yet.
+  if (S.settings[key] === undefined || !opts.includes(S.settings[key])) {
+    S.settings[key] = (def !== undefined && opts.includes(def)) ? def : opts[0];
+  }
+  const cur = S.settings[key];
   return `<div class="s-row">
     <label class="s-lbl">${label}</label>
     <div class="s-select-wrap">
       <select class="s-input" aria-label="${label}" onchange="setS('${key}',this.value)">
-        ${opts.map(o => `<option value="${o}">${o.toUpperCase()}</option>`).join('')}
+        ${opts.map(o => `<option value="${o}" ${o===cur?'selected':''}>${o.toUpperCase()}</option>`).join('')}
       </select>
     </div>
   </div>`;
@@ -3812,7 +3895,7 @@ const PANELS = {
         </label>
       </div>
       <div class="s-divider"></div>` +
-      selectRow('Position', 'wPos', ['br','bl','tr','tl','center']) +
+      selectRow('Position', 'wPos', ['br','bl','tr','tl','center'], 'br') +
       rangeRow('Opacity', 'wOpacity', 10, 100, 5, '%', 60) +
       rangeRow('Scale', 'wScale', 5, 100, 5, '%', 30) +
       `<p class="s-hint info" style="margin-top:8px">↻ Live preview updates as you type</p>`;
@@ -3933,8 +4016,6 @@ const PANELS = {
       { id:'m4a',  label:'M4A',  sub:'Lossy · iTunes/AAC',      lossless:false },
     ];
     const isLossless = fmts.find(f => f.id === cur)?.lossless || false;
-    if (!S.settings.convertBitrate) S.settings.convertBitrate = '192k';
-    const curBR = S.settings.convertBitrate;
     return `
       <div class="fmt-card-grid">
         ${fmts.map(f => `
@@ -3946,7 +4027,7 @@ const PANELS = {
       </div>
       ${isLossless
         ? `<div class="fmt-info-line">✓ Lossless — no bitrate reduction, original audio preserved</div>`
-        : `${selectRow('Quality', 'convertBitrate', ['64k','96k','128k','192k','256k','320k'])}
+        : `${selectRow('Quality', 'convertBitrate', ['64k','96k','128k','192k','256k','320k'], '192k')}
            <div class="fmt-info-line">Higher bitrate → better quality &amp; larger file</div>`
       }
       <p class="s-hint" style="margin-top:6px">Format/bitrate changes have nothing to preview live — download to hear the real result.</p>`;
@@ -3972,7 +4053,7 @@ const PANELS = {
             ${p.label}<br><span style="font-size:15px;font-family:var(--mono);opacity:.7">${p.val}</span>
           </button>`).join('')}
       </div>
-      ${selectRow('Bitrate', 'compressBitrate', ['32k','64k','96k','128k','192k','256k','320k'])}
+      ${selectRow('Bitrate', 'compressBitrate', ['32k','64k','96k','128k','192k','256k','320k'], '96k')}
       ${estMB && origMB ? `
         <div class="size-estimate${+estMB > +origMB ? ' warn' : ''}">
           Est. output: ~${estMB} MB
@@ -10234,6 +10315,21 @@ async function nxProbeVideoFps(ff, inFile) {
   return Number.isFinite(fps) && fps > 0 ? fps : 30;
 }
 
+// decodeAudioData() resamples to the AudioContext's own operating rate
+// (tied to the audio device/OS, not the file) — AudioBuffer.sampleRate is
+// NOT the source file's actual encoded sample rate. Probing ffmpeg's own
+// stream-info log (same technique as nxProbeVideoFps above) reads the real
+// value straight from the container, format-agnostic, no separate parser
+// needed per codec.
+async function nxProbeAudioSampleRate(ff, inFile) {
+  const startLen = _nxFFmpegLog.length;
+  try { await ff.exec(['-i', inFile]); } catch (_) { /* expected — no output specified */ }
+  const lines = _nxFFmpegLog.slice(startLen).join('\n');
+  const m = lines.match(/Audio:.*?,\s*(\d+)\s*Hz/);
+  const rate = m ? parseInt(m[1], 10) : NaN;
+  return Number.isFinite(rate) && rate > 0 ? rate : null;
+}
+
 function nxSeekVideoFrame(vid, t) {
   return new Promise((resolve) => {
     let done = false;
@@ -11039,7 +11135,18 @@ async function processFFmpeg(file, toolId, s) {
       await ff.exec(['-i', inFile, '-filter:a', 'areverse', outFile]);
 
     } else if (toolId === 'audio-pitch') {
-      // Pitch shift without speed change: asetrate to shift pitch, resample back to original rate
+      // Pitch shift without speed change: asetrate shifts pitch (by playing
+      // the stream back at a relabeled sample rate) but that ALSO changes
+      // playback speed/duration as a side effect — aresample back to the
+      // original rate only fixes the container's sample-rate metadata, it
+      // does not re-stretch the audio in time. Without compensation, +5
+      // semitones measurably shrank an 8.01s clip to 6.00s (chipmunk
+      // effect), contradicting this tool's own "speed stays the same"
+      // claim. atempo=1/pitchRatio cancels that speed change back out.
+      // atempo only accepts 0.5-2.0 per filter instance, but this tool's
+      // own range (±12 semitones) maps to exactly that range at the
+      // boundaries (2^(±12/12) = 2 or 0.5), so a single instance always
+      // suffices here — no chaining needed, unlike video-speed/audio-speed.
       const sem = +s.semitones || 0;
       outFile = 'out.' + inExt;
       if (sem === 0) {
@@ -11048,10 +11155,12 @@ async function processFFmpeg(file, toolId, s) {
       } else {
         // Get sample rate from the file (default 44100 if unknown)
         const sr = 44100;
-        const shiftedRate = Math.round(sr * Math.pow(2, sem / 12));
+        const pitchRatio = Math.pow(2, sem / 12);
+        const shiftedRate = Math.round(sr * pitchRatio);
+        const tempoCompensation = (1 / pitchRatio).toFixed(6);
         await ff.exec([
           '-i', inFile,
-          '-af', `asetrate=${shiftedRate},aresample=${sr}`,
+          '-af', `asetrate=${shiftedRate},aresample=${sr},atempo=${tempoCompensation}`,
           outFile
         ]);
       }
@@ -11240,9 +11349,24 @@ async function nxRecordAudioToVideo(file, s) {
   const FRAME_BUDGET = 2400; // ≈ 25s total at the measured per-frame cost, leaving margin under the 30s target
   const FPS = Math.max(12, Math.min(24, Math.round(FRAME_BUDGET / duration)));
 
+  // FFmpeg is needed for the final encode regardless, so initializing it
+  // here (rather than right before that encode step) costs nothing extra —
+  // ensureFFmpeg() caches the loaded instance — and lets the info-card
+  // sample-rate chip below read the file's REAL encoded rate via ffmpeg's
+  // own probe instead of audioBuffer.sampleRate (see nxProbeAudioSampleRate:
+  // decodeAudioData resamples to the AudioContext's device rate, not the
+  // source file's). Writing audioInFile here too means the later encode
+  // step just reuses it instead of writing it twice.
+  const ff = await ensureFFmpeg();
+  const inExt = (file.name.split('.').pop() || 'mp3').toLowerCase();
+  const audioInFile = 'avf_audio_in.' + inExt;
+  await ff.writeFile(audioInFile, new Uint8Array(arrBuf));
+  const probedRate = await nxProbeAudioSampleRate(ff, audioInFile);
+
   const title = nxCleanTitle(file.name);
   const ext = (file.name.split('.').pop() || 'AUDIO').toUpperCase();
-  const chips = [ext, Math.round(audioBuffer.sampleRate / 1000) + ' kHz', audioBuffer.numberOfChannels >= 2 ? 'Stereo' : 'Mono'];
+  const displayRate = probedRate || audioBuffer.sampleRate;
+  const chips = [ext, Math.round(displayRate / 1000) + ' kHz', audioBuffer.numberOfChannels >= 2 ? 'Stereo' : 'Mono'];
 
   // ── Offline per-frame FFT extraction (fast — see comment above) ────────
   setProgress(2, 'Analyzing audio…');
@@ -11485,7 +11609,8 @@ async function nxRecordAudioToVideo(file, s) {
   }
 
   // ── Render every frame to JPEG, straight into FFmpeg's virtual FS ──────
-  const ff = await ensureFFmpeg();
+  // ff/audioInFile already set up above (needed early there to probe the
+  // real sample rate) — reused here rather than re-initializing/rewriting.
   const framePrefix = 'avf_';
   let cancelled = false;
   window._nxExportCancel = () => { cancelled = true; };
@@ -11501,9 +11626,6 @@ async function nxRecordAudioToVideo(file, s) {
     }
 
     // ── Encode: image sequence + the original audio file, one FFmpeg pass ──
-    const inExt = (file.name.split('.').pop() || 'mp3').toLowerCase();
-    const audioInFile = 'avf_audio_in.' + inExt;
-    await ff.writeFile(audioInFile, new Uint8Array(arrBuf));
     const outFile = 'avf_out.' + fmt;
     const vCodecArgs = {
       mp4:  ['-c:v', 'libx264', '-preset', 'ultrafast', '-crf', '23', '-pix_fmt', 'yuv420p', '-c:a', 'aac',       '-b:a', '160k', '-movflags', '+faststart'],
