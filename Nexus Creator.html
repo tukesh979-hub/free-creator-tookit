@@ -10330,6 +10330,32 @@ async function nxProbeAudioSampleRate(ff, inFile) {
   return Number.isFinite(rate) && rate > 0 ? rate : null;
 }
 
+// This ffmpeg.wasm build has no fontconfig/system-font fallback — any
+// drawtext call without an explicit fontfile= fails with "No font filename
+// provided" (confirmed: ff.exec() returns a non-zero exit code, silently,
+// since nothing here previously checked it — the video-watermark tool
+// produced a 0-byte file on every export). Fetches Inter's variable TTF
+// straight from google/fonts, pinned to a specific commit (not `main`) so
+// a future repo restructure can't silently break this — matches this
+// file's existing convention of pinning exact CDN dependency versions
+// (@ffmpeg/core@0.12.6 etc.) rather than floating refs. Written once into
+// the FFmpeg instance's virtual FS, which persists across ff.exec() calls
+// for the rest of the page's lifetime.
+async function nxEnsureDrawtextFont(ff) {
+  if (_nxWatermarkFontLoaded) return;
+  const fontUrl = 'https://raw.githubusercontent.com/google/fonts/3b1480ea4b6e15fed70a42f4cb29216476a044ed/ofl/inter/Inter%5Bopsz%2Cwght%5D.ttf';
+  let bytes;
+  try {
+    const res = await fetch(fontUrl);
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    bytes = new Uint8Array(await res.arrayBuffer());
+  } catch (e) {
+    throw new Error('Could not load the watermark font (check your internet connection).');
+  }
+  await ff.writeFile('nx_wm_font.ttf', bytes);
+  _nxWatermarkFontLoaded = true;
+}
+
 function nxSeekVideoFrame(vid, t) {
   return new Promise((resolve) => {
     let done = false;
@@ -10826,6 +10852,10 @@ let FFmpegModule = null, UtilModule = null, ffmpegInst = null, ffLoaded = false;
 // to read a video's real frame rate straight from FFmpeg's stream-info
 // banner instead of re-implementing a container parser.
 const _nxFFmpegLog = [];
+// Set once nxEnsureDrawtextFont() has written the font into this FFmpeg
+// instance's virtual FS — that FS persists across ff.exec() calls, so the
+// fetch+write only needs to happen once per page load, not per export.
+let _nxWatermarkFontLoaded = false;
 
 async function ensureFFmpeg() {
   if (ffLoaded && ffmpegInst) return ffmpegInst;
@@ -10915,7 +10945,30 @@ async function processFFmpeg(file, toolId, s) {
   const dur = S.file?.duration || 0;
 
   try {
-    if (toolId === 'video-trim' || toolId === 'audio-trim') {
+    if (toolId === 'video-trim') {
+      // Input-side -ss + -c copy can only cut at keyframe boundaries — for
+      // sources with sparse keyframes (AI-generated clips, screen
+      // recordings, some phone encoders) this silently snaps the start
+      // back to the nearest keyframe, which can mean ALL THE WAY back to 0
+      // if that's the only keyframe in the file. Confirmed on two real
+      // test videos: requested start was silently ignored every time,
+      // output was always [0,end] instead of [start,end] — verified with
+      // plain system ffmpeg too, so this isn't an ffmpeg.wasm quirk.
+      // Output-side -ss (after -i) combined with re-encoding IS
+      // frame-accurate — the decoder reads from the nearest keyframe and
+      // discards frames up to the exact requested timestamp before
+      // encoding starts. Slower than a stream copy, but "Cut video to
+      // exact length" is this tool's own promise; audio-trim doesn't hit
+      // this (audio isn't keyframe-structured the same way, and passed
+      // the same test), so it keeps the fast copy path below.
+      const start = +s.startTime || 0;
+      const end   = +s.endTime   || dur || 10;
+      outFile = 'out.mp4'; outMime = 'video/mp4';
+      await ff.exec(['-i', inFile, '-ss', String(start), '-to', String(end),
+                     '-c:v', 'libx264', '-preset', 'veryfast', '-crf', '20',
+                     '-c:a', 'aac', '-b:a', '160k', outFile]);
+
+    } else if (toolId === 'audio-trim') {
       const start = +s.startTime || 0;
       const end   = +s.endTime   || dur || 10;
       outFile = 'out.' + inExt;
@@ -11028,16 +11081,24 @@ async function processFFmpeg(file, toolId, s) {
       }
 
     } else if (toolId === 'video-stabilize') {
-      setProgress(35, 'Pass 1: detecting motion…');
-      await ff.exec(['-i', inFile,
-        '-vf', 'vidstabdetect=stepsize=6:shakiness=8:accuracy=15:result=tr.trf',
-        '-f', 'null', '-']);
-      setProgress(70, 'Pass 2: stabilizing…');
+      // The original two-pass vidstabdetect/vidstabtransform pipeline
+      // silently produced a 0-byte file on every input: this ffmpeg.wasm
+      // build doesn't compile in libvidstab ("No such filter:
+      // 'vidstabdetect'"), and ff.exec()'s non-zero exit code was never
+      // checked, so the failure never surfaced to the user — the UI
+      // reported success on a corrupt/empty download. deshake is a core
+      // libavfilter filter (no external library needed) that's actually
+      // present in this build — single-pass frame-to-frame motion
+      // compensation, less sophisticated than vidstab's planned two-pass
+      // smoothing but a real, working camera-shake reducer instead of a
+      // guaranteed-broken feature. rx/ry raised from the filter's default
+      // (16) to widen the search range for more noticeable correction.
+      setProgress(40, 'Stabilizing…');
       outFile = 'out.mp4'; outMime = 'video/mp4';
-      await ff.exec(['-i', inFile,
-        '-vf', 'vidstabtransform=input=tr.trf:smoothing=20:crop=black',
-        '-c:a', 'copy', outFile]);
-      try { await ff.deleteFile('tr.trf'); } catch {}
+      const stabResult = await ff.exec(['-i', inFile,
+        '-vf', 'deshake=rx=32:ry=32',
+        '-c:v', 'libx264', '-preset', 'veryfast', '-crf', '20', '-c:a', 'copy', outFile]);
+      if (stabResult !== 0) throw new Error('Stabilization failed — the video may be too short or an unsupported format.');
 
     } else if (toolId === 'video-extract') {
       const fmt = s.audioFormat || 'mp3';
@@ -11075,6 +11136,11 @@ async function processFFmpeg(file, toolId, s) {
         '-c:a', 'copy', '-movflags', '+faststart', outFile]);
 
     } else if (toolId === 'video-watermark') {
+      // drawtext needs an explicit fontfile in this build — see
+      // nxEnsureDrawtextFont(). Without it this silently produced a 0-byte
+      // output on every export (ff.exec()'s non-zero exit code was never
+      // checked), which the UI then reported as a successful download.
+      await nxEnsureDrawtextFont(ff);
       const text     = (s.wText || '© Your Name').replace(/[':]/g, ''); // escape for drawtext
       const op       = ((+s.wOpacity || 60) / 100).toFixed(2);
       const fontSize = Math.max(12, +s.wFontSize || 32);
@@ -11088,9 +11154,10 @@ async function processFFmpeg(file, toolId, s) {
         center: 'x=(w-tw)/2:y=(h-th)/2',
       };
       outFile = 'out.' + inExt;
-      await ff.exec(['-i', inFile,
-        '-vf', `drawtext=text='${text}':fontcolor=white@${op}:fontsize=${fontSize}:box=1:boxcolor=black@0.3:boxborderw=4:${posMap[pos]||posMap.br}`,
+      const wmResult = await ff.exec(['-i', inFile,
+        '-vf', `drawtext=fontfile=nx_wm_font.ttf:text='${text}':fontcolor=white@${op}:fontsize=${fontSize}:box=1:boxcolor=black@0.3:boxborderw=4:${posMap[pos]||posMap.br}`,
         '-c:a', 'copy', outFile]);
+      if (wmResult !== 0) throw new Error('Adding the watermark failed.');
 
     } else if (toolId === 'video-watermark-remove') {
       const outExt = ['mp4','mov','mkv','webm'].includes(inExt) ? inExt : 'mp4';
