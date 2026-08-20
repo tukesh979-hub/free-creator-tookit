@@ -974,7 +974,7 @@ body.resizing-y,body.resizing-y *{cursor:row-resize!important;user-select:none!i
    never-filtered parent keeps the border a constant red regardless of
    brightness/contrast/saturation/hue-rotate applied to the content. */
 .vid-preview-wrap,.img-preview-wrap{
-  position:relative;display:inline-flex;max-width:90%;max-height:78vh;
+  position:relative;display:inline-flex;align-items:center;justify-content:center;max-width:90%;max-height:78vh;
   border:5px solid transparent;border-image:var(--preview-border-gradient) 1;border-radius:6px;
   box-shadow:0 8px 28px rgba(0,0,0,.35);
 }
@@ -3047,7 +3047,13 @@ function selectTool(tool) {
   const _prevEl = $('ed-preview'); if (_prevEl) _prevEl.style.cursor = '';
   // Reset video live-preview effects (filter, transform, playbackRate, overlay)
   const _vid = document.getElementById('preview-vid');
-  if (_vid) { _vid.style.filter=''; _vid.style.transform=''; _vid.playbackRate=1; }
+  if (_vid) { _vid.style.filter=''; _vid.style.transform=''; _vid.playbackRate=1; _vid.style.width=''; _vid.style.height=''; _vid.style.maxWidth=''; _vid.style.maxHeight=''; }
+  // Rotate (see nxFitRotatedMedia) explicitly sizes the wraps too — reset
+  // both so a non-rotate tool doesn't inherit a stale rotated footprint.
+  const _vidWrap = document.getElementById('vid-preview-wrap');
+  if (_vidWrap) { _vidWrap.style.width = ''; _vidWrap.style.height = ''; _vidWrap.style.maxWidth = ''; _vidWrap.style.maxHeight = ''; }
+  const _imgWrap = document.getElementById('img-preview-wrap');
+  if (_imgWrap) { _imgWrap.style.width = ''; _imgWrap.style.height = ''; _imgWrap.style.maxWidth = ''; _imgWrap.style.maxHeight = ''; }
   // Tear down the interactive video-crop drag overlay before it's wiped below —
   // otherwise its pointer listeners on #vid-overlay would leak across tools.
   clearTimeout(window._vcropInitTimer); window._vcropInitTimer = null;
@@ -3071,6 +3077,8 @@ function selectTool(tool) {
     pimgReset.style.objectPosition= '';
     pimgReset.style.width         = '';
     pimgReset.style.height        = '';
+    pimgReset.style.maxWidth      = '';
+    pimgReset.style.maxHeight     = '';
     pimgReset.style.background    = '';
     pimgReset.style.cursor        = '';
   }
@@ -4739,7 +4747,23 @@ function applyVideoPreview(id, s) {
         'hflip': 'scaleX(-1)',
         'vflip': 'scaleY(-1)',
       };
-      vid.style.transform = tMap[s.rotation || '90cw'] || '';
+      const degMap = { '90cw': 90, '90ccw': -90, '180': 180, 'hflip': 0, 'vflip': 0 };
+      const rot = s.rotation || '90cw';
+      nxFitRotatedMedia(vid, vid.videoWidth, vid.videoHeight, degMap[rot] || 0);
+      vid.style.transform = tMap[rot] || '';
+      // The preview can be sized before the timeline/audio-meter mounted
+      // below it finishes settling (mountNxTimeline defers itself by two
+      // animation frames), which shifts #ed-preview's available width out
+      // from under the calculation above. Recompute once layout has had
+      // time to settle — double-rAF alone wasn't consistently enough, so
+      // this also retries once more shortly after.
+      const _resettle = () => {
+        if (S.tool?.id === 'video-rotate') {
+          nxFitRotatedMedia(vid, vid.videoWidth, vid.videoHeight, degMap[S.settings.rotation || '90cw'] || 0);
+        }
+      };
+      requestAnimationFrame(() => requestAnimationFrame(_resettle));
+      setTimeout(_resettle, 250);
       break;
     }
 
@@ -5046,6 +5070,56 @@ function applyAudioPreview(id, s) {
   }
 }
 
+// Rotating an element with CSS transform doesn't change its LAYOUT box —
+// only how it's painted — so a 90/270° rotation on a media element whose
+// box was sized (via object-fit:contain) for its UNrotated aspect ratio
+// visually overflows its own wrap once rotated (a portrait image rotated
+// 90° paints wider than its still-portrait-shaped box). Fixes that by
+// explicitly sizing both the wrap and the media element for whichever
+// orientation is actually being displayed: at 90/270°, the wrap gets the
+// swapped (rotated) footprint and the media element is sized so that
+// rotating it exactly fills that footprint with no distortion; at 0/180°
+// everything reverts to plain CSS auto-sizing (object-fit:contain).
+// mediaEl is the <img>/<video> itself; natW/natH are its true intrinsic
+// dimensions (naturalWidth/naturalHeight or videoWidth/videoHeight).
+function nxFitRotatedMedia(mediaEl, natW, natH, deg) {
+  const wrap = mediaEl.parentElement;
+  if (!wrap || !natW || !natH) return;
+  const swapped = deg === 90 || deg === 270 || deg === -90;
+  if (!swapped) {
+    wrap.style.width = ''; wrap.style.height = '';
+    wrap.style.maxWidth = ''; wrap.style.maxHeight = '';
+    mediaEl.style.width = ''; mediaEl.style.height = '';
+    mediaEl.style.maxWidth = ''; mediaEl.style.maxHeight = '';
+    return;
+  }
+  // Matches .vid-preview-wrap/.img-preview-wrap's own max-width:90%
+  // (of this element's parent) / max-height:78vh constraints — kept in
+  // sync by hand since we're bypassing them with explicit pixel sizes.
+  const availW = (wrap.parentElement?.clientWidth || window.innerWidth) * 0.9;
+  const availH = window.innerHeight * 0.78;
+  const k = Math.min(availW / natH, availH / natW);
+  const boxW = Math.max(1, Math.round(natW * k));
+  const boxH = Math.max(1, Math.round(natH * k));
+  // The media element's UNrotated box is deliberately wider (or taller)
+  // than the wrap in one axis — that's the whole point, it becomes the
+  // rotated footprint once transformed. The class's own max-width:100%/
+  // max-height:78vh would otherwise clamp it back down against the
+  // wrap's (smaller, swapped) box before rotation ever applies. The
+  // wrap's own max-width:90%/max-height:78vh needs clearing too — the
+  // computed footprint (boxH x boxW) can be a couple px over either
+  // threshold from rounding, which was enough to clip the wrap back down
+  // and reintroduce a small overflow.
+  mediaEl.style.maxWidth = 'none';
+  mediaEl.style.maxHeight = 'none';
+  mediaEl.style.width = boxW + 'px';
+  mediaEl.style.height = boxH + 'px';
+  wrap.style.maxWidth = 'none';
+  wrap.style.maxHeight = 'none';
+  wrap.style.width = boxH + 'px';   // swapped: the rotated footprint
+  wrap.style.height = boxW + 'px';
+}
+
 // ════════════════════════════════════════════════════════════════════════════
 // LIVE PREVIEW — photo + video + audio
 // ════════════════════════════════════════════════════════════════════════════
@@ -5108,6 +5182,7 @@ function applyLivePreview() {
     const flipH = s.flipH ? -1 : 1;
     const flipV = s.flipV ? -1 : 1;
     transform = `rotate(${deg}deg) scaleX(${flipH}) scaleY(${flipV})`;
+    nxFitRotatedMedia(img, img.naturalWidth, img.naturalHeight, deg);
     img.style.transform = transform;
     img.style.filter = 'none';
     const lbl = $('rot-val-label');
