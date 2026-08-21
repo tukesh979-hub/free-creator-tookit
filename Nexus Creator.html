@@ -205,10 +205,40 @@ nav{
 .hamburger{display:none;width:32px;height:32px;align-items:center;justify-content:center;color:var(--text)}
 
 /* ═══════════ BUTTONS ═══════════ */
-.btn-red{background:var(--red);color:#fff;font-size:18px;font-weight:500;letter-spacing:.2px;text-transform:uppercase;padding:13px 22px;transition:background var(--transition);display:inline-flex;align-items:center;gap:7px;border-radius:var(--r-sm)}
+.btn-red{
+  --rb-bg:var(--red);--rb-light:color-mix(in srgb, var(--red) 45%, white);--rb-dark:color-mix(in srgb, var(--red) 55%, black);
+  background:var(--rb-bg);color:#fff;font-size:18px;font-weight:500;letter-spacing:.2px;text-transform:uppercase;padding:13px 22px;
+  display:inline-flex;align-items:center;gap:7px;border-radius:var(--r-md);
+  box-shadow:inset 1px 1px 1px var(--rb-light),inset -1px -1px 1px var(--rb-dark),var(--shadow-sm);
+  transition:background var(--transition),transform .15s cubic-bezier(.2,0,0,1),box-shadow .15s cubic-bezier(.2,0,0,1);
+}
 .btn-red:hover{background:var(--red2)}
-.btn-outline{background:transparent;color:var(--text);border:1px solid var(--border2);font-size:18px;font-weight:500;letter-spacing:.2px;text-transform:uppercase;padding:13px 20px;transition:all var(--transition);display:inline-flex;align-items:center;gap:6px;border-radius:var(--r-sm)}
+.btn-red:active{transform:scale(.97);box-shadow:inset 0 0 4px rgba(0,0,0,.5)}
+.btn-outline{
+  background:transparent;color:var(--text);border:1px solid var(--border2);font-size:18px;font-weight:500;letter-spacing:.2px;text-transform:uppercase;padding:13px 20px;
+  display:inline-flex;align-items:center;gap:6px;border-radius:var(--r-md);
+  transition:all var(--transition),transform .15s cubic-bezier(.2,0,0,1);
+}
 .btn-outline:hover{border-color:var(--muted)}
+.btn-outline:active{transform:scale(.97)}
+
+/* ═══════════ SEGMENTED CONTROL ═══════════
+   Hardware-inspired tab switcher (brief §11): inactive segments sit flush
+   with the track ("raised, neutral"), the active one reads as physically
+   engaged via an inset shadow rather than just a color swap. Reused for
+   the homepage upload-format tabs here, and the editor's Tools/Media
+   toggle in Phase 2. */
+.segmented{display:flex;gap:3px;padding:3px;background:var(--bg4);border-radius:var(--r-md);border:1px solid var(--border)}
+.segmented-item{
+  flex:1;padding:9px 10px;text-align:center;font-family:var(--mono);font-size:13px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;
+  color:var(--muted);border-radius:var(--r-sm);cursor:pointer;
+  transition:background .15s cubic-bezier(.2,0,0,1),color .15s cubic-bezier(.2,0,0,1),box-shadow .15s cubic-bezier(.2,0,0,1);
+}
+.segmented-item:hover{color:var(--text)}
+.segmented-item.active{
+  background:var(--bg2);color:var(--red);
+  box-shadow:inset 0 1px 3px rgba(0,0,0,.3),var(--shadow-sm);
+}
 
 /* ═══════════ HERO ═══════════
    No gradient wash, no corner brackets, no dot grids, no pointer-tracked
@@ -225,9 +255,6 @@ nav{
    A real application panel, not a marketing card: thin border, near-invisible
    technical grid, restrained accent — no corner screws, no heavy shadow. */
 .upload-box{max-width:640px;margin:0 auto 44px;background:var(--bg3);border:1px solid var(--border);position:relative;border-radius:var(--r-lg);overflow:hidden}
-.ub-tabs{display:flex;border-bottom:1px solid var(--border);position:relative;z-index:1}
-.ub-tab{flex:1;padding:13px;font-size:18px;font-weight:500;letter-spacing:1px;text-transform:uppercase;border-bottom:1.5px solid transparent;color:var(--muted);transition:all var(--transition)}
-.ub-tab.active{color:var(--text);border-bottom-color:var(--red)}
 .ub-drop{display:block;margin:20px;padding:56px 16px;text-align:center;cursor:pointer;transition:all var(--transition);border-radius:var(--r-md);position:relative;z-index:1}
 .ub-drop:hover,.ub-drop.drag{background:rgba(255,59,59,.03)}
 .ub-drop-icon{width:36px;height:36px;border:1px solid var(--border2);display:flex;align-items:center;justify-content:center;margin:0 auto 16px;color:var(--dim);transition:all var(--transition);border-radius:var(--r-sm)}
@@ -237,6 +264,24 @@ nav{
 .ub-hint{font-family:var(--mono);font-size:17px;color:var(--dim);letter-spacing:.3px}
 .ub-browse{width:calc(100% - 40px);margin:0 20px 20px;border:1px solid var(--border);background:transparent;color:var(--muted);font-family:var(--mono);font-size:17px;letter-spacing:1px;text-transform:uppercase;padding:9px;transition:all var(--transition);border-radius:var(--r-sm);position:relative;z-index:1}
 .ub-browse:hover{border-color:var(--border2);color:var(--text)}
+
+/* Quick-tool shortcut row (brief §13: "TRIM CROP RESIZE COMPRESS" below the
+   dropzone) — four small tactile keycaps, one per representative tool,
+   each with a category-colored LED. Pure navigation shortcuts (jump
+   straight to that tool's category page), not functional controls. */
+.ub-quick{display:flex;gap:8px;padding:0 20px 20px;position:relative;z-index:1}
+.ub-quick-btn{
+  flex:1;display:flex;align-items:center;justify-content:center;gap:6px;
+  padding:10px 6px;border:none;border-radius:var(--r-sm);color:#fff;
+  font-family:var(--mono);font-size:13px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;cursor:pointer;
+}
+.ub-quick-btn.tactile-neutral{color:var(--text)}
+/* A semantic --led-* color reused as a dot ON TOP of its own matching
+   button background (e.g. led-active/red on a red button) disappears —
+   dots here need to contrast with whatever color the keycap itself is,
+   not signal a status independent of it, so this is a plain bright dot
+   rather than the .led component. */
+.ub-quick-dot{width:5px;height:5px;border-radius:50%;background:rgba(255,255,255,.85);flex-shrink:0}
 
 /* Near-invisible technical grid — reused across upload workspace, editor
    canvas, media demonstrations. 2-4% white opacity, large cell, static. */
@@ -259,6 +304,34 @@ nav{
 .sec-link{font-family:var(--mono);font-size:18px;letter-spacing:.3px;color:var(--muted);transition:color var(--transition)}
 .sec-link:hover{color:var(--red)}
 @media(min-width:900px){.home-wrap{padding:0 64px}}
+
+/* ═══════════ HOW IT WORKS — LEARN mode (brief §19) ═══════════
+   Instruction-manual language: bordered modules in a row, a numbered
+   circle per step, a dashed connector tick bridging into the next one —
+   distinct from the plainer 4-column .tpg-steps used on individual tool
+   pages (Phase 3 gets those the same diagram treatment; this is the one
+   genuinely new section on the homepage, not a restyle of something that
+   already existed). */
+.hiw-grid{display:grid;grid-template-columns:repeat(3,1fr)}
+.hiw-step{position:relative;padding:26px 24px;border:1px solid var(--border);background:var(--bg2)}
+.hiw-step:not(:first-child){border-left:none}
+.hiw-step:not(:last-child)::after{
+  content:'';position:absolute;top:38px;right:-1px;width:24px;height:1px;z-index:2;
+  background:repeating-linear-gradient(90deg,var(--border2) 0 4px,transparent 4px 8px);
+}
+.hiw-num{
+  width:32px;height:32px;border-radius:50%;border:1px solid var(--border2);
+  display:flex;align-items:center;justify-content:center;
+  font-family:var(--mono);font-size:14px;font-weight:700;color:var(--red);
+  margin-bottom:16px;
+}
+.hiw-step-title{font-size:19px;font-weight:700;margin-bottom:6px;text-transform:uppercase;letter-spacing:.5px}
+.hiw-step-desc{font-size:16px;color:var(--muted);line-height:1.55}
+@media(max-width:700px){
+  .hiw-grid{grid-template-columns:1fr}
+  .hiw-step:not(:first-child){border-left:1px solid var(--border);border-top:none}
+  .hiw-step:not(:last-child)::after{display:none}
+}
 
 /* Tool rail — a hairline-divided list of compact rows, not a grid of
    identical cards. Divider is a 1px background peeking through a 1px gap. */
@@ -322,112 +395,6 @@ nav{
   position:absolute;inset:0;
   background:radial-gradient(ellipse at 50% 0%,transparent 45%,var(--bg) 100%);
 }
-
-/* ═══════════ CATEGORY SHOWCASE — 3D INTERACTIVE ICONS ═══════════ */
-.cat-showcase{padding:8px 16px 6px;position:relative;z-index:1}
-.cs-inner{max-width:980px;margin:0 auto}
-.cs-head{text-align:center;margin-bottom:22px}
-.cs-head .sec-title{justify-content:center;margin-bottom:6px}
-.cs-head .sec-title::before{display:none}
-.cs-sub{font-family:var(--mono);font-size:16px;letter-spacing:1.5px;color:var(--dim);text-transform:uppercase}
-.cs-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
-
-.cat-card{
-  position:relative;background:linear-gradient(180deg,var(--bg3) 0%,var(--bg2) 100%);
-  border:1px solid var(--border);border-radius:var(--r-lg);padding:26px 18px 20px;
-  display:flex;flex-direction:column;align-items:center;text-align:center;overflow:hidden;
-  perspective:900px;transition:border-color .25s,transform .25s,box-shadow .25s;cursor:pointer;
-}
-.cat-card:hover,.cat-card:focus-visible{
-  border-color:var(--red);transform:translateY(-3px);
-  box-shadow:0 16px 40px -18px rgba(255,59,59,.45);
-}
-.cat-card-glow{
-  position:absolute;inset:-1px;opacity:0;transition:opacity .3s;pointer-events:none;
-  background:radial-gradient(circle 220px at var(--mx,50%) var(--my,-20%),rgba(255,59,59,.16),transparent 70%);
-}
-.cat-card:hover .cat-card-glow{opacity:1}
-.cat-card::before{ /* corner brackets, HUD style */
-  content:'';position:absolute;top:9px;left:9px;width:9px;height:9px;
-  border-top:2px solid var(--border2);border-left:2px solid var(--border2);transition:border-color .25s;
-}
-.cat-card::after{
-  content:'';position:absolute;bottom:9px;right:9px;width:9px;height:9px;
-  border-bottom:2px solid var(--border2);border-right:2px solid var(--border2);transition:border-color .25s;
-}
-.cat-card:hover::before,.cat-card:hover::after{border-color:var(--red)}
-
-.icon3d-float{margin:0 auto 16px;animation:icon3dBob 5s ease-in-out infinite}
-.cat-card:nth-child(2) .icon3d-float{animation-delay:-1.6s}
-.cat-card:nth-child(3) .icon3d-float{animation-delay:-3.2s}
-@keyframes icon3dBob{0%,100%{transform:translateY(0)}50%{transform:translateY(-5px)}}
-
-.icon3d{
-  position:relative;width:78px;height:78px;transform-style:preserve-3d;
-  transform:rotateX(var(--rx,0deg)) rotateY(var(--ry,0deg));
-}
-.icon3d-layer{position:absolute;inset:0;transform-style:preserve-3d;transition:transform .18s ease-out}
-.cat-card.tilting .icon3d-layer{transition:transform .06s linear}
-.icon3d-plate{
-  transform:translateZ(0px);border-radius:16px;
-  background:linear-gradient(145deg,var(--bg4),var(--bg3));
-  border:1px solid var(--border2);
-  box-shadow:inset 0 1px 0 rgba(255,255,255,.04),0 10px 22px -10px rgba(0,0,0,.55);
-}
-.icon3d-ring{
-  transform:translateZ(11px);border-radius:50%;
-  border:1px dashed rgba(255,59,59,.35);inset:11px;
-  animation:icon3dSpin 14s linear infinite;
-}
-@keyframes icon3dSpin{to{transform:translateZ(11px) rotate(360deg)}}
-.icon3d-icon{
-  transform:translateZ(26px);display:flex;align-items:center;justify-content:center;color:var(--red);
-}
-.icon3d-icon svg{width:32px;height:32px;filter:drop-shadow(0 6px 10px rgba(255,59,59,.35))}
-.icon3d-shine{
-  transform:translateZ(32px);border-radius:16px;mix-blend-mode:overlay;opacity:.9;
-  background:radial-gradient(circle 60px at var(--mx,50%) var(--my,30%),rgba(255,255,255,.55),transparent 60%);
-}
-@media(prefers-reduced-motion:reduce){.icon3d-float{animation:none}.icon3d-ring{animation:none}.icon3d-layer{transition:none}}
-
-.cat-name{font-size:20px;font-weight:800;letter-spacing:1.5px;text-transform:uppercase;margin-bottom:6px}
-.cat-desc{font-family:var(--mono);font-size:16px;color:var(--muted);line-height:1.6;margin-bottom:16px;min-height:28px}
-
-/* Per-category live micro-interaction preview */
-.cat-preview{width:100%;height:34px;position:relative;border-radius:3px;overflow:hidden;background:var(--bg4);border:1px solid var(--border);margin-bottom:16px}
-
-.cat-preview-photo{display:flex}
-.cpv-before,.cpv-after{flex:1;height:100%}
-.cpv-before{background:linear-gradient(90deg,#3a3a3a,#555);filter:grayscale(1) brightness(.8)}
-.cpv-after{background:linear-gradient(90deg,#e5383b,#ff8a5c)}
-.cpv-split{position:absolute;top:0;bottom:0;width:2px;background:#fff;left:50%;box-shadow:0 0 6px rgba(255,255,255,.8);animation:cpvSweep 4.5s ease-in-out infinite}
-@keyframes cpvSweep{0%,100%{left:18%}50%{left:82%}}
-
-.cat-preview-video{display:flex;align-items:center;padding:0 8px}
-.cpv-track{position:relative;flex:1;height:3px;background:var(--border2);border-radius:6px}
-.cpv-fill{position:absolute;left:0;top:0;height:100%;background:var(--red);border-radius:6px;animation:cpvFill 3.6s linear infinite}
-.cpv-head{position:absolute;top:50%;width:9px;height:9px;border-radius:50%;background:#fff;border:2px solid var(--red);transform:translate(-50%,-50%);animation:cpvHead 3.6s linear infinite}
-@keyframes cpvFill{0%{width:0%}90%,100%{width:100%}}
-@keyframes cpvHead{0%{left:0%}90%,100%{left:100%}}
-
-.cat-preview-audio{padding:0 10px}
-.cpv-eq{display:flex;align-items:center;justify-content:center;gap:3px;height:100%;transform:scaleY(var(--eq-boost,1));transition:transform .12s ease-out}
-.cpv-bar{width:3px;background:var(--red);border-radius:6px;height:6px;animation:cpvEq 1.1s ease-in-out infinite}
-@keyframes cpvEq{0%,100%{height:5px;opacity:.55}50%{height:24px;opacity:1}}
-/* Live = pointer is driving the strip directly; freeze the ambient loop so the
-   cursor is visibly in control instead of fighting the auto-cycle. */
-.cat-preview.live .cpv-split,.cat-preview.live .cpv-fill,
-.cat-preview.live .cpv-head,.cat-preview.live .cpv-bar{animation-play-state:paused}
-.cpv-split{transition:left .06s linear}
-.cpv-fill,.cpv-head{transition:width .06s linear,left .06s linear}
-@media(prefers-reduced-motion:reduce){.cpv-split,.cpv-fill,.cpv-head,.cpv-bar{animation:none}}
-
-.cat-cta{font-family:var(--mono);font-size:16px;letter-spacing:1.5px;color:var(--dim);text-transform:uppercase;transition:color .2s;margin-top:auto}
-.cat-card:hover .cat-cta{color:var(--red)}
-
-@media(max-width:900px){.cs-grid{grid-template-columns:1fr}}
-
-/* AI Tools cards */
 
 /* Quick Adjust widget — styled as a miniature version of the real editor's
    inspector panel: same dark surface, same technical labels. */
@@ -546,10 +513,12 @@ nav{
 .fgrid-grid,.tool-grid,.tp-grid,.ai-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(216px,1fr));gap:14px;background:none;border:none}
 .fgrid-card{
   background:var(--bg2);border:1px solid var(--border);border-radius:var(--r-lg);
-  overflow:hidden;text-align:left;transition:border-color var(--transition-fast),transform var(--transition-fast);
+  overflow:hidden;text-align:left;
+  transition:border-color var(--transition-fast),transform var(--transition-fast),box-shadow var(--transition-fast);
   display:flex;flex-direction:column;cursor:pointer
 }
-.fgrid-card:hover,.fgrid-card:focus-visible{border-color:var(--border2);transform:translateY(-2px)}
+.fgrid-card:hover,.fgrid-card:focus-visible{border-color:var(--border2);transform:translateY(-2px);box-shadow:var(--shadow-md)}
+.fgrid-card:hover .led::before{filter:brightness(1.3)}
 .fgrid-visual{
   position:relative;aspect-ratio:16/10;display:flex;align-items:center;justify-content:center;
   overflow:hidden;background:var(--bg3)
@@ -579,11 +548,23 @@ nav{
 
 .fgrid-ico{
   position:relative;z-index:1;width:54px;height:54px;border-radius:50%;
-  background:var(--bg2);border:1px solid var(--border2);color:var(--red);
+  background:var(--bg2);border:1px solid var(--border2);color:var(--cat-c,var(--red));
   display:flex;align-items:center;justify-content:center;
   box-shadow:0 8px 20px -10px rgba(0,0,0,.5);transition:border-color var(--transition-fast)
 }
-.fgrid-card:hover .fgrid-ico{border-color:var(--red)}
+.fgrid-card:hover .fgrid-ico{border-color:var(--cat-c,var(--red))}
+/* Functional category colors (brief §4) — video/red already the default,
+   photo/audio/ai get their own hue so the icon badge (and, via --cat-c,
+   the new footer index label below) reads as which category it belongs
+   to at a glance, same palette as the .cat-btn rail. */
+/* Set on the card itself (not .fgrid-visual) so --cat-c is visible to
+   .fgrid-body's children too — they're siblings of .fgrid-visual, not
+   descendants, so a custom property set there wouldn't inherit down.
+   (.fgrid-visual.cat-photo/.cat-ai background gradients are declared
+   earlier in this block, near .fgrid-visual itself — not repeated here.) */
+.fgrid-card.cat-photo{--cat-c:var(--amber)}
+.fgrid-card.cat-audio{--cat-c:var(--blue)}
+.fgrid-card.cat-ai{--cat-c:#8b7fc7}
 
 .fgrid-cat-tag{
   position:absolute;top:10px;left:10px;font-family:var(--mono);font-size:13px;letter-spacing:1.5px;
@@ -595,9 +576,24 @@ nav{
   background:var(--amber);color:#000;padding:2px 6px;border-radius:var(--r-pill);z-index:1
 }
 
-.fgrid-body{padding:13px 15px 15px}
+.fgrid-body{padding:13px 15px 15px;display:flex;flex-direction:column;flex:1}
+.fgrid-index{
+  font-family:var(--mono);font-size:11px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;
+  color:var(--cat-c,var(--dim));margin-bottom:6px;
+}
 .fgrid-name{font-size:18px;font-weight:700;margin-bottom:3px}
-.fgrid-desc{font-size:16px;color:var(--muted);line-height:1.4}
+.fgrid-desc{font-size:16px;color:var(--muted);line-height:1.4;flex:1}
+.fgrid-foot{
+  display:flex;align-items:center;justify-content:space-between;margin-top:10px;padding-top:10px;
+  border-top:1px solid var(--border);
+}
+.fgrid-foot .led{font-size:11px}
+.fgrid-open{
+  font-family:var(--mono);font-size:12px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;
+  color:var(--dim);transition:color var(--transition-fast);
+}
+.fgrid-card:hover .fgrid-open{color:var(--cat-c,var(--red))}
+.fgrid-card:hover .fgrid-index{color:var(--cat-c,var(--red))}
 
 /* ═══════════ AUDIO SECTION — full-width waveform, not a split ═══════════ */
 .audio-sec{border:1px solid var(--border);border-radius:var(--r-lg);padding:40px 32px;background:var(--bg2)}
@@ -1930,7 +1926,7 @@ input[type=color].s-input{height:38px;padding:3px;cursor:pointer}
     <div class="home-bg-vignette"></div>
   </div>
   <section class="hero" aria-label="Hero" id="hero">
-    <p class="hero-status">Free · No Watermark · No Signup</p>
+    <p class="hero-status"><span class="led led-ready">Free · No Watermark · No Signup</span></p>
     <h1>FREE CREATOR<br/><span>TOOLKIT</span></h1>
     <p>Edit video, photo and audio directly in your browser.<br/>No software. No limits. Just create.</p>
     <div class="hero-btns">
@@ -1942,10 +1938,10 @@ input[type=color].s-input{height:38px;padding:3px;cursor:pointer}
   <!-- Upload workspace -->
   <section style="padding:0 20px" aria-label="Upload workspace">
     <div class="upload-box tech-grid">
-      <div class="ub-tabs" role="tablist">
-        <button class="ub-tab active" data-tab="image" role="tab" aria-selected="true" onclick="setUWTab('image')">Image</button>
-        <button class="ub-tab"        data-tab="audio" role="tab" aria-selected="false" onclick="setUWTab('audio')">Audio</button>
-        <button class="ub-tab"        data-tab="video" role="tab" aria-selected="false" onclick="setUWTab('video')">Video</button>
+      <div class="segmented" id="ub-tabs" role="tablist" style="margin:16px 16px 0">
+        <button class="segmented-item active" data-tab="image" role="tab" aria-selected="true" onclick="setUWTab('image')">Image</button>
+        <button class="segmented-item"        data-tab="audio" role="tab" aria-selected="false" onclick="setUWTab('audio')">Audio</button>
+        <button class="segmented-item"        data-tab="video" role="tab" aria-selected="false" onclick="setUWTab('video')">Video</button>
       </div>
       <label class="ub-drop" id="ub-drop"
         ondrop="onHomeDrop(event)"
@@ -1960,6 +1956,20 @@ input[type=color].s-input{height:38px;padding:3px;cursor:pointer}
         <div class="ub-hint" id="ub-hint">JPG · PNG · WEBP · Max 50MB</div>
       </label>
       <button class="ub-browse" onclick="document.getElementById('ub-input').click()" aria-label="Browse files">Browse Files</button>
+      <div class="ub-quick" aria-label="Quick tool shortcuts">
+        <button class="ub-quick-btn tactile-face tactile-red" onclick="goPage('video')" aria-label="Trim tool">
+          <span class="ub-quick-dot"></span>Trim
+        </button>
+        <button class="ub-quick-btn tactile-face tactile-amber" onclick="goPage('photo')" aria-label="Crop tool">
+          <span class="ub-quick-dot"></span>Crop
+        </button>
+        <button class="ub-quick-btn tactile-face tactile-blue" onclick="goPage('photo')" aria-label="Resize tool">
+          <span class="ub-quick-dot"></span>Resize
+        </button>
+        <button class="ub-quick-btn tactile-face tactile-neutral" onclick="goPage('video')" aria-label="Compress tool">
+          <span class="ub-quick-dot"></span>Compress
+        </button>
+      </div>
     </div>
   </section>
 
@@ -2008,6 +2018,32 @@ input[type=color].s-input{height:38px;padding:3px;cursor:pointer}
         <span class="sec-link" id="fgrid-count"></span>
       </div>
       <div class="fgrid-grid" id="fgrid-grid"></div>
+    </section>
+
+    <!-- How It Works — the LEARN-mode instructional diagram, only at the
+         per-tool level before this (toolPageSteps/.tpg-steps); this is the
+         one genuinely new section in the redesign, not a restyle. -->
+    <section class="sec hiw" aria-label="How it works">
+      <div class="sec-head">
+        <div class="sec-title">How It Works</div>
+      </div>
+      <div class="hiw-grid">
+        <div class="hiw-step">
+          <div class="hiw-num">01</div>
+          <div class="hiw-step-title">Upload</div>
+          <div class="hiw-step-desc">Drop any video, photo, or audio file — or browse to select one. Nothing leaves your browser.</div>
+        </div>
+        <div class="hiw-step">
+          <div class="hiw-num">02</div>
+          <div class="hiw-step-title">Edit</div>
+          <div class="hiw-step-desc">Choose from 35 tools across video, photo, and audio. Every adjustment previews instantly.</div>
+        </div>
+        <div class="hiw-step">
+          <div class="hiw-num">03</div>
+          <div class="hiw-step-title">Export</div>
+          <div class="hiw-step-desc">Download your result immediately. No account, no watermark, no waiting on a server.</div>
+        </div>
+      </div>
     </section>
 
     <!-- Quick Adjust -->
@@ -2958,15 +2994,24 @@ function fgridCardHTML(t) {
   } else if (t.cat === 'audio') {
     visualExtra = `<span class="fgrid-cat-tag">Audio</span><div class="fgrid-wave">${fgridWaveBars(t.id.length)}</div>`;
   }
+  // Per-category position (brief §16/§18: "VIDEO / 01" technical label) —
+  // computed from TOOLS itself rather than threaded through as a map()
+  // index, so it stays correct regardless of call site.
+  const idx = TOOLS.filter(x => x.cat === t.cat).indexOf(t) + 1;
   return `
-    <button class="fgrid-card" onclick="openToolPage('${t.id}')" data-name="${t.label.toLowerCase()}" data-desc="${t.desc.toLowerCase()}" aria-label="${t.label}: ${t.desc}">
+    <button class="fgrid-card cat-${t.cat}" onclick="openToolPage('${t.id}')" data-name="${t.label.toLowerCase()}" data-desc="${t.desc.toLowerCase()}" aria-label="${t.label}: ${t.desc}">
       <div class="fgrid-visual cat-${t.cat}">
         ${visualExtra}
         <div class="fgrid-ico" aria-hidden="true">${toolIconHTML(t.id, t.icon, 24)}</div>
       </div>
       <div class="fgrid-body">
+        <div class="fgrid-index">${t.cat} / ${String(idx).padStart(2, '0')}</div>
         <div class="fgrid-name">${t.label}</div>
         <div class="fgrid-desc">${t.desc}</div>
+        <div class="fgrid-foot">
+          <span class="led led-ready">Ready</span>
+          <span class="fgrid-open">Open Tool →</span>
+        </div>
       </div>
     </button>`;
 }
@@ -2975,27 +3020,39 @@ function fgridAICardHTML(t) {
   if (t.linkId) {
     // Real, working tool surfaced here too — no "Soon" badge, opens the
     // actual tool page directly (same action as its home-category card).
+    const idx = AI_TOOLS.filter(x => x.linkId).indexOf(t) + 1;
     return `
-      <button class="fgrid-card" onclick="openToolPage('${t.linkId}')" data-name="${t.label.toLowerCase()}" data-desc="${t.desc.toLowerCase()}" aria-label="${t.label}">
+      <button class="fgrid-card cat-ai" onclick="openToolPage('${t.linkId}')" data-name="${t.label.toLowerCase()}" data-desc="${t.desc.toLowerCase()}" aria-label="${t.label}">
         <div class="fgrid-visual cat-ai">
           <span class="fgrid-cat-tag">AI</span>
           <div class="fgrid-ico" aria-hidden="true">${toolIconHTML(t.id, t.icon || 'ai', 24)}</div>
         </div>
         <div class="fgrid-body">
+          <div class="fgrid-index">AI / ${String(idx).padStart(2, '0')}</div>
           <div class="fgrid-name">${t.label}</div>
           <div class="fgrid-desc">${t.desc}</div>
+          <div class="fgrid-foot">
+            <span class="led led-ready">Ready</span>
+            <span class="fgrid-open">Open Tool →</span>
+          </div>
         </div>
       </button>`;
   }
+  const idx = AI_TOOLS.filter(x => !x.linkId).indexOf(t) + 1;
   return `
-    <button class="fgrid-card" onclick="showModal('${t.label} — Coming in Phase 2', 'This will run entirely in your browser using Transformers.js — no server, no API keys.', 'Got it', () => {})" aria-label="${t.label} (coming soon)">
+    <button class="fgrid-card cat-ai" onclick="showModal('${t.label} — Coming in Phase 2', 'This will run entirely in your browser using Transformers.js — no server, no API keys.', 'Got it', () => {})" aria-label="${t.label} (coming soon)">
       <div class="fgrid-visual cat-ai">
         <span class="fgrid-soon-tag">Soon</span>
         <div class="fgrid-ico" aria-hidden="true">${toolIconHTML(t.id, 'ai', 24)}</div>
       </div>
       <div class="fgrid-body">
+        <div class="fgrid-index">AI / ${String(idx).padStart(2, '0')}</div>
         <div class="fgrid-name">${t.label}</div>
         <div class="fgrid-desc">${t.desc}</div>
+        <div class="fgrid-foot">
+          <span class="led led-offline">Soon</span>
+          <span class="fgrid-open">Details →</span>
+        </div>
       </div>
     </button>`;
 }
@@ -6383,7 +6440,7 @@ const UW_HINTS = {
 
 function setUWTab(tab) {
   S.uwTab = tab;
-  document.querySelectorAll('.ub-tab').forEach(b => {
+  document.querySelectorAll('#ub-tabs .segmented-item').forEach(b => {
     b.classList.toggle('active', b.dataset.tab === tab);
     b.setAttribute('aria-selected', b.dataset.tab === tab);
   });
@@ -12186,75 +12243,6 @@ document.addEventListener('keydown', e => {
     doDownload();
   }
 });
-
-// ════════════════════════════════════════════════════════════════════════════
-// HOME — CATEGORY SHOWCASE (3D tilt icons + micro-interactions)
-// ════════════════════════════════════════════════════════════════════════════
-function initCatShowcase() {
-  // Equalizer bars for the Audio card preview — staggered animation delays
-  const eq = $('cpv-eq');
-  if (eq && !eq.childElementCount) {
-    eq.innerHTML = Array.from({length: 14}, (_, i) =>
-      `<div class="cpv-bar" style="animation-delay:${(i * 0.08).toFixed(2)}s"></div>`
-    ).join('');
-  }
-
-  // Pointer-tracked 3D tilt for each category icon — CSS vars, no external libs
-  const REDUCED = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-  if (REDUCED) return;
-
-  document.querySelectorAll('.cat-card').forEach(card => {
-    const icon = card.querySelector('.icon3d');
-    if (!icon || icon._tiltBound) return;
-    icon._tiltBound = true;
-
-    const setVars = (rx, ry, mx, my) => {
-      icon.style.setProperty('--rx', rx.toFixed(2) + 'deg');
-      icon.style.setProperty('--ry', ry.toFixed(2) + 'deg');
-      icon.style.setProperty('--mx', mx.toFixed(1) + '%');
-      icon.style.setProperty('--my', my.toFixed(1) + '%');
-    };
-    const reset = () => { setVars(0, 0, 50, 30); card.classList.remove('tilting'); };
-
-    card.addEventListener('pointermove', e => {
-      if (e.pointerType === 'touch') return;
-      const r = card.getBoundingClientRect();
-      const px = (e.clientX - r.left) / r.width;
-      const py = (e.clientY - r.top)  / r.height;
-      card.classList.add('tilting');
-      setVars((0.5 - py) * 22, (px - 0.5) * 22, px * 100, py * 100);
-      card.style.setProperty('--mx', (px * 100).toFixed(1) + '%');
-      card.style.setProperty('--my', (py * 100).toFixed(1) + '%');
-    });
-    card.addEventListener('pointerleave', reset);
-    card.addEventListener('blur', reset);
-
-    // Per-category preview strip: give the ambient loop a real interaction —
-    // pointer position drives it directly instead of just auto-cycling.
-    const cat = card.dataset.cat;
-    const preview = card.querySelector('.cat-preview');
-    if (preview) {
-      card.addEventListener('pointermove', e => {
-        if (e.pointerType === 'touch') return;
-        const pr = preview.getBoundingClientRect();
-        const ppx = Math.max(0, Math.min(1, (e.clientX - pr.left) / pr.width));
-        preview.classList.add('live');
-        if (cat === 'photo') {
-          const split = preview.querySelector('.cpv-split');
-          if (split) split.style.left = (6 + ppx * 88) + '%';
-        } else if (cat === 'video') {
-          const fill = preview.querySelector('.cpv-fill');
-          const head = preview.querySelector('.cpv-head');
-          if (fill) fill.style.width = (ppx * 100) + '%';
-          if (head) head.style.left = (ppx * 100) + '%';
-        } else if (cat === 'audio') {
-          preview.style.setProperty('--eq-boost', (0.65 + ppx * 0.95).toFixed(2));
-        }
-      });
-      card.addEventListener('pointerleave', () => preview.classList.remove('live'));
-    }
-  });
-}
 
 // ── PER-CATEGORY INTERACTIVE BANNERS ──────────────────────────────────────────
 // One signature hover interaction per tool-list page (Photo/Video/Audio), each
