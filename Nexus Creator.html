@@ -89,37 +89,61 @@
   background-repeat:no-repeat;
 }
 
-/* ═══════════ TACTILE PRIMITIVE ═══════════
-   Shared bevel recipe — same box-shadow language as the prior session's
-   .cat-btn-face (an inset light/dark pair plus a soft drop shadow, pressed
-   state inverts to inset-only and scales down slightly), extracted so any
-   new component in this redesign can opt into the same "physical control"
-   language via one class instead of hand-rolling the shadow math per
-   surface. .cat-btn-face itself is left untouched (already shipped,
-   already tested) rather than refactored onto this — this is for
-   everything built from here on: tool list rows, inspector controls,
-   timeline buttons, tool-catalogue cards.
-   Usage: add .tactile-face alongside a layout class, plus one of the
-   .tactile-* color variants (or set --rb-bg/--rb-light/--rb-dark
-   directly for a one-off hue, same color-mix() convention as .cat-btn). */
-.tactile-face{
-  background:var(--rb-bg,var(--bg4));
+/* ═══════════ TACTILE PRIMITIVE — v3, hard-shadow keycap ═══════════
+   v1/v2 used blurred inset shadows, which read as "engraved surface," not
+   "object sitting proud of the panel" — researched real 3D-button
+   technique (Josh Comeau's button, CSS-Tricks' "boxy buttons"): the thing
+   that actually sells physical depth is a HARD, ZERO-BLUR offset shadow
+   standing in for the key's solid side wall, combined with the face
+   actually moving down on press (not just scaling) into that shadow as
+   it shrinks. Kept the outer dark shell (visible padding all around, a
+   bigger radius than the inner face) from v2 too — the radius mismatch
+   itself reads as "chunky housing around a smaller key," per the OP-1/
+   K.O.II reference language.
+   Usage: <button class="kcap kcap-red"><span class="kcap-face">Label</span></button> */
+.kcap{
+  display:inline-flex;padding:4px;background:#080808;border:none;
+  border-radius:calc(var(--r-md) + 6px);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.08),0 3px 8px rgba(0,0,0,.5);
+  cursor:pointer;
+}
+.kcap-face{
+  flex:1;display:flex;align-items:center;justify-content:center;gap:6px;
+  padding:9px 14px;border-radius:var(--r-md);color:#fff;
+  background:linear-gradient(180deg,color-mix(in srgb, var(--rb-bg,var(--bg4)) 82%, white),var(--rb-bg,var(--bg4)) 60%);
   box-shadow:
-    inset 1px 1px 1px var(--rb-light,var(--bevel-light)),
-    inset -1px -1px 1px var(--rb-dark,var(--bevel-dark)),
-    var(--shadow-sm);
-  transition:transform .15s cubic-bezier(.2,0,0,1),box-shadow .15s cubic-bezier(.2,0,0,1),filter .15s cubic-bezier(.2,0,0,1);
+    inset 0 1px 1px var(--rb-light,var(--bevel-light)),
+    inset 0 -1px 2px var(--rb-dark,var(--bevel-dark)),
+    0 5px 0 0 var(--rb-side,var(--bevel-dark));
+  transform:translateY(-3px);
+  transition:transform .1s cubic-bezier(.2,0,0,1),box-shadow .1s cubic-bezier(.2,0,0,1),filter .1s cubic-bezier(.2,0,0,1);
 }
-.tactile-face:hover{filter:brightness(1.06)}
-.tactile-face.active,.tactile-face:active{
-  transform:scale(.97);
-  box-shadow:inset 0 0 4px rgba(0,0,0,.55);
+.kcap:hover .kcap-face{filter:brightness(1.1)}
+.kcap:active .kcap-face,.kcap.active .kcap-face{
+  transform:translateY(1px);
+  box-shadow:
+    inset 0 2px 3px rgba(0,0,0,.4),
+    0 1px 0 0 var(--rb-side,var(--bevel-dark));
 }
-.tactile-face:disabled{opacity:.35;pointer-events:none;filter:grayscale(50%)}
-.tactile-red{--rb-bg:var(--red);--rb-light:color-mix(in srgb, var(--red) 45%, white);--rb-dark:color-mix(in srgb, var(--red) 55%, black)}
-.tactile-amber{--rb-bg:var(--amber);--rb-light:color-mix(in srgb, var(--amber) 45%, white);--rb-dark:color-mix(in srgb, var(--amber) 55%, black)}
-.tactile-blue{--rb-bg:var(--blue);--rb-light:color-mix(in srgb, var(--blue) 45%, white);--rb-dark:color-mix(in srgb, var(--blue) 55%, black)}
-.tactile-neutral{--rb-bg:var(--bg4);--rb-light:var(--bevel-light);--rb-dark:var(--bevel-dark)}
+.kcap:disabled{opacity:.35;pointer-events:none;filter:grayscale(50%)}
+.kcap-red{--rb-bg:var(--red);--rb-light:color-mix(in srgb, var(--red) 55%, white);--rb-dark:color-mix(in srgb, var(--red) 55%, black);--rb-side:color-mix(in srgb, var(--red) 70%, black)}
+.kcap-amber{--rb-bg:var(--amber);--rb-light:color-mix(in srgb, var(--amber) 55%, white);--rb-dark:color-mix(in srgb, var(--amber) 55%, black);--rb-side:color-mix(in srgb, var(--amber) 70%, black)}
+.kcap-blue{--rb-bg:var(--blue);--rb-light:color-mix(in srgb, var(--blue) 55%, white);--rb-dark:color-mix(in srgb, var(--blue) 55%, black);--rb-side:color-mix(in srgb, var(--blue) 70%, black)}
+/* Fixed dark values, not var(--bg4) — these read as dark plastic/metal
+   keys regardless of page theme (same idea as the outer shell always
+   being near-black), same reasoning the reference component used a
+   literal #010101 rather than a theme token. --bg4 flips to a light gray
+   in light theme, which combined with this face's hardcoded white label
+   text made the label nearly unreadable — confirmed visually. */
+.kcap-neutral{--rb-bg:#2a2a2a;--rb-light:rgba(255,255,255,.12);--rb-dark:rgba(0,0,0,.5);--rb-side:#050505}
+/* Size modifier for prominent CTAs (hero, final CTA) — same recipe, bigger
+   footprint and body-text-weight label instead of the small mono keycap
+   labels used elsewhere. */
+.kcap-lg{border-radius:calc(var(--r-md) + 8px)}
+.kcap-lg .kcap-face{
+  padding:14px 24px;font-family:var(--font);font-size:18px;font-weight:600;letter-spacing:.2px;
+  text-transform:uppercase;gap:7px;
+}
 
 /* ═══════════ LED / STATUS INDICATOR ═══════════
    Small mono-labeled dot, brief §10: "READY → muted green, PROCESSING →
@@ -252,11 +276,20 @@ nav{
 .hero-btns{display:flex;gap:10px;justify-content:center;flex-wrap:wrap}
 
 /* ═══════════ UPLOAD WORKSPACE ═══════════
-   A real application panel, not a marketing card: thin border, near-invisible
-   technical grid, restrained accent — no corner screws, no heavy shadow. */
+   A real application panel, not a marketing card: thin border, restrained
+   accent — no corner screws, no heavy shadow. The dropzone itself reads
+   as a recessed bay (inset shadow) rather than a flat grid-textured
+   card — a cut-out slot in the panel, not a decorative background. */
 .upload-box{max-width:640px;margin:0 auto 44px;background:var(--bg3);border:1px solid var(--border);position:relative;border-radius:var(--r-lg);overflow:hidden}
-.ub-drop{display:block;margin:20px;padding:56px 16px;text-align:center;cursor:pointer;transition:all var(--transition);border-radius:var(--r-md);position:relative;z-index:1}
-.ub-drop:hover,.ub-drop.drag{background:rgba(255,59,59,.03)}
+.ub-tabs-kcap{display:flex;gap:6px;padding:16px 16px 0}
+.ub-tabs-kcap .kcap{flex:1}
+.ub-drop{
+  display:block;margin:20px;padding:56px 16px;text-align:center;cursor:pointer;position:relative;z-index:1;
+  background:var(--bg);border-radius:var(--r-md);
+  box-shadow:inset 0 3px 8px rgba(0,0,0,.4),inset 0 1px 0 rgba(0,0,0,.2);
+  transition:background var(--transition),box-shadow var(--transition);
+}
+.ub-drop:hover,.ub-drop.drag{background:color-mix(in srgb, var(--bg) 90%, var(--red))}
 .ub-drop-icon{width:36px;height:36px;border:1px solid var(--border2);display:flex;align-items:center;justify-content:center;margin:0 auto 16px;color:var(--dim);transition:all var(--transition);border-radius:var(--r-sm)}
 .ub-drop:hover .ub-drop-icon,.ub-drop.drag .ub-drop-icon{border-color:var(--red);color:var(--red)}
 .ub-title{font-size:19px;font-weight:600;letter-spacing:.2px;margin-bottom:6px}
@@ -266,22 +299,16 @@ nav{
 .ub-browse:hover{border-color:var(--border2);color:var(--text)}
 
 /* Quick-tool shortcut row (brief §13: "TRIM CROP RESIZE COMPRESS" below the
-   dropzone) — four small tactile keycaps, one per representative tool,
-   each with a category-colored LED. Pure navigation shortcuts (jump
-   straight to that tool's category page), not functional controls. */
+   dropzone) — four small kcap keycaps, one per representative tool. Pure
+   navigation shortcuts (jump straight to that tool's category page), not
+   functional controls. Left neutral/uniform on purpose — the category
+   color language lives on the Image/Audio/Video format tabs above this
+   instead, not duplicated down here too. */
 .ub-quick{display:flex;gap:8px;padding:0 20px 20px;position:relative;z-index:1}
-.ub-quick-btn{
-  flex:1;display:flex;align-items:center;justify-content:center;gap:6px;
-  padding:10px 6px;border:none;border-radius:var(--r-sm);color:#fff;
-  font-family:var(--mono);font-size:13px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;cursor:pointer;
+.ub-quick-btn{flex:1}
+.ub-quick-btn .kcap-face{
+  font-family:var(--mono);font-size:13px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;
 }
-.ub-quick-btn.tactile-neutral{color:var(--text)}
-/* A semantic --led-* color reused as a dot ON TOP of its own matching
-   button background (e.g. led-active/red on a red button) disappears —
-   dots here need to contrast with whatever color the keycap itself is,
-   not signal a status independent of it, so this is a plain bright dot
-   rather than the .led component. */
-.ub-quick-dot{width:5px;height:5px;border-radius:50%;background:rgba(255,255,255,.85);flex-shrink:0}
 
 /* Near-invisible technical grid — reused across upload workspace, editor
    canvas, media demonstrations. 2-4% white opacity, large cell, static. */
@@ -1930,18 +1957,18 @@ input[type=color].s-input{height:38px;padding:3px;cursor:pointer}
     <h1>FREE CREATOR<br/><span>TOOLKIT</span></h1>
     <p>Edit video, photo and audio directly in your browser.<br/>No software. No limits. Just create.</p>
     <div class="hero-btns">
-      <button class="btn-red" onclick="goPage('editor')" aria-label="Upload file and start editing">Upload File →</button>
-      <button class="btn-outline" onclick="goPage('video')" aria-label="Explore all tools">Explore Tools →</button>
+      <button class="kcap kcap-red kcap-lg" onclick="goPage('editor')" aria-label="Upload file and start editing"><span class="kcap-face">Upload File →</span></button>
+      <button class="kcap kcap-neutral kcap-lg" onclick="goPage('video')" aria-label="Explore all tools"><span class="kcap-face">Explore Tools →</span></button>
     </div>
   </section>
 
   <!-- Upload workspace -->
   <section style="padding:0 20px" aria-label="Upload workspace">
-    <div class="upload-box tech-grid">
-      <div class="segmented" id="ub-tabs" role="tablist" style="margin:16px 16px 0">
-        <button class="segmented-item active" data-tab="image" role="tab" aria-selected="true" onclick="setUWTab('image')">Image</button>
-        <button class="segmented-item"        data-tab="audio" role="tab" aria-selected="false" onclick="setUWTab('audio')">Audio</button>
-        <button class="segmented-item"        data-tab="video" role="tab" aria-selected="false" onclick="setUWTab('video')">Video</button>
+    <div class="upload-box">
+      <div class="ub-tabs-kcap" id="ub-tabs" role="tablist">
+        <button class="kcap kcap-amber active" data-tab="image" role="tab" aria-selected="true" onclick="setUWTab('image')"><span class="kcap-face">Image</span></button>
+        <button class="kcap kcap-blue"         data-tab="audio" role="tab" aria-selected="false" onclick="setUWTab('audio')"><span class="kcap-face">Audio</span></button>
+        <button class="kcap kcap-red"          data-tab="video" role="tab" aria-selected="false" onclick="setUWTab('video')"><span class="kcap-face">Video</span></button>
       </div>
       <label class="ub-drop" id="ub-drop"
         ondrop="onHomeDrop(event)"
@@ -1957,17 +1984,17 @@ input[type=color].s-input{height:38px;padding:3px;cursor:pointer}
       </label>
       <button class="ub-browse" onclick="document.getElementById('ub-input').click()" aria-label="Browse files">Browse Files</button>
       <div class="ub-quick" aria-label="Quick tool shortcuts">
-        <button class="ub-quick-btn tactile-face tactile-red" onclick="goPage('video')" aria-label="Trim tool">
-          <span class="ub-quick-dot"></span>Trim
+        <button class="ub-quick-btn kcap kcap-neutral" onclick="goPage('video')" aria-label="Trim tool">
+          <span class="kcap-face">Trim</span>
         </button>
-        <button class="ub-quick-btn tactile-face tactile-amber" onclick="goPage('photo')" aria-label="Crop tool">
-          <span class="ub-quick-dot"></span>Crop
+        <button class="ub-quick-btn kcap kcap-neutral" onclick="goPage('photo')" aria-label="Crop tool">
+          <span class="kcap-face">Crop</span>
         </button>
-        <button class="ub-quick-btn tactile-face tactile-blue" onclick="goPage('photo')" aria-label="Resize tool">
-          <span class="ub-quick-dot"></span>Resize
+        <button class="ub-quick-btn kcap kcap-neutral" onclick="goPage('photo')" aria-label="Resize tool">
+          <span class="kcap-face">Resize</span>
         </button>
-        <button class="ub-quick-btn tactile-face tactile-neutral" onclick="goPage('video')" aria-label="Compress tool">
-          <span class="ub-quick-dot"></span>Compress
+        <button class="ub-quick-btn kcap kcap-neutral" onclick="goPage('video')" aria-label="Compress tool">
+          <span class="kcap-face">Compress</span>
         </button>
       </div>
     </div>
@@ -6440,7 +6467,7 @@ const UW_HINTS = {
 
 function setUWTab(tab) {
   S.uwTab = tab;
-  document.querySelectorAll('#ub-tabs .segmented-item').forEach(b => {
+  document.querySelectorAll('#ub-tabs .kcap').forEach(b => {
     b.classList.toggle('active', b.dataset.tab === tab);
     b.setAttribute('aria-selected', b.dataset.tab === tab);
   });
