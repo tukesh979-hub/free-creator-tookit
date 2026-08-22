@@ -382,6 +382,7 @@ nav{
 .sec-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;flex-wrap:wrap;gap:8px}
 .sec-title{display:flex;align-items:center;gap:9px;font-size:18px;font-weight:600;letter-spacing:1.5px;text-transform:uppercase}
 .sec-title::before{content:'';display:block;width:3px;height:12px;background:var(--red);flex-shrink:0}
+.sec-idx{font-family:var(--mono);font-weight:600;color:var(--dim);letter-spacing:0;margin-right:-3px}
 .sec-link{font-family:var(--mono);font-size:18px;letter-spacing:.3px;color:var(--muted);transition:color var(--transition)}
 .sec-link:hover{color:var(--red)}
 @media(min-width:900px){.home-wrap{padding:0 64px}}
@@ -2116,7 +2117,7 @@ input[type=color].s-input{height:38px;padding:3px;cursor:pointer}
     <!-- Image Tools -->
     <section class="sec" aria-label="Image tools preview">
       <div class="sec-head">
-        <div class="sec-title">Image Tools</div>
+        <div class="sec-title"><span class="sec-idx">01</span>Image Tools</div>
         <button class="sec-link" onclick="goPage('photo')" aria-label="View all photo tools">View All →</button>
       </div>
       <div class="tool-grid" id="home-photo"></div>
@@ -2125,7 +2126,7 @@ input[type=color].s-input{height:38px;padding:3px;cursor:pointer}
     <!-- Audio Tools -->
     <section class="sec" aria-label="Audio tools preview">
       <div class="sec-head">
-        <div class="sec-title">Audio Tools</div>
+        <div class="sec-title"><span class="sec-idx">02</span>Audio Tools</div>
         <button class="sec-link" onclick="goPage('audio')" aria-label="View all audio tools">View All →</button>
       </div>
       <div class="tool-grid" id="home-audio"></div>
@@ -2134,7 +2135,7 @@ input[type=color].s-input{height:38px;padding:3px;cursor:pointer}
     <!-- Video Tools -->
     <section class="sec" aria-label="Video tools preview">
       <div class="sec-head">
-        <div class="sec-title">Video Tools</div>
+        <div class="sec-title"><span class="sec-idx">03</span>Video Tools</div>
         <button class="sec-link" onclick="goPage('video')" aria-label="View all video tools">View All →</button>
       </div>
       <div class="tool-grid" id="home-video"></div>
@@ -2143,7 +2144,7 @@ input[type=color].s-input{height:38px;padding:3px;cursor:pointer}
     <!-- AI Tools -->
     <section class="sec" aria-label="AI tools coming soon">
       <div class="sec-head">
-        <div class="sec-title">AI Tools</div>
+        <div class="sec-title"><span class="sec-idx">04</span>AI Tools</div>
         <span class="sec-link" style="color:var(--dim)">Coming Soon</span>
       </div>
       <div class="ai-grid" id="home-ai"></div>
