@@ -6636,16 +6636,37 @@ function setUWTab(tab) {
   $('ub-input').accept = tab + '/*';
 }
 
+// Same gap as the tool pages (see wrongFileTypeForTool/rejectWrongFileType
+// above): the Image/Audio/Video tabs set accept="…/*" on #ub-input, which
+// only filters the native picker — drag-and-drop, and "All Files" in the
+// picker, both bypass it entirely. Without this check, selecting Audio
+// then dropping a video silently loaded the video and switched straight
+// to Video category — the tab you'd picked was just ignored.
+function rejectWrongUploadTab(f) {
+  const expected = S.uwTab;
+  const actual = getType(f);
+  if (!actual || actual === expected) return false;
+  showModal(
+    'Wrong File Type',
+    `You selected the ${expected} tab — "${f.name}" is ${withArticle(actual)} file. Switch to the ${actual} tab, or choose ${withArticle(expected)} file instead.`,
+    'Got it',
+    () => {}
+  );
+  return true;
+}
+
 function onHomeDrop(e) {
   e.preventDefault();
   $('ub-drop').classList.remove('drag');
   const f = e.dataTransfer.files[0];
-  if (f) { loadFile(f); goPage('editor'); }
+  if (!f) return;
+  if (rejectWrongUploadTab(f)) return;
+  loadFile(f); goPage('editor');
 }
 
 function onHomeFile(e) {
   const f = e.target.files[0];
-  if (f) { loadFile(f); goPage('editor'); }
+  if (f && !rejectWrongUploadTab(f)) { loadFile(f); goPage('editor'); }
   e.target.value = '';
 }
 
