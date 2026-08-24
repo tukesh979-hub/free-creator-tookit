@@ -3064,10 +3064,42 @@ function openToolPage(id) {
   goPage('tool');
 }
 
+// A tool page's dropzone input carries an accept="…/*" attribute, but that
+// only filters the native file-picker dialog — it does nothing for drag
+// -and-drop, and most OS pickers let you override it with "All Files"
+// anyway. Without this check, a wrong-type drop (e.g. a video onto an
+// Audio tool's page) still made it all the way through: loadFile() auto-
+// detects the real type and switches the sidebar category to match, but
+// the selectTool(t) call right after it (see comment below) forced the
+// page's own tool back — leaving a video file loaded into a tool built
+// for audio, with no indication anything was wrong.
+function wrongFileTypeForTool(t, f) {
+  const expected = t.cat === 'photo' ? 'image' : t.cat;
+  const actual = getType(f);
+  if (!actual || actual === expected) return null; // unsupported-type files fall through to loadFile()'s own error
+  return { expected, actual };
+}
+
+function withArticle(word) { return (/^[aeiou]/i.test(word) ? 'an ' : 'a ') + word; }
+
+function rejectWrongFileType(t, f) {
+  const mismatch = wrongFileTypeForTool(t, f);
+  if (!mismatch) return false;
+  showModal(
+    'Wrong File Type',
+    `${t.label} works with ${mismatch.expected} files — "${f.name}" is ${withArticle(mismatch.actual)} file. Choose ${withArticle(mismatch.expected)} file instead.`,
+    'Got it',
+    () => {}
+  );
+  return true;
+}
+
 async function onToolPageFile(e, toolId) {
   const f = e.target.files[0];
+  e.target.value = '';
   if (!f) return;
   const t = byId(toolId);
+  if (t && rejectWrongFileType(t, f)) return;
   // loadFile() is async (it awaits metadata reads) and — for the category
   // it lands you in — auto-selects that category's default tool once it
   // finishes. Without awaiting it here, that default-tool selection landed
@@ -3088,6 +3120,7 @@ async function onToolPageDrop(e, toolId) {
   const f = e.dataTransfer.files[0];
   if (!f) return;
   const t = byId(toolId);
+  if (t && rejectWrongFileType(t, f)) return;
   await loadFile(f); // see onToolPageFile's comment — must be awaited before selectTool(t)
   if (t) selectTool(t);
   goPage('editor');
