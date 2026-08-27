@@ -1,0 +1,18 @@
+{
+  "name": "nexus-youtube-downloader",
+  "version": "1.0.0",
+  "description": "Small backend for Nexus Creator's YouTube Downloader page. Wraps yt-dlp + ffmpeg to fetch metadata, download at a chosen quality, trim to a time range, and expand playlists. Not part of the static Nexus Creator site — deploy this separately and point the frontend at it.",
+  "private": true,
+  "type": "commonjs",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "cors": "^2.8.5",
+    "express": "^4.19.2"
+  }
+}

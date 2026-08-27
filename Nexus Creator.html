@@ -281,6 +281,94 @@ nav{
   box-shadow:inset 0 1px 3px rgba(0,0,0,.3),var(--shadow-sm);
 }
 
+/* ═══════════ YOUTUBE DOWNLOADER ═══════════
+   Backend-dependent page — see server/youtube-downloader/. Two states:
+   honest "not connected" (icon+message, same visual language as any
+   other empty state) or the real working app. Never a fake in-between. */
+.ytdl-empty{
+  max-width:480px;margin:40px auto;padding:40px 24px;text-align:center;
+  border:1px solid var(--border);border-radius:var(--r-lg);background:var(--bg3);
+}
+.ytdl-empty-icon{
+  width:48px;height:48px;margin:0 auto 18px;border:1px solid var(--border2);border-radius:50%;
+  display:flex;align-items:center;justify-content:center;color:var(--dim);
+}
+.ytdl-empty-title{font-size:19px;font-weight:700;margin-bottom:8px}
+.ytdl-empty-desc{font-family:var(--mono);font-size:14px;color:var(--muted);line-height:1.7;margin-bottom:20px}
+.ytdl-empty-desc code{background:var(--bg4);padding:1px 5px;border-radius:3px;font-size:13px}
+
+.ytdl-mode-tabs{max-width:340px;margin:0 auto 22px}
+.ytdl-input-row{display:flex;gap:8px;max-width:680px;margin:0 auto 22px;align-items:flex-start}
+.ytdl-input-row .s-input{flex:1}
+.ytdl-input-row-bulk textarea.s-input{resize:vertical;min-height:78px;font-family:var(--mono);font-size:14px;line-height:1.6}
+
+.ytdl-error{
+  max-width:680px;margin:0 auto 20px;padding:12px 16px;border-radius:var(--r-md);
+  background:color-mix(in srgb, var(--red) 8%, var(--bg3));border:1px solid color-mix(in srgb, var(--red) 30%, var(--border));
+  color:var(--red);font-family:var(--mono);font-size:15px;line-height:1.5;
+}
+
+/* Single-video result card */
+.ytdl-card{max-width:680px;margin:0 auto 32px;background:var(--bg3);border:1px solid var(--border);border-radius:var(--r-lg);overflow:hidden}
+.ytdl-card-top{display:flex;gap:16px;padding:20px}
+.ytdl-card-thumb{width:160px;height:90px;flex-shrink:0;border-radius:var(--r-md);overflow:hidden;background:var(--bg4);position:relative}
+.ytdl-card-thumb img{width:100%;height:100%;object-fit:cover;display:block}
+.ytdl-card-dur{position:absolute;right:5px;bottom:5px;background:rgba(0,0,0,.75);color:#fff;font-family:var(--mono);font-size:12px;font-weight:600;padding:1px 5px;border-radius:3px}
+.ytdl-card-meta{flex:1;min-width:0;display:flex;flex-direction:column;justify-content:center;gap:5px}
+.ytdl-card-title{font-size:18px;font-weight:700;line-height:1.35;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.ytdl-card-sub{font-family:var(--mono);font-size:14px;color:var(--dim)}
+.ytdl-card-body{padding:0 20px 20px;display:flex;flex-direction:column;gap:16px}
+.ytdl-row-lbl{font-family:var(--mono);font-size:13px;letter-spacing:.08em;color:var(--dim);text-transform:uppercase;margin-bottom:7px;display:block}
+.ytdl-mini-segmented{display:flex;gap:3px;padding:3px;background:var(--bg4);border-radius:var(--r-md);border:1px solid var(--border)}
+.ytdl-mini-segmented-item{
+  flex:1;padding:6px 8px;text-align:center;font-family:var(--mono);font-size:13px;font-weight:600;
+  color:var(--muted);border-radius:var(--r-sm);cursor:pointer;white-space:nowrap;
+  transition:background .15s cubic-bezier(.2,0,0,1),color .15s cubic-bezier(.2,0,0,1),box-shadow .15s cubic-bezier(.2,0,0,1);
+}
+.ytdl-mini-segmented-item:hover{color:var(--text)}
+.ytdl-mini-segmented-item.active{background:var(--bg2);color:var(--red);box-shadow:inset 0 1px 2px rgba(0,0,0,.25)}
+.ytdl-quality-tiers{display:flex;flex-wrap:wrap;gap:6px}
+.ytdl-tier-btn{
+  font-family:var(--mono);font-size:13px;padding:5px 10px;background:var(--bg4);border:1px solid var(--border);
+  color:var(--muted);border-radius:var(--r-sm);cursor:pointer;box-shadow:0 1px 0 0 rgba(0,0,0,.12);
+  transition:all var(--transition);
+}
+.ytdl-tier-btn:hover{color:var(--text);border-color:var(--border2)}
+.ytdl-tier-btn:active{transform:translateY(1px);box-shadow:none}
+.ytdl-tier-btn.active{color:var(--red);border-color:var(--red);background:color-mix(in srgb, var(--red) 8%, var(--bg4));box-shadow:inset 0 1px 2px rgba(0,0,0,.2)}
+.ytdl-trim-inputs{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.ytdl-trim-inputs .s-input{width:110px;flex:none}
+.ytdl-trim-sep{color:var(--dim);font-family:var(--mono)}
+.ytdl-download-row{display:flex;align-items:center;gap:14px;padding-top:4px}
+.ytdl-download-status{font-family:var(--mono);font-size:14px;color:var(--dim)}
+
+/* Bulk / playlist list */
+.ytdl-bulk-toolbar{
+  max-width:920px;margin:0 auto 16px;display:flex;align-items:center;flex-wrap:wrap;gap:14px;
+  padding:14px 18px;background:var(--bg3);border:1px solid var(--border);border-radius:var(--r-md);
+}
+.ytdl-bulk-count{font-family:var(--mono);font-size:14px;color:var(--dim)}
+.ytdl-bulk-spacer{flex:1}
+.ytdl-bulk-list{max-width:920px;margin:0 auto 40px;display:flex;flex-direction:column;gap:8px}
+.ytdl-bulk-item{
+  display:flex;align-items:center;gap:12px;padding:10px 14px;background:var(--bg3);
+  border:1px solid var(--border);border-radius:var(--r-md);transition:border-color var(--transition);
+}
+.ytdl-bulk-item:hover{border-color:var(--border2)}
+.ytdl-bulk-thumb{width:72px;height:44px;flex-shrink:0;border-radius:var(--r-sm);overflow:hidden;background:var(--bg4)}
+.ytdl-bulk-thumb img{width:100%;height:100%;object-fit:cover;display:block}
+.ytdl-bulk-info{flex:1;min-width:0}
+.ytdl-bulk-title{font-size:15px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ytdl-bulk-meta{font-family:var(--mono);font-size:12px;color:var(--dim)}
+.ytdl-bulk-actions{display:flex;align-items:center;gap:10px;flex-shrink:0}
+.ytdl-bulk-abtn{width:28px;height:28px;display:flex;align-items:center;justify-content:center;color:var(--dim);border-radius:var(--r-sm);transition:all var(--transition)}
+.ytdl-bulk-abtn:hover{color:var(--red);background:var(--bg4)}
+@media(max-width:640px){
+  .ytdl-card-top{flex-direction:column}
+  .ytdl-card-thumb{width:100%;height:auto;aspect-ratio:16/9}
+  .ytdl-bulk-item{flex-wrap:wrap}
+}
+
 /* ═══════════ HERO ═══════════
    No gradient wash, no corner brackets, no dot grids, no pointer-tracked
    glow — the brief is explicit that typography carries the section, not
@@ -2044,6 +2132,7 @@ input[type=color].s-input{height:38px;padding:3px;cursor:pointer}
     <button class="nav-btn"        data-page="photo"  onclick="goPage('photo')"  aria-label="Photo tools">Photo</button>
     <button class="nav-btn"        data-page="audio"  onclick="goPage('audio')"  aria-label="Audio tools">Audio</button>
     <button class="nav-btn"        data-page="convert" onclick="goPage('convert')" aria-label="Format converters">Convert</button>
+    <button class="nav-btn"        data-page="download" onclick="goPageDownload()" aria-label="YouTube downloader">Download</button>
     <button class="nav-btn"        data-page="editor" onclick="goPage('editor')" aria-label="Open editor">Editor</button>
   </div>
   <div class="nav-space"></div>
@@ -2480,6 +2569,57 @@ input[type=color].s-input{height:38px;padding:3px;cursor:pointer}
       Cross-format conversions in one place — audio to video, video to audio, image to other image formats. Everything below runs entirely in your browser.
     </p>
     <div id="tp-convert"></div>
+  </div>
+</div>
+
+<!-- ══════════════════ YOUTUBE DOWNLOADER ══════════════════
+     Talks to a separate backend (server/youtube-downloader/) — YouTube
+     extraction is not possible client-side (see YTDL_API_BASE comment in
+     the script below). Renders an honest "not connected" state instead of
+     a fake working UI when that backend isn't reachable. -->
+<div id="page-download" class="page">
+  <div class="tp-wrap">
+    <div class="tp-hdr">
+      <div class="tp-bar"></div>
+      <h1 class="tp-title">YouTube Downloader</h1>
+      <div class="tp-div"></div>
+      <span class="led led-offline" id="ytdl-status-led"><span id="ytdl-status-text">Checking…</span></span>
+    </div>
+    <p style="font-family:var(--mono);font-size:16px;color:var(--muted);text-align:center;max-width:640px;margin:-10px auto 32px;line-height:1.6">
+      Paste a video, playlist, or channel link. Pick a quality, trim to a section if you want, download. This runs through a small backend, not this browser tab — see below if it's not connected.
+    </p>
+
+    <div id="ytdl-disconnected" class="ytdl-empty" style="display:none">
+      <div class="ytdl-empty-icon" aria-hidden="true">
+        <svg width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.6" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="13"/><circle cx="12" cy="16.5" r="0.5" fill="currentColor"/></svg>
+      </div>
+      <div class="ytdl-empty-title">Downloader backend not connected</div>
+      <div class="ytdl-empty-desc">
+        This can't run purely in the browser — YouTube blocks that. It needs the small backend included in this project.<br/>
+        Run it locally (<code>server/youtube-downloader</code>, two commands, see its README), then reload this page.
+      </div>
+      <button class="kcap kcap-neutral" onclick="ytdlCheckBackend()"><span class="kcap-face">Check Again</span></button>
+    </div>
+
+    <div id="ytdl-app" style="display:none">
+      <div class="segmented ytdl-mode-tabs" id="ytdl-mode-tabs" role="tablist">
+        <div class="segmented-item active" data-mode="single" role="tab" aria-selected="true" onclick="ytdlSetMode('single')">Single Video</div>
+        <div class="segmented-item" data-mode="bulk" role="tab" aria-selected="false" onclick="ytdlSetMode('bulk')">Playlist &amp; Bulk</div>
+      </div>
+
+      <div class="ytdl-input-row" id="ytdl-single-input">
+        <input type="text" class="s-input" id="ytdl-url" placeholder="Paste a YouTube video URL…" onkeydown="if(event.key==='Enter')ytdlFetchSingle()" aria-label="Video URL"/>
+        <button class="kcap kcap-red" onclick="ytdlFetchSingle()" id="ytdl-fetch-single-btn"><span class="kcap-face">Fetch</span></button>
+      </div>
+      <div class="ytdl-input-row ytdl-input-row-bulk" id="ytdl-bulk-input" style="display:none">
+        <textarea class="s-input" id="ytdl-bulk-urls" rows="4" placeholder="Paste a playlist or channel URL, or several video URLs — one per line." aria-label="Playlist, channel, or multiple video URLs"></textarea>
+        <button class="kcap kcap-red" onclick="ytdlFetchBulk()" id="ytdl-fetch-bulk-btn"><span class="kcap-face">Fetch</span></button>
+      </div>
+
+      <div id="ytdl-error" class="ytdl-error" style="display:none"></div>
+      <div id="ytdl-single-result"></div>
+      <div id="ytdl-bulk-result"></div>
+    </div>
   </div>
 </div>
 
@@ -2926,6 +3066,377 @@ function toggleMobileNav() {
   const links = $('nav-links');
   links.classList.toggle('show');
   $('hamburger-btn').setAttribute('aria-expanded', links.classList.contains('show'));
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+// YOUTUBE DOWNLOADER
+//
+// Talks to a separate backend (server/youtube-downloader/) instead of
+// running in this tab, unlike every other tool in the app. This is not a
+// design choice — YouTube's video CDN refuses direct cross-origin browser
+// requests, and (as of 2026) also blocks non-browser traffic behind a
+// bot-check wall, so extraction has to happen from a real server. Change
+// this to wherever you deploy that backend; it defaults to a local dev
+// instance and is NOT pointed at any live/public URL.
+// ════════════════════════════════════════════════════════════════════════════
+const YTDL_API_BASE = 'http://localhost:8787';
+
+const YTD = {
+  mode: 'single',
+  connected: null,
+  single: null,           // last /api/info result for single mode
+  singleDlMode: 'video',  // 'video' | 'audio'
+  singleVQ: 'best',
+  singleAQ: 'best',
+  singleTrimOn: false,
+  bulk: [],               // [{id,url,title,thumbnail,duration,selected,status,statusMsg}]
+  bulkDlMode: 'video',
+  bulkVQ: 'best',
+  bulkAQ: 'best',
+};
+
+function ytdlEsc(s) {
+  return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c]));
+}
+
+function ytdlFmtDuration(s) {
+  if (!s && s !== 0) return '';
+  s = Math.round(s);
+  const h = Math.floor(s / 3600), m = Math.floor((s % 3600) / 60), sec = s % 60;
+  if (h) return `${h}:${String(m).padStart(2,'0')}:${String(sec).padStart(2,'0')}`;
+  return `${m}:${String(sec).padStart(2,'0')}`;
+}
+
+function goPageDownload() {
+  goPage('download');
+  ytdlCheckBackend();
+}
+
+async function ytdlCheckBackend() {
+  const led = $('ytdl-status-led'), txt = $('ytdl-status-text');
+  led.className = 'led led-processing';
+  txt.textContent = 'Checking…';
+  try {
+    const r = await fetch(YTDL_API_BASE + '/api/health', { signal: AbortSignal.timeout(4000) });
+    if (!r.ok) throw new Error('unreachable');
+    const data = await r.json();
+    if (!data.ok) throw new Error(data.error || 'backend reported an error');
+    YTD.connected = true;
+    led.className = 'led led-ready';
+    txt.textContent = 'Connected';
+    $('ytdl-disconnected').style.display = 'none';
+    $('ytdl-app').style.display = '';
+  } catch (e) {
+    YTD.connected = false;
+    led.className = 'led led-offline';
+    txt.textContent = 'Not connected';
+    $('ytdl-disconnected').style.display = '';
+    $('ytdl-app').style.display = 'none';
+  }
+}
+
+function ytdlSetMode(mode) {
+  YTD.mode = mode;
+  document.querySelectorAll('#ytdl-mode-tabs .segmented-item').forEach(el => {
+    const active = el.dataset.mode === mode;
+    el.classList.toggle('active', active);
+    el.setAttribute('aria-selected', active);
+  });
+  $('ytdl-single-input').style.display = mode === 'single' ? '' : 'none';
+  $('ytdl-bulk-input').style.display = mode === 'bulk' ? '' : 'none';
+  $('ytdl-single-result').style.display = mode === 'single' ? '' : 'none';
+  $('ytdl-bulk-result').style.display = mode === 'bulk' ? '' : 'none';
+  ytdlShowError(null);
+}
+
+function ytdlShowError(msg) {
+  const el = $('ytdl-error');
+  if (!msg) { el.style.display = 'none'; el.textContent = ''; return; }
+  el.textContent = msg;
+  el.style.display = '';
+}
+
+function ytdlSetBtnBusy(btnId, busy, label) {
+  const btn = $(btnId);
+  btn.disabled = busy;
+  btn.querySelector('.kcap-face').textContent = busy ? 'Fetching…' : label;
+}
+
+async function ytdlFetchSingle() {
+  const url = $('ytdl-url').value.trim();
+  ytdlShowError(null);
+  $('ytdl-single-result').innerHTML = '';
+  if (!url) return ytdlShowError('Paste a video URL first.');
+
+  ytdlSetBtnBusy('ytdl-fetch-single-btn', true, 'Fetch');
+  try {
+    const r = await fetch(`${YTDL_API_BASE}/api/info?url=${encodeURIComponent(url)}`);
+    const data = await r.json();
+    if (!r.ok) throw new Error(data.error || 'Could not fetch that video.');
+    if (data.type === 'playlist') {
+      // A playlist/channel URL pasted into single mode — switch them to
+      // bulk mode and run it there instead of erroring out on them.
+      ytdlSetMode('bulk');
+      document.querySelector('#ytdl-mode-tabs [data-mode="bulk"]').click();
+      $('ytdl-bulk-urls').value = url;
+      return ytdlFetchBulk();
+    }
+    YTD.single = data;
+    YTD.singleDlMode = 'video';
+    YTD.singleVQ = 'best';
+    YTD.singleAQ = 'best';
+    YTD.singleTrimOn = false;
+    ytdlRenderSingleCard();
+  } catch (e) {
+    ytdlShowError(e.message || String(e));
+  } finally {
+    ytdlSetBtnBusy('ytdl-fetch-single-btn', false, 'Fetch');
+  }
+}
+
+function ytdlRenderSingleCard() {
+  const info = YTD.single;
+  const el = $('ytdl-single-result');
+  if (!info) { el.innerHTML = ''; return; }
+
+  const videoTiers = Object.entries(info.videoQualityTiers);
+  const audioTiers = Object.entries(info.audioQualityTiers);
+  const qualityTiers = YTD.singleDlMode === 'video' ? videoTiers : audioTiers;
+  const activeQ = YTD.singleDlMode === 'video' ? YTD.singleVQ : YTD.singleAQ;
+  const dur = info.duration || 0;
+
+  el.innerHTML = `
+    <div class="ytdl-card">
+      <div class="ytdl-card-top">
+        <div class="ytdl-card-thumb">
+          ${info.thumbnail ? `<img src="${ytdlEsc(info.thumbnail)}" alt="" loading="lazy"/>` : ''}
+          ${dur ? `<span class="ytdl-card-dur">${ytdlFmtDuration(dur)}</span>` : ''}
+        </div>
+        <div class="ytdl-card-meta">
+          <div class="ytdl-card-title">${ytdlEsc(info.title)}</div>
+          <div class="ytdl-card-sub">${ytdlEsc(info.uploader || '')}${info.isLive ? ' · LIVE' : ''}</div>
+        </div>
+      </div>
+      <div class="ytdl-card-body">
+        <div>
+          <span class="ytdl-row-lbl">Download as</span>
+          <div class="ytdl-mini-segmented">
+            <div class="ytdl-mini-segmented-item ${YTD.singleDlMode==='video'?'active':''}" onclick="ytdlSetSingleDlMode('video')">Video</div>
+            <div class="ytdl-mini-segmented-item ${YTD.singleDlMode==='audio'?'active':''}" onclick="ytdlSetSingleDlMode('audio')">Audio Only</div>
+          </div>
+        </div>
+        <div>
+          <span class="ytdl-row-lbl">${YTD.singleDlMode==='video'?'Video':'Audio'} Quality</span>
+          <div class="ytdl-quality-tiers">
+            ${qualityTiers.map(([key,t]) => `<button class="ytdl-tier-btn ${activeQ===key?'active':''}" onclick="ytdlSetSingleQuality('${key}')">${ytdlEsc(t.label)}</button>`).join('')}
+          </div>
+        </div>
+        <div>
+          <label class="s-checkbox"><input type="checkbox" ${YTD.singleTrimOn?'checked':''} onchange="ytdlToggleSingleTrim(this.checked)"/> Trim to a section</label>
+          ${YTD.singleTrimOn ? `
+            <div class="ytdl-trim-inputs" style="margin-top:10px">
+              <input type="text" class="s-input" id="ytdl-trim-start" placeholder="0:00" value="0:00"/>
+              <span class="ytdl-trim-sep">to</span>
+              <input type="text" class="s-input" id="ytdl-trim-end" placeholder="${ytdlFmtDuration(dur)}" value="${ytdlFmtDuration(dur)}"/>
+              <span class="ytdl-trim-sep">of ${ytdlFmtDuration(dur)} total</span>
+            </div>
+          ` : ''}
+        </div>
+        <div class="ytdl-download-row">
+          <button class="kcap kcap-red kcap-lg" onclick="ytdlDownloadSingle()" id="ytdl-single-dl-btn"><span class="kcap-face">Download →</span></button>
+          <span class="ytdl-download-status" id="ytdl-single-dl-status"></span>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function ytdlSetSingleDlMode(mode) {
+  YTD.singleDlMode = mode;
+  ytdlRenderSingleCard();
+}
+function ytdlSetSingleQuality(key) {
+  if (YTD.singleDlMode === 'video') YTD.singleVQ = key; else YTD.singleAQ = key;
+  ytdlRenderSingleCard();
+}
+function ytdlToggleSingleTrim(on) {
+  YTD.singleTrimOn = on;
+  ytdlRenderSingleCard();
+}
+
+// Accepts "1:23", "1:02:33", or a bare number of seconds.
+function ytdlParseTime(str) {
+  const parts = String(str).trim().split(':').map(Number);
+  if (parts.some(isNaN)) return null;
+  if (parts.length === 1) return parts[0];
+  if (parts.length === 2) return parts[0] * 60 + parts[1];
+  if (parts.length === 3) return parts[0] * 3600 + parts[1] * 60 + parts[2];
+  return null;
+}
+
+async function ytdlDownloadSingle() {
+  const info = YTD.single;
+  if (!info) return;
+  let start = null, end = null;
+  if (YTD.singleTrimOn) {
+    start = ytdlParseTime($('ytdl-trim-start').value);
+    end = ytdlParseTime($('ytdl-trim-end').value);
+    if (start == null || end == null || end <= start) {
+      return ytdlShowError('Trim range looks off — use m:ss or h:mm:ss, and make sure the end is after the start.');
+    }
+  }
+  const quality = YTD.singleDlMode === 'video' ? YTD.singleVQ : YTD.singleAQ;
+  await ytdlRunDownload({
+    url: info.id ? `https://www.youtube.com/watch?v=${info.id}` : $('ytdl-url').value.trim(),
+    title: info.title,
+    mode: YTD.singleDlMode,
+    quality,
+    start, end,
+    btnId: 'ytdl-single-dl-btn',
+    statusId: 'ytdl-single-dl-status',
+  });
+}
+
+// Shared by the single-video button and every bulk-list row/queue item.
+async function ytdlRunDownload({ url, title, mode, quality, start, end, btnId, statusId }) {
+  const btn = btnId ? $(btnId) : null;
+  const statusEl = statusId ? $(statusId) : null;
+  const setStatus = (cls, text) => { if (statusEl) statusEl.innerHTML = `<span class="led ${cls}"><span>${ytdlEsc(text)}</span></span>`; };
+
+  if (btn) btn.disabled = true;
+  setStatus('led-processing', 'Downloading…');
+  try {
+    const params = new URLSearchParams({ url, mode, quality, title: title || 'download' });
+    if (start != null && end != null) { params.set('start', start); params.set('end', end); }
+    const r = await fetch(`${YTDL_API_BASE}/api/download?${params}`);
+    if (!r.ok) {
+      const err = await r.json().catch(() => ({}));
+      throw new Error(err.error || `Download failed (${r.status}).`);
+    }
+    const disposition = r.headers.get('Content-Disposition') || '';
+    const match = disposition.match(/filename="([^"]+)"/);
+    const filename = match ? match[1] : (title || 'download');
+    const blob = await r.blob();
+    const blobUrl = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = blobUrl; a.download = filename;
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(blobUrl), 10_000);
+    setStatus('led-ready', 'Done');
+    return true;
+  } catch (e) {
+    setStatus('led-warning', e.message || 'Failed');
+    return false;
+  } finally {
+    if (btn) btn.disabled = false;
+  }
+}
+
+async function ytdlFetchBulk() {
+  const raw = $('ytdl-bulk-urls').value;
+  const lines = raw.split('\n').map(s => s.trim()).filter(Boolean);
+  ytdlShowError(null);
+  $('ytdl-bulk-result').innerHTML = '';
+  YTD.bulk = [];
+  if (!lines.length) return ytdlShowError('Paste at least one URL first.');
+
+  ytdlSetBtnBusy('ytdl-fetch-bulk-btn', true, 'Fetch');
+  try {
+    // Each line can be a playlist/channel (expands to many entries) or a
+    // single video URL (becomes one entry) — resolved independently so one
+    // bad line doesn't sink the rest of the batch.
+    const results = await Promise.all(lines.map(async line => {
+      try {
+        const r = await fetch(`${YTDL_API_BASE}/api/info?url=${encodeURIComponent(line)}`);
+        const data = await r.json();
+        if (!r.ok) return { error: data.error || 'Could not read that link.', line };
+        return data.type === 'playlist' ? data.entries : [{ url: line, title: data.title, thumbnail: data.thumbnail, duration: data.duration }];
+      } catch (e) {
+        return { error: e.message, line };
+      }
+    }));
+
+    const errors = [];
+    results.forEach((r, i) => {
+      if (Array.isArray(r)) {
+        r.forEach(e => YTD.bulk.push({ ...e, selected: true, status: 'idle', statusMsg: '' }));
+      } else {
+        errors.push(`"${lines[i]}" — ${r.error}`);
+      }
+    });
+    if (errors.length) ytdlShowError(errors.join('  ·  '));
+    if (!YTD.bulk.length) return;
+    ytdlRenderBulkList();
+  } finally {
+    ytdlSetBtnBusy('ytdl-fetch-bulk-btn', false, 'Fetch');
+  }
+}
+
+function ytdlRenderBulkList() {
+  const el = $('ytdl-bulk-result');
+  if (!YTD.bulk.length) { el.innerHTML = ''; return; }
+  const selectedCount = YTD.bulk.filter(e => e.selected).length;
+
+  el.innerHTML = `
+    <div class="ytdl-bulk-toolbar">
+      <label class="s-checkbox"><input type="checkbox" id="ytdl-select-all" ${selectedCount===YTD.bulk.length?'checked':''} onchange="ytdlToggleSelectAll(this.checked)"/> Select all</label>
+      <span class="ytdl-bulk-count">${selectedCount} of ${YTD.bulk.length} selected</span>
+      <div class="ytdl-bulk-spacer"></div>
+      <div class="ytdl-mini-segmented" style="width:auto">
+        <div class="ytdl-mini-segmented-item ${YTD.bulkDlMode==='video'?'active':''}" onclick="ytdlSetBulkDlMode('video')">Video</div>
+        <div class="ytdl-mini-segmented-item ${YTD.bulkDlMode==='audio'?'active':''}" onclick="ytdlSetBulkDlMode('audio')">Audio Only</div>
+      </div>
+      <button class="kcap kcap-red" onclick="ytdlDownloadSelected()" id="ytdl-bulk-dl-btn"><span class="kcap-face">Download Selected</span></button>
+    </div>
+    <div class="ytdl-bulk-list">
+      ${YTD.bulk.map((e, i) => `
+        <div class="ytdl-bulk-item">
+          <label class="s-checkbox"><input type="checkbox" ${e.selected?'checked':''} onchange="ytdlToggleEntry(${i},this.checked)"/></label>
+          <div class="ytdl-bulk-thumb">${e.thumbnail ? `<img src="${ytdlEsc(e.thumbnail)}" alt="" loading="lazy"/>` : ''}</div>
+          <div class="ytdl-bulk-info">
+            <div class="ytdl-bulk-title">${ytdlEsc(e.title)}</div>
+            <div class="ytdl-bulk-meta">${ytdlFmtDuration(e.duration)}</div>
+          </div>
+          <div class="ytdl-bulk-actions">
+            <span id="ytdl-bulk-status-${i}">${e.statusMsg ? `<span class="led ${e.status==='done'?'led-ready':e.status==='error'?'led-warning':'led-processing'}"><span>${ytdlEsc(e.statusMsg)}</span></span>` : ''}</span>
+            <button class="ytdl-bulk-abtn" onclick="ytdlDownloadBulkItem(${i})" aria-label="Download this item" title="Download just this one">
+              <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path d="M12 3v12M7 10l5 5 5-5M5 20h14"/></svg>
+            </button>
+          </div>
+        </div>
+      `).join('')}
+    </div>
+  `;
+}
+
+function ytdlToggleEntry(i, checked) { YTD.bulk[i].selected = checked; ytdlRenderBulkList(); }
+function ytdlToggleSelectAll(checked) { YTD.bulk.forEach(e => e.selected = checked); ytdlRenderBulkList(); }
+function ytdlSetBulkDlMode(mode) { YTD.bulkDlMode = mode; ytdlRenderBulkList(); }
+
+async function ytdlDownloadBulkItem(i) {
+  const entry = YTD.bulk[i];
+  const quality = YTD.bulkDlMode === 'video' ? YTD.bulkVQ : YTD.bulkAQ;
+  entry.status = 'downloading'; entry.statusMsg = 'Downloading…';
+  const statusEl = $('ytdl-bulk-status-' + i);
+  if (statusEl) statusEl.innerHTML = `<span class="led led-processing"><span>Downloading…</span></span>`;
+  const ok = await ytdlRunDownload({ url: entry.url, title: entry.title, mode: YTD.bulkDlMode, quality, statusId: null });
+  entry.status = ok ? 'done' : 'error';
+  entry.statusMsg = ok ? 'Done' : 'Failed';
+  if (statusEl) statusEl.innerHTML = `<span class="led ${ok ? 'led-ready' : 'led-warning'}"><span>${entry.statusMsg}</span></span>`;
+}
+
+// Sequential on purpose — the backend caps concurrent downloads
+// (MAX_CONCURRENT_DOWNLOADS) and a small self-hosted server has no
+// business being hit with N parallel yt-dlp processes from one click.
+async function ytdlDownloadSelected() {
+  const btn = $('ytdl-bulk-dl-btn');
+  const selected = YTD.bulk.map((e, i) => [e, i]).filter(([e]) => e.selected);
+  if (!selected.length) return ytdlShowError('Select at least one item first.');
+  btn.disabled = true;
+  for (const [, i] of selected) {
+    await ytdlDownloadBulkItem(i);
+  }
+  btn.disabled = false;
 }
 
 // ════════════════════════════════════════════════════════════════════════════
