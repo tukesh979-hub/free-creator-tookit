@@ -336,9 +336,40 @@ nav{
 .ytdl-tier-btn:hover{color:var(--text);border-color:var(--border2)}
 .ytdl-tier-btn:active{transform:translateY(1px);box-shadow:none}
 .ytdl-tier-btn.active{color:var(--red);border-color:var(--red);background:color-mix(in srgb, var(--red) 8%, var(--bg4));box-shadow:inset 0 1px 2px rgba(0,0,0,.2)}
+.ytdl-trim-timeline{display:flex;flex-direction:column;gap:10px}
+/* Dual-handle trim range over the video's own thumbnail — dark outside the
+   selection, a thin red-bordered window over it, draggable red handles.
+   Same playhead-red language as the editor's scrub bar elsewhere. */
+.ytdl-trim-track{
+  position:relative;height:52px;border-radius:var(--r-sm);overflow:hidden;
+  background:var(--bg4) center/cover no-repeat;cursor:pointer;touch-action:none;
+  box-shadow:inset 0 2px 4px rgba(0,0,0,.35);
+}
+.ytdl-trim-dim{position:absolute;top:0;bottom:0;background:rgba(0,0,0,.6);z-index:1;pointer-events:none}
+.ytdl-trim-dim-left{left:0}
+.ytdl-trim-dim-right{right:0}
+.ytdl-trim-range{
+  position:absolute;top:0;bottom:0;z-index:1;pointer-events:none;
+  background:color-mix(in srgb, var(--red) 15%, transparent);
+  border-top:2px solid var(--red);border-bottom:2px solid var(--red);
+}
+.ytdl-trim-handle{
+  position:absolute;top:0;bottom:0;width:12px;margin-left:-6px;z-index:2;cursor:ew-resize;touch-action:none;
+  background:var(--red);box-shadow:0 0 0 1px rgba(0,0,0,.4),inset 1px 0 0 rgba(255,255,255,.25);
+}
+.ytdl-trim-handle::after{
+  content:'';position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);
+  width:2px;height:18px;background:rgba(255,255,255,.75);border-radius:1px;
+}
+.ytdl-trim-handle:focus-visible{outline:2px solid #fff;outline-offset:1px}
 .ytdl-trim-inputs{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
 .ytdl-trim-inputs .s-input{width:110px;flex:none}
-.ytdl-trim-sep{color:var(--dim);font-family:var(--mono)}
+.ytdl-trim-sep{color:var(--dim);font-family:var(--mono);font-size:14px}
+.ytdl-note{
+  font-family:var(--mono);font-size:14px;color:var(--amber);line-height:1.5;
+  padding:8px 12px;border-radius:var(--r-sm);background:color-mix(in srgb, var(--amber) 8%, var(--bg4));
+  border:1px solid color-mix(in srgb, var(--amber) 30%, var(--border));
+}
 .ytdl-download-row{display:flex;align-items:center;gap:14px;padding-top:4px}
 .ytdl-download-status{font-family:var(--mono);font-size:14px;color:var(--dim)}
 
@@ -3089,6 +3120,8 @@ const YTD = {
   singleVQ: 'best',
   singleAQ: 'best',
   singleTrimOn: false,
+  singleTrimStart: 0,
+  singleTrimEnd: 0,
   bulk: [],               // [{id,url,title,thumbnail,duration,selected,status,statusMsg}]
   bulkDlMode: 'video',
   bulkVQ: 'best',
@@ -3218,6 +3251,7 @@ function ytdlRenderSingleCard() {
         </div>
       </div>
       <div class="ytdl-card-body">
+        ${info.reducedQuality ? `<div class="ytdl-note">YouTube's bot-check kicked in for this video — quality tiers above may be limited until the backend retries normally.</div>` : ''}
         <div>
           <span class="ytdl-row-lbl">Download as</span>
           <div class="ytdl-mini-segmented">
@@ -3234,11 +3268,20 @@ function ytdlRenderSingleCard() {
         <div>
           <label class="s-checkbox"><input type="checkbox" ${YTD.singleTrimOn?'checked':''} onchange="ytdlToggleSingleTrim(this.checked)"/> Trim to a section</label>
           ${YTD.singleTrimOn ? `
-            <div class="ytdl-trim-inputs" style="margin-top:10px">
-              <input type="text" class="s-input" id="ytdl-trim-start" placeholder="0:00" value="0:00"/>
-              <span class="ytdl-trim-sep">to</span>
-              <input type="text" class="s-input" id="ytdl-trim-end" placeholder="${ytdlFmtDuration(dur)}" value="${ytdlFmtDuration(dur)}"/>
-              <span class="ytdl-trim-sep">of ${ytdlFmtDuration(dur)} total</span>
+            <div class="ytdl-trim-timeline" style="margin-top:12px">
+              <div class="ytdl-trim-track" id="ytdl-trim-track" data-duration="${dur}"${info.thumbnail ? ` style="background-image:url('${ytdlEsc(info.thumbnail)}')"` : ''}>
+                <div class="ytdl-trim-dim ytdl-trim-dim-left" id="ytdl-trim-dim-left"></div>
+                <div class="ytdl-trim-range" id="ytdl-trim-range"></div>
+                <div class="ytdl-trim-dim ytdl-trim-dim-right" id="ytdl-trim-dim-right"></div>
+                <div class="ytdl-trim-handle" id="ytdl-trim-handle-start" tabindex="0" role="slider" aria-label="Trim start" aria-valuemin="0" aria-valuemax="${dur}"></div>
+                <div class="ytdl-trim-handle" id="ytdl-trim-handle-end" tabindex="0" role="slider" aria-label="Trim end" aria-valuemin="0" aria-valuemax="${dur}"></div>
+              </div>
+              <div class="ytdl-trim-inputs">
+                <input type="text" class="s-input" id="ytdl-trim-start" onchange="ytdlTrimInputChanged('start',this.value)"/>
+                <span class="ytdl-trim-sep">to</span>
+                <input type="text" class="s-input" id="ytdl-trim-end" onchange="ytdlTrimInputChanged('end',this.value)"/>
+                <span class="ytdl-trim-sep" id="ytdl-trim-summary"></span>
+              </div>
             </div>
           ` : ''}
         </div>
@@ -3249,6 +3292,7 @@ function ytdlRenderSingleCard() {
       </div>
     </div>
   `;
+  if (YTD.singleTrimOn) ytdlInitTrimTimeline();
 }
 
 function ytdlSetSingleDlMode(mode) {
@@ -3261,6 +3305,10 @@ function ytdlSetSingleQuality(key) {
 }
 function ytdlToggleSingleTrim(on) {
   YTD.singleTrimOn = on;
+  if (on) {
+    YTD.singleTrimStart = 0;
+    YTD.singleTrimEnd = (YTD.single && YTD.single.duration) || 0;
+  }
   ytdlRenderSingleCard();
 }
 
@@ -3274,16 +3322,103 @@ function ytdlParseTime(str) {
   return null;
 }
 
+// Draggable dual-handle range over the video's duration — click-drag either
+// handle, or click the track itself to jump the nearer handle there. State
+// lives in YTD.singleTrimStart/End; this only paints it and wires input.
+function ytdlUpdateTrimVisuals() {
+  const track = $('ytdl-trim-track');
+  if (!track) return;
+  const duration = Number(track.dataset.duration) || 0;
+  const startPct = duration ? (YTD.singleTrimStart / duration * 100) : 0;
+  const endPct = duration ? (YTD.singleTrimEnd / duration * 100) : 100;
+  $('ytdl-trim-handle-start').style.left = startPct + '%';
+  $('ytdl-trim-handle-end').style.left = endPct + '%';
+  $('ytdl-trim-range').style.left = startPct + '%';
+  $('ytdl-trim-range').style.width = Math.max(0, endPct - startPct) + '%';
+  $('ytdl-trim-dim-left').style.width = startPct + '%';
+  $('ytdl-trim-dim-right').style.left = endPct + '%';
+  $('ytdl-trim-dim-right').style.width = Math.max(0, 100 - endPct) + '%';
+  $('ytdl-trim-handle-start').setAttribute('aria-valuenow', Math.round(YTD.singleTrimStart));
+  $('ytdl-trim-handle-end').setAttribute('aria-valuenow', Math.round(YTD.singleTrimEnd));
+  const startInput = $('ytdl-trim-start'), endInput = $('ytdl-trim-end');
+  if (document.activeElement !== startInput) startInput.value = ytdlFmtDuration(YTD.singleTrimStart);
+  if (document.activeElement !== endInput) endInput.value = ytdlFmtDuration(YTD.singleTrimEnd);
+  $('ytdl-trim-summary').textContent = `of ${ytdlFmtDuration(duration)} total — ${ytdlFmtDuration(YTD.singleTrimEnd - YTD.singleTrimStart)} selected`;
+}
+
+function ytdlInitTrimTimeline() {
+  const track = $('ytdl-trim-track');
+  const startHandle = $('ytdl-trim-handle-start');
+  const endHandle = $('ytdl-trim-handle-end');
+  const duration = Number(track.dataset.duration) || 0;
+
+  const pxToSeconds = clientX => {
+    const rect = track.getBoundingClientRect();
+    const frac = rect.width ? Math.min(1, Math.max(0, (clientX - rect.left) / rect.width)) : 0;
+    return frac * duration;
+  };
+
+  function beginDrag(which) {
+    return e => {
+      e.preventDefault();
+      const onMove = ev => {
+        let sec = pxToSeconds(ev.clientX);
+        if (which === 'start') sec = Math.max(0, Math.min(sec, YTD.singleTrimEnd - 1));
+        else sec = Math.min(duration, Math.max(sec, YTD.singleTrimStart + 1));
+        YTD['singleTrim' + (which === 'start' ? 'Start' : 'End')] = sec;
+        ytdlUpdateTrimVisuals();
+      };
+      const onUp = () => { window.removeEventListener('pointermove', onMove); window.removeEventListener('pointerup', onUp); };
+      window.addEventListener('pointermove', onMove);
+      window.addEventListener('pointerup', onUp);
+    };
+  }
+  startHandle.addEventListener('pointerdown', beginDrag('start'));
+  endHandle.addEventListener('pointerdown', beginDrag('end'));
+
+  track.addEventListener('pointerdown', e => {
+    if (e.target === startHandle || e.target === endHandle) return;
+    const sec = pxToSeconds(e.clientX);
+    if (Math.abs(sec - YTD.singleTrimStart) <= Math.abs(sec - YTD.singleTrimEnd)) YTD.singleTrimStart = Math.min(sec, YTD.singleTrimEnd - 1);
+    else YTD.singleTrimEnd = Math.max(sec, YTD.singleTrimStart + 1);
+    ytdlUpdateTrimVisuals();
+  });
+
+  const keyStep = (which, dir, big) => {
+    const step = (big ? 10 : 1) * dir;
+    if (which === 'start') YTD.singleTrimStart = Math.max(0, Math.min(YTD.singleTrimEnd - 1, YTD.singleTrimStart + step));
+    else YTD.singleTrimEnd = Math.min(duration, Math.max(YTD.singleTrimStart + 1, YTD.singleTrimEnd + step));
+    ytdlUpdateTrimVisuals();
+  };
+  startHandle.addEventListener('keydown', e => {
+    if (e.key === 'ArrowLeft') keyStep('start', -1, e.shiftKey);
+    if (e.key === 'ArrowRight') keyStep('start', 1, e.shiftKey);
+  });
+  endHandle.addEventListener('keydown', e => {
+    if (e.key === 'ArrowLeft') keyStep('end', -1, e.shiftKey);
+    if (e.key === 'ArrowRight') keyStep('end', 1, e.shiftKey);
+  });
+
+  ytdlUpdateTrimVisuals();
+}
+
+function ytdlTrimInputChanged(which, value) {
+  const sec = ytdlParseTime(value);
+  const duration = (YTD.single && YTD.single.duration) || 0;
+  if (sec == null) return ytdlUpdateTrimVisuals();
+  if (which === 'start') YTD.singleTrimStart = Math.max(0, Math.min(sec, YTD.singleTrimEnd - 1));
+  else YTD.singleTrimEnd = Math.max(YTD.singleTrimStart + 1, Math.min(sec, duration));
+  ytdlUpdateTrimVisuals();
+}
+
 async function ytdlDownloadSingle() {
   const info = YTD.single;
   if (!info) return;
   let start = null, end = null;
   if (YTD.singleTrimOn) {
-    start = ytdlParseTime($('ytdl-trim-start').value);
-    end = ytdlParseTime($('ytdl-trim-end').value);
-    if (start == null || end == null || end <= start) {
-      return ytdlShowError('Trim range looks off — use m:ss or h:mm:ss, and make sure the end is after the start.');
-    }
+    start = YTD.singleTrimStart;
+    end = YTD.singleTrimEnd;
+    if (end <= start) return ytdlShowError('Trim range looks off — the end needs to be after the start.');
   }
   const quality = YTD.singleDlMode === 'video' ? YTD.singleVQ : YTD.singleAQ;
   await ytdlRunDownload({
@@ -3298,31 +3433,61 @@ async function ytdlDownloadSingle() {
 }
 
 // Shared by the single-video button and every bulk-list row/queue item.
+function ytdlSleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+// Job-based: start the download, then poll its status, then fetch the
+// finished file as its own small request. A single request held open for
+// the whole yt-dlp+ffmpeg run sends zero bytes back until it's entirely
+// done — fine for a short test clip, but long enough on a real multi-
+// minute "best quality" segment that something on the network path (a
+// router's connection-tracking table, a proxy, anything) can decide a
+// silent connection is dead and reset it — which shows up in the browser
+// as a bare "Failed to fetch" with no further detail. Confirmed by hand on
+// a real ~2-minute segment. None of this file's own short test downloads
+// were ever slow enough to hit it, which is exactly why it slipped through.
 async function ytdlRunDownload({ url, title, mode, quality, start, end, btnId, statusId }) {
   const btn = btnId ? $(btnId) : null;
   const statusEl = statusId ? $(statusId) : null;
   const setStatus = (cls, text) => { if (statusEl) statusEl.innerHTML = `<span class="led ${cls}"><span>${ytdlEsc(text)}</span></span>`; };
 
   if (btn) btn.disabled = true;
-  setStatus('led-processing', 'Downloading…');
+  setStatus('led-processing', 'Starting…');
   try {
     const params = new URLSearchParams({ url, mode, quality, title: title || 'download' });
     if (start != null && end != null) { params.set('start', start); params.set('end', end); }
-    const r = await fetch(`${YTDL_API_BASE}/api/download?${params}`);
-    if (!r.ok) {
-      const err = await r.json().catch(() => ({}));
-      throw new Error(err.error || `Download failed (${r.status}).`);
+    const startRes = await fetch(`${YTDL_API_BASE}/api/download/start?${params}`);
+    const startData = await startRes.json().catch(() => ({}));
+    if (!startRes.ok) throw new Error(startData.error || `Could not start the download (${startRes.status}).`);
+    const jobId = startData.jobId;
+
+    const startedAt = Date.now();
+    let status;
+    while (true) {
+      await ytdlSleep(1500);
+      const statusRes = await fetch(`${YTDL_API_BASE}/api/download/status/${jobId}`);
+      status = await statusRes.json().catch(() => ({}));
+      if (!statusRes.ok) throw new Error(status.error || `Lost track of the download (${statusRes.status}).`);
+      if (status.status === 'error') throw new Error(status.error || 'Download failed.');
+      if (status.status === 'done') break;
+      setStatus('led-processing', `Downloading… (${Math.round((Date.now() - startedAt) / 1000)}s)`);
     }
-    const disposition = r.headers.get('Content-Disposition') || '';
+
+    const resultRes = await fetch(`${YTDL_API_BASE}/api/download/result/${jobId}`);
+    if (!resultRes.ok) {
+      const err = await resultRes.json().catch(() => ({}));
+      throw new Error(err.error || `Could not retrieve the finished file (${resultRes.status}).`);
+    }
+    const disposition = resultRes.headers.get('Content-Disposition') || '';
     const match = disposition.match(/filename="([^"]+)"/);
     const filename = match ? match[1] : (title || 'download');
-    const blob = await r.blob();
+    const reducedQuality = resultRes.headers.get('X-Ytdl-Reduced-Quality') === 'true' || status.reducedQuality;
+    const blob = await resultRes.blob();
     const blobUrl = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = blobUrl; a.download = filename;
     document.body.appendChild(a); a.click(); a.remove();
     setTimeout(() => URL.revokeObjectURL(blobUrl), 10_000);
-    setStatus('led-ready', 'Done');
+    setStatus(reducedQuality ? 'led-warning' : 'led-ready', reducedQuality ? 'Done (reduced quality — bot-check)' : 'Done');
     return true;
   } catch (e) {
     setStatus('led-warning', e.message || 'Failed');
