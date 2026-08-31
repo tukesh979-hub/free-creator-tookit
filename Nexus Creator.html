@@ -294,8 +294,22 @@ nav{
   display:flex;align-items:center;justify-content:center;color:var(--dim);
 }
 .ytdl-empty-title{font-size:19px;font-weight:700;margin-bottom:8px}
-.ytdl-empty-desc{font-family:var(--mono);font-size:14px;color:var(--muted);line-height:1.7;margin-bottom:20px}
+.ytdl-empty-desc{font-family:var(--mono);font-size:14px;color:var(--muted);line-height:1.7;margin-bottom:16px}
 .ytdl-empty-desc code{background:var(--bg4);padding:1px 5px;border-radius:3px;font-size:13px}
+/* Every visitor runs this backend on their own machine — no shared/hosted
+   instance exists (a deliberate no-cost, no-central-server choice). A
+   README pointer alone assumes they've already cloned the repo, which a
+   random site visitor hasn't — so the exact commands live right here,
+   copyable, not just referenced. */
+.ytdl-empty-cmds{
+  text-align:left;font-family:var(--mono);font-size:13px;line-height:1.8;color:var(--text);
+  background:var(--bg);border:1px solid var(--border2);border-radius:var(--r-md);
+  padding:14px 16px;margin-bottom:16px;overflow-x:auto;white-space:pre;
+  box-shadow:inset 0 2px 4px rgba(0,0,0,.2);
+}
+.ytdl-empty-cmds .cmt{color:var(--dim)}
+.ytdl-empty-reqs{font-family:var(--mono);font-size:13px;color:var(--dim);margin-bottom:20px}
+.ytdl-empty-actions{display:flex;gap:8px;justify-content:center;flex-wrap:wrap}
 
 .ytdl-mode-tabs{max-width:340px;margin:0 auto 22px}
 .ytdl-input-row{display:flex;gap:8px;max-width:680px;margin:0 auto 22px;align-items:flex-start}
@@ -2626,10 +2640,17 @@ input[type=color].s-input{height:38px;padding:3px;cursor:pointer}
       </div>
       <div class="ytdl-empty-title">Downloader backend not connected</div>
       <div class="ytdl-empty-desc">
-        This can't run purely in the browser — YouTube blocks that. It needs the small backend included in this project.<br/>
-        Run it locally (<code>server/youtube-downloader</code>, two commands, see its README), then reload this page.
+        This can't run purely in the browser — YouTube blocks that. It runs entirely on your own machine instead, never a shared server, so there's nothing to sign up for or pay for.
       </div>
-      <button class="kcap kcap-neutral" onclick="ytdlCheckBackend()"><span class="kcap-face">Check Again</span></button>
+      <pre class="ytdl-empty-cmds" id="ytdl-empty-cmds"><span class="cmt"># requires Node 18+, yt-dlp, and ffmpeg already installed</span>
+git clone https://github.com/tukesh979-hub/free-creator-tookit.git
+cd free-creator-tookit/server/youtube-downloader
+npm install && npm start</pre>
+      <div class="ytdl-empty-reqs">Then reload this page — it checks for the backend automatically.</div>
+      <div class="ytdl-empty-actions">
+        <button class="kcap kcap-neutral" onclick="ytdlCopySetupCmds()" id="ytdl-copy-cmds-btn"><span class="kcap-face">Copy Commands</span></button>
+        <button class="kcap kcap-red" onclick="ytdlCheckBackend()"><span class="kcap-face">Check Again</span></button>
+      </div>
     </div>
 
     <div id="ytdl-app" style="display:none">
@@ -3166,6 +3187,21 @@ async function ytdlCheckBackend() {
     $('ytdl-disconnected').style.display = '';
     $('ytdl-app').style.display = 'none';
   }
+}
+
+// The setup block is real shell commands the visitor needs to run in
+// their own terminal — a one-click copy beats "select the text by hand"
+// for something this exact (a typo in the git URL just fails silently).
+async function ytdlCopySetupCmds() {
+  const btn = $('ytdl-copy-cmds-btn');
+  const text = $('ytdl-empty-cmds').innerText.replace(/^#.*\n/, ''); // drop the comment line — only the runnable commands
+  try {
+    await navigator.clipboard.writeText(text);
+    btn.querySelector('.kcap-face').textContent = 'Copied!';
+  } catch {
+    btn.querySelector('.kcap-face').textContent = 'Select & copy manually';
+  }
+  setTimeout(() => { btn.querySelector('.kcap-face').textContent = 'Copy Commands'; }, 2000);
 }
 
 function ytdlSetMode(mode) {

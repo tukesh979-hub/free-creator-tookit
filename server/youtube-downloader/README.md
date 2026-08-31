@@ -1,9 +1,13 @@
 # Nexus Creator — YouTube Downloader backend
 
 This is the server behind the "Downloader" page in Nexus Creator. It is
-**not** part of the static site and is **not deployed anywhere by
-default** — you need to run it yourself (locally, or on a host you
-choose) and point the frontend at it.
+**not** part of the static site, and **the intended way to use it is
+locally, on your own machine** — `YTDL_API_BASE` in `Nexus Creator.html`
+points at `http://localhost:8787` by design, not at any shared or hosted
+instance. There is no central server to sign up for or pay for: every
+visitor who wants the Downloader page working runs this themselves. The
+"Deploying it for real" section further down exists for anyone who
+wants a public URL anyway, but that's optional, not the default path.
 
 ## Why this can't just run in the browser
 
