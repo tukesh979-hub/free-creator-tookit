@@ -1,0 +1,24 @@
+# Render Blueprint — lets Render build+deploy this service straight from
+# the Dockerfile in this folder, with sane defaults already filled in,
+# instead of clicking through "New Web Service" by hand.
+#
+# Use it two ways:
+#   1. In the Render dashboard: New > Blueprint, point it at this repo.
+#      Render finds this file automatically and proposes the service below.
+#   2. Or just create the service manually and ignore this file — either
+#      way you end up with the same container.
+#
+# See ../README.md's "Deploying it for real" section for the full walkthrough.
+services:
+  - type: web
+    name: nexus-youtube-downloader
+    runtime: docker
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    plan: free
+    healthCheckPath: /api/health
+    envVars:
+      - key: MAX_DURATION_SECONDS
+        value: "14400"
+      - key: MAX_CONCURRENT_DOWNLOADS
+        value: "2" # lower than the 3 default — Render's free tier is 512MB RAM, shared with fewer concurrent yt-dlp/ffmpeg processes in mind

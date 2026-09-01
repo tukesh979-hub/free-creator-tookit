@@ -2619,7 +2619,7 @@ input[type=color].s-input{height:38px;padding:3px;cursor:pointer}
 
 <!-- ══════════════════ YOUTUBE DOWNLOADER ══════════════════
      Talks to a separate backend (server/youtube-downloader/) — YouTube
-     extraction is not possible client-side (see YTDL_API_BASE comment in
+     extraction is not possible client-side (see YTDL_BACKENDS comment in
      the script below). Renders an honest "not connected" state instead of
      a fake working UI when that backend isn't reachable. -->
 <div id="page-download" class="page">
@@ -2638,15 +2638,16 @@ input[type=color].s-input{height:38px;padding:3px;cursor:pointer}
       <div class="ytdl-empty-icon" aria-hidden="true">
         <svg width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.6" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="13"/><circle cx="12" cy="16.5" r="0.5" fill="currentColor"/></svg>
       </div>
-      <div class="ytdl-empty-title">Downloader backend not connected</div>
+      <div class="ytdl-empty-title">Downloader temporarily unreachable</div>
       <div class="ytdl-empty-desc">
-        This can't run purely in the browser — YouTube blocks that. It runs entirely on your own machine instead, never a shared server, so there's nothing to sign up for or pay for.
+        This normally works with no setup — it's backed by two independent free-tier servers, and this page only lands here if neither one answered just now. Worth trying "Check Again" once before anything else, in case it was just a slow cold-start.<br/><br/>
+        Still stuck? You can run the same backend on your own machine instead — it's the exact thing those two servers run, just locally, and nothing here needs a sign-up or payment.
       </div>
       <pre class="ytdl-empty-cmds" id="ytdl-empty-cmds"><span class="cmt"># requires Node 18+, yt-dlp, and ffmpeg already installed</span>
 git clone https://github.com/tukesh979-hub/free-creator-tookit.git
 cd free-creator-tookit/server/youtube-downloader
 npm install && npm start</pre>
-      <div class="ytdl-empty-reqs">Then reload this page — it checks for the backend automatically.</div>
+      <div class="ytdl-empty-reqs">Then reload this page — it checks all three (both hosted servers, then your own machine) automatically.</div>
       <div class="ytdl-empty-actions">
         <button class="kcap kcap-neutral" onclick="ytdlCopySetupCmds()" id="ytdl-copy-cmds-btn"><span class="kcap-face">Copy Commands</span></button>
         <button class="kcap kcap-red" onclick="ytdlCheckBackend()"><span class="kcap-face">Check Again</span></button>
@@ -3127,11 +3128,56 @@ function toggleMobileNav() {
 // running in this tab, unlike every other tool in the app. This is not a
 // design choice — YouTube's video CDN refuses direct cross-origin browser
 // requests, and (as of 2026) also blocks non-browser traffic behind a
-// bot-check wall, so extraction has to happen from a real server. Change
-// this to wherever you deploy that backend; it defaults to a local dev
-// instance and is NOT pointed at any live/public URL.
+// bot-check wall, so extraction has to happen from a real server.
+//
+// Tried in order, first one that answers /api/health wins for the rest of
+// the session: a free-tier hosted backend (so a normal visitor never has to
+// set anything up), a second free-tier host as backup if the first is down
+// or has burned through its free quota, then localhost as a last resort for
+// anyone deliberately self-hosting (also what this always pointed at before
+// any hosted instance existed). Fill in real URLs as they're deployed — see
+// server/youtube-downloader/README.md for both platforms' setup steps.
+// Both hosted URLs MUST be https:// — this page is served over https, and
+// browsers silently block a fetch to a plain http:// backend as mixed
+// content, which looks exactly like "the backend is down" with no error
+// telling you why.
 // ════════════════════════════════════════════════════════════════════════════
-const YTDL_API_BASE = 'http://localhost:8787';
+const YTDL_BACKENDS = [
+  'https://REPLACE_WITH_ORACLE_URL',   // primary — real VM, no sleep, largest free bandwidth allowance
+  'https://REPLACE_WITH_RENDER_URL',   // backup — sleeps after 15min idle (adds a cold-start delay), smaller free RAM
+  'http://localhost:8787',             // last resort — a visitor's own locally-run instance, if any
+];
+let ytdlActiveBackend = null; // resolved by ytdlResolveBackend(), cached for the session
+
+// Pings each candidate's /api/health in order (not in parallel — order IS
+// the preference) and returns the first that answers ok. Cached in
+// ytdlActiveBackend unless forceRecheck is passed, so normal operation only
+// pays this cost once per page load, not on every request.
+async function ytdlResolveBackend(forceRecheck) {
+  if (ytdlActiveBackend && !forceRecheck) return ytdlActiveBackend;
+  for (const base of YTDL_BACKENDS) {
+    if (base.includes('REPLACE_WITH_')) continue; // not deployed yet — skip the placeholder
+    try {
+      const r = await fetch(base + '/api/health', { signal: AbortSignal.timeout(4000) });
+      if (!r.ok) continue;
+      const data = await r.json();
+      if (!data.ok) continue;
+      ytdlActiveBackend = base;
+      return base;
+    } catch { /* try the next candidate */ }
+  }
+  ytdlActiveBackend = null;
+  return null;
+}
+
+// Thin wrapper for call sites that need a base URL to build a request —
+// throws instead of returning null so those call sites' existing
+// try/catch-and-show-error handling covers this for free.
+async function ytdlBase() {
+  const base = await ytdlResolveBackend();
+  if (!base) throw new Error('No downloader backend reachable right now — click "Check Again" on this page.');
+  return base;
+}
 
 const YTD = {
   mode: 'single',
@@ -3171,10 +3217,8 @@ async function ytdlCheckBackend() {
   led.className = 'led led-processing';
   txt.textContent = 'Checking…';
   try {
-    const r = await fetch(YTDL_API_BASE + '/api/health', { signal: AbortSignal.timeout(4000) });
-    if (!r.ok) throw new Error('unreachable');
-    const data = await r.json();
-    if (!data.ok) throw new Error(data.error || 'backend reported an error');
+    const base = await ytdlResolveBackend(true); // force a fresh check, not the cached result — this IS the check
+    if (!base) throw new Error('no backend reachable');
     YTD.connected = true;
     led.className = 'led led-ready';
     txt.textContent = 'Connected';
@@ -3239,7 +3283,7 @@ async function ytdlFetchSingle() {
 
   ytdlSetBtnBusy('ytdl-fetch-single-btn', true, 'Fetch');
   try {
-    const r = await fetch(`${YTDL_API_BASE}/api/info?url=${encodeURIComponent(url)}`);
+    const r = await fetch(`${await ytdlBase()}/api/info?url=${encodeURIComponent(url)}`);
     const data = await r.json();
     if (!r.ok) throw new Error(data.error || 'Could not fetch that video.');
     if (data.type === 'playlist') {
@@ -3489,9 +3533,15 @@ async function ytdlRunDownload({ url, title, mode, quality, start, end, btnId, s
   if (btn) btn.disabled = true;
   setStatus('led-processing', 'Starting…');
   try {
+    // Pinned once, reused for start/status/result — the job only exists on
+    // whichever single backend actually started it, so mixing backends
+    // mid-job (if a later call happened to re-resolve to a different
+    // candidate) would just 404 against a job ID the other server never
+    // heard of.
+    const base = await ytdlBase();
     const params = new URLSearchParams({ url, mode, quality, title: title || 'download' });
     if (start != null && end != null) { params.set('start', start); params.set('end', end); }
-    const startRes = await fetch(`${YTDL_API_BASE}/api/download/start?${params}`);
+    const startRes = await fetch(`${base}/api/download/start?${params}`);
     const startData = await startRes.json().catch(() => ({}));
     if (!startRes.ok) throw new Error(startData.error || `Could not start the download (${startRes.status}).`);
     const jobId = startData.jobId;
@@ -3500,7 +3550,7 @@ async function ytdlRunDownload({ url, title, mode, quality, start, end, btnId, s
     let status;
     while (true) {
       await ytdlSleep(1500);
-      const statusRes = await fetch(`${YTDL_API_BASE}/api/download/status/${jobId}`);
+      const statusRes = await fetch(`${base}/api/download/status/${jobId}`);
       status = await statusRes.json().catch(() => ({}));
       if (!statusRes.ok) throw new Error(status.error || `Lost track of the download (${statusRes.status}).`);
       if (status.status === 'error') throw new Error(status.error || 'Download failed.');
@@ -3508,7 +3558,7 @@ async function ytdlRunDownload({ url, title, mode, quality, start, end, btnId, s
       setStatus('led-processing', `Downloading… (${Math.round((Date.now() - startedAt) / 1000)}s)`);
     }
 
-    const resultRes = await fetch(`${YTDL_API_BASE}/api/download/result/${jobId}`);
+    const resultRes = await fetch(`${base}/api/download/result/${jobId}`);
     if (!resultRes.ok) {
       const err = await resultRes.json().catch(() => ({}));
       throw new Error(err.error || `Could not retrieve the finished file (${resultRes.status}).`);
@@ -3543,12 +3593,13 @@ async function ytdlFetchBulk() {
 
   ytdlSetBtnBusy('ytdl-fetch-bulk-btn', true, 'Fetch');
   try {
+    const base = await ytdlBase();
     // Each line can be a playlist/channel (expands to many entries) or a
     // single video URL (becomes one entry) — resolved independently so one
     // bad line doesn't sink the rest of the batch.
     const results = await Promise.all(lines.map(async line => {
       try {
-        const r = await fetch(`${YTDL_API_BASE}/api/info?url=${encodeURIComponent(line)}`);
+        const r = await fetch(`${base}/api/info?url=${encodeURIComponent(line)}`);
         const data = await r.json();
         if (!r.ok) return { error: data.error || 'Could not read that link.', line };
         return data.type === 'playlist' ? data.entries : [{ url: line, title: data.title, thumbnail: data.thumbnail, duration: data.duration }];
